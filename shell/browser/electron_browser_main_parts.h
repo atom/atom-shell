@@ -102,6 +102,11 @@ class ElectronBrowserMainParts : public content::BrowserMainParts {
   Browser* browser() { return browser_.get(); }
   BrowserProcessImpl* browser_process() { return fake_browser_process_.get(); }
 
+#if defined(OS_LINUX)
+  // Used by platform_util to set GDK_BACKEND.
+  static absl::optional<std::string>& GetGDKBackend();
+#endif
+
  protected:
   // content::BrowserMainParts:
   int PreEarlyInitialization() override;

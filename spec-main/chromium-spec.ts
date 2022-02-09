@@ -364,6 +364,66 @@ describe('web security', () => {
   });
 });
 
+ifdescribe(process.platform === 'linux')('subprocesses', () => {
+  let appProcess: ChildProcess.ChildProcessWithoutNullStreams | undefined;
+  afterEach(() => {
+    if (appProcess && !appProcess.killed) {
+      appProcess.kill();
+      appProcess = undefined;
+    }
+  });
+
+  it('does not propagate GDK_BACKEND', async () => {
+    const appPath = path.join(fixturesPath, 'api', 'gdk-backend-check');
+    appProcess = ChildProcess.spawn(process.execPath, [appPath], {
+      env: {
+        GDK_BACKEND: ''
+      }
+    });
+
+    let output = '';
+    appProcess.stdout.on('data', (data) => { output += data; });
+    let stderr = '';
+    appProcess.stderr.on('data', (data) => { stderr += data; });
+
+    const [code, signal] = await emittedOnce(appProcess, 'exit');
+    if (code !== 0) {
+      throw new Error(`Process exited with code "${code}" signal "${signal}" output "${output}" stderr "${stderr}"`);
+    }
+
+    output = output.replace(/(\r\n|\n|\r)/gm, '');
+
+    const backend = String(process.env.GDK_BACKEND);
+    expect(output).to.not.equal(backend);
+    expect(output).to.be.empty();
+  });
+
+  it('successfully honors GDK_BACKEND set in the subproc', async () => {
+    const appPath = path.join(fixturesPath, 'api', 'gdk-backend-check');
+    appProcess = ChildProcess.spawn(process.execPath, [appPath], {
+      env: {
+        GDK_BACKEND: 'wayland'
+      }
+    });
+
+    let output = '';
+    appProcess.stdout.on('data', (data) => { output += data; });
+    let stderr = '';
+    appProcess.stderr.on('data', (data) => { stderr += data; });
+
+    const [code, signal] = await emittedOnce(appProcess, 'exit');
+    if (code !== 0) {
+      throw new Error(`Process exited with code "${code}" signal "${signal}" output "${output}" stderr "${stderr}"`);
+    }
+
+    output = output.replace(/(\r\n|\n|\r)/gm, '');
+
+    const backend = String(process.env.GDK_BACKEND);
+    expect(output).to.not.equal(backend);
+    expect(output).to.equal('wayland');
+  });
+});
+
 describe('command line switches', () => {
   let appProcess: ChildProcess.ChildProcessWithoutNullStreams | undefined;
   afterEach(() => {

@@ -358,8 +358,24 @@ void ElectronBrowserMainParts::PostDestroyThreads() {
   fake_browser_process_->PostDestroyThreads();
 }
 
+#if defined(OS_LINUX)
+// static
+absl::optional<std::string>& ElectronBrowserMainParts::GetGDKBackend() {
+  static absl::optional<std::string> gdk_backend;
+  return gdk_backend;
+}
+#endif
+
 void ElectronBrowserMainParts::ToolkitInitialized() {
 #if defined(OS_LINUX)
+  // This is set by Chromium here:
+  // https://chromium-review.googlesource.com/c/chromium/src/+/2586184
+  // and can detrimentally affect external app behaviors, so we want to
+  // check if the user has set it so we can use it later.
+  std::string backend;
+  if (base::Environment::Create()->GetVar("GDK_BACKEND", &backend))
+    GetGDKBackend() = backend;
+
   auto linux_ui = BuildGtkUi();
   linux_ui->Initialize();
   DCHECK(ui::LinuxInputMethodContextFactory::instance());
