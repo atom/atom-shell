@@ -61,7 +61,7 @@ executors:
         type: enum
         enum: ["medium", "xlarge", "2xlarge+"]
     docker:
-      - image: ghcr.io/electron/build:27db4a3e3512bfd2e47f58cea69922da0835f1d9
+      - image: ghcr.io/electron/build@sha256:93975f5641bff21cd9d92da65dbfdfdeee9199ef4ad5cfc4b86af38437ca0e10
     resource_class: << parameters.size >>
 
 # List of always run steps

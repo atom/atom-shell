@@ -13,6 +13,7 @@ import { promisify } from 'util';
 import { ifit, ifdescribe, delay, defer } from './spec-helpers';
 import { AddressInfo } from 'net';
 import { PipeTransport } from './pipe-transport';
+const timersPromises = require('timers/promises');
 
 const features = process._linkedBinding('electron_common_features');
 
@@ -360,6 +361,78 @@ describe('web security', () => {
     w1.loadURL(serverUrl);
     const w2 = new BrowserWindow(options);
     w2.loadURL(serverUrl);
+  });
+});
+
+ifdescribe(process.platform === 'linux' && !process.arch.includes('arm'))('subprocesses', () => {
+  let appProcess: ChildProcess.ChildProcessWithoutNullStreams | undefined;
+  const appPath = path.join(fixturesPath, 'api', 'gdk-backend-check');
+  beforeEach(() => {
+    ChildProcess.execFileSync(path.join(appPath, 'before-test.sh'), { cwd: appPath, encoding: 'utf8' });
+  });
+  afterEach(() => {
+    ChildProcess.execFileSync(path.join(appPath, 'after-test.sh'), { cwd: appPath, encoding: 'utf8' });
+    if (appProcess && !appProcess.killed) {
+      appProcess.kill();
+      appProcess = undefined;
+    }
+  });
+
+  it('does not propagate GDK_BACKEND', async () => {
+    appProcess = ChildProcess.spawn(process.execPath, [path.join(appPath, 'main.js')], { env: { ...process.env, GDK_BACKEND: '' } });
+
+    let output = '';
+    appProcess.stdout.on('data', (data) => { output += data; });
+    let stderr = '';
+    appProcess.stderr.on('data', (data) => { stderr += data; });
+
+    const [code, signal] = await emittedOnce(appProcess, 'exit');
+    if (code !== 0) {
+      throw new Error(`Process exited with code "${code}" signal "${signal}" output "${output}" stderr "${stderr}"`);
+    }
+
+    for await (const startTime of timersPromises.setInterval(10, Date.now())) {
+      if (fs.existsSync('/tmp/groot-says')) {
+        let gdkBackend = fs.readFileSync('/tmp/groot-says', 'utf8');
+        gdkBackend = gdkBackend.trim();
+
+        expect(gdkBackend).to.be.empty();
+        break;
+      }
+      const now = Date.now();
+      if ((now - startTime) > 5000) {
+        throw new Error('The gdk backend test failed timing out on waiting for the file');
+      }
+    }
+  });
+
+  it('successfully honors GDK_BACKEND set in the subproc', async () => {
+    appProcess = ChildProcess.spawn(process.execPath, [path.join(appPath, 'main.js')], { env: { ...process.env, GDK_BACKEND: 'groot' } });
+
+    let output = '';
+    appProcess.stdout.on('data', (data) => { output += data; });
+    let stderr = '';
+    appProcess.stderr.on('data', (data) => { stderr += data; });
+
+    const [code, signal] = await emittedOnce(appProcess, 'exit');
+    if (code !== 0) {
+      throw new Error(`Process exited with code "${code}" signal "${signal}" output "${output}" stderr "${stderr}"`);
+    }
+
+    for await (const startTime of timersPromises.setInterval(10, Date.now())) {
+      if (fs.existsSync('/tmp/groot-says')) {
+        let gdkBackend = fs.readFileSync('/tmp/groot-says', 'utf8');
+        gdkBackend = gdkBackend.trim();
+
+        expect(gdkBackend).to.not.be.empty();
+        expect(gdkBackend).to.equal('groot');
+        break;
+      }
+      const now = Date.now();
+      if ((now - startTime) > 5000) {
+        throw new Error('The gdk backend test failed timing out on waiting for the file');
+      }
+    }
   });
 });
 

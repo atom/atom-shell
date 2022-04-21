@@ -1,0 +1,2 @@
+#!/bin/sh
+echo $GDK_BACKEND > /tmp/groot-says

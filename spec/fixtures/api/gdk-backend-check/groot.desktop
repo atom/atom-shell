@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Exec=/tmp/groot
+Name=Groot
+MimeType=application/x-groot
