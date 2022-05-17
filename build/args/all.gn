@@ -45,3 +45,5 @@ enable_cet_shadow_stack = false
 # V8 in the browser process.
 # Ref: https://source.chromium.org/chromium/chromium/src/+/45fba672185aae233e75d6ddc81ea1e0b30db050:v8/BUILD.gn;l=281
 is_cfi = false
+
+enable_resource_allowlist_generation = true

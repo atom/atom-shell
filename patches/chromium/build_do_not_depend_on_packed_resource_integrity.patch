@@ -11,7 +11,7 @@ if we ever align our .pak file generation with Chrome we can remove this
 patch.
 
 diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
-index 3c40d999a9545051e91a9f0ad3bf7ca2a95d80c4..b5a20be5e22238e7e1969bdaf52c0b05e84bb846 100644
+index 7203dde2f96d5e8ed44443e21a2257166b6e6f36..b7eec4e35fc3480ca6779ff17cf714edfd727c48 100644
 --- a/chrome/BUILD.gn
 +++ b/chrome/BUILD.gn
 @@ -171,11 +171,16 @@ if (!is_android && !is_mac) {

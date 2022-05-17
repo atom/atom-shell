@@ -12,7 +12,7 @@ template("electron_repack_percent") {
     forward_variables_from(invoker,
                            [
                              "copy_data_to_bundle",
-                             "repack_whitelist",
+                             "repack_allowlist",
                              "visibility",
                            ])
 
@@ -49,7 +49,7 @@ template("electron_extra_paks") {
     forward_variables_from(invoker,
                            [
                              "copy_data_to_bundle",
-                             "repack_whitelist",
+                             "repack_allowlist",
                              "visibility",
                            ])
     output = "${invoker.output_dir}/resources.pak"
@@ -130,7 +130,7 @@ template("electron_paks") {
                              "copy_data_to_bundle",
                              "deps",
                              "output_dir",
-                             "repack_whitelist",
+                             "repack_allowlist",
                              "visibility",
                            ])
   }
@@ -143,7 +143,7 @@ template("electron_paks") {
                                "copy_data_to_bundle",
                                "deps",
                                "output_dir",
-                               "repack_whitelist",
+                               "repack_allowlist",
                                "visibility",
                              ])
     }
@@ -155,7 +155,7 @@ template("electron_paks") {
                              "copy_data_to_bundle",
                              "deps",
                              "output_dir",
-                             "repack_whitelist",
+                             "repack_allowlist",
                              "visibility",
                            ])
     if (defined(invoker.additional_extra_paks)) {
@@ -170,10 +170,10 @@ template("electron_paks") {
                              "deps",
                              "visibility",
                            ])
-    if (defined(invoker.locale_whitelist)) {
-      repack_whitelist = invoker.locale_whitelist
-    } else if (defined(invoker.repack_whitelist)) {
-      repack_whitelist = invoker.repack_whitelist
+    if (defined(invoker.locale_allowlist)) {
+      repack_allowlist = invoker.locale_allowlist
+    } else if (defined(invoker.repack_allowlist)) {
+      repack_allowlist = invoker.repack_allowlist
     }
 
     source_patterns = [
@@ -191,7 +191,10 @@ template("electron_paks") {
       "${root_gen_dir}/ui/strings/ax_strings_",
       "${root_gen_dir}/ui/strings/ui_strings_",
     ]
-    deps = [
+    if (!defined(deps)) {
+      deps = []
+    }
+    deps += [
       "//chrome/app:generated_resources",
       "//chrome/app/resources:locale_settings",
       "//chrome/app/resources:platform_locale_settings",

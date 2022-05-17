@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jeremy Rose <nornagon@nornagon.net>
+Date: Thu, 14 Apr 2022 13:06:02 -0700
+Subject: permit resource allowlist generation on all platforms
+
+This adds (somewhat shaky) support for resource allowlist generation on mac and
+linux. Or at least, removes some barriers to experimenting with same.
+
+diff --git a/build/toolchain/gcc_toolchain.gni b/build/toolchain/gcc_toolchain.gni
+index 84e83c0dc8eb41f3330adf6df95d11384fbbc98d..462b2586179e00aefae35034c1154e9399ba8cf7 100644
+--- a/build/toolchain/gcc_toolchain.gni
++++ b/build/toolchain/gcc_toolchain.gni
+@@ -48,9 +48,9 @@ if (enable_resource_allowlist_generation) {
+   assert(
+       !is_component_build,
+       "enable_resource_allowlist_generation=true requires is_component_build=false")
+-  assert(
+-      target_os == "android" || target_os == "win",
+-      "enable_resource_allowlist_generation=true does not work for target_os=$target_os")
++#  assert(
++#      target_os == "android" || target_os == "win",
++#      "enable_resource_allowlist_generation=true does not work for target_os=$target_os")
+ }
+ 
+ # This template defines a toolchain for something that works like gcc
+diff --git a/chrome/BUILD.gn b/chrome/BUILD.gn
+index b7eec4e35fc3480ca6779ff17cf714edfd727c48..769ac10ae2935d200c1664366b6a8dbedfab2f06 100644
+--- a/chrome/BUILD.gn
++++ b/chrome/BUILD.gn
+@@ -1544,7 +1544,7 @@ if (!is_android) {
+       mark_as_data = true
+     }
+ 
+-    if (enable_resource_allowlist_generation) {
++    if (enable_resource_allowlist_generation && is_win) {
+       repack_allowlist = _chrome_resource_allowlist
+       deps = [ ":resource_allowlist" ]
+     }
+diff --git a/tools/resources/generate_resource_allowlist.py b/tools/resources/generate_resource_allowlist.py
+index 3fb5ca91e1b3096d650598a98af99f9eda4a1aff..e81c25504141fa6aec569905e78de21b50e4817c 100755
+--- a/tools/resources/generate_resource_allowlist.py
++++ b/tools/resources/generate_resource_allowlist.py
+@@ -123,7 +123,7 @@ def WriteResourceAllowlist(args):
+     with open(input, 'rb') as f:
+       magic = f.read(4)
+       chunk = f.read(60)
+-    if magic == b'\x7fELF':
++    if magic == b'\x7fELF' or magic == b'\xcf\xfa\xed\xfe':
+       func = GetResourceAllowlistELF
+     elif magic == b'Micr':
+       func = GetResourceAllowlistPDB
+@@ -139,7 +139,7 @@ def WriteResourceAllowlist(args):
+   if len(resource_ids) < 100:
+     raise Exception('Suspiciously few resources found. Likely an issue with '
+                     'the regular expression in this script. Found: ' +
+-                    ','.join(sorted(resource_ids)))
++                    ','.join(map(str, sorted(resource_ids))))
+   for id in sorted(resource_ids):
+     args.output.write(str(id) + '\n')
+ 

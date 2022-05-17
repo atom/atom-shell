@@ -17,7 +17,6 @@ boringssl_build_gn.patch
 pepper_plugin_support.patch
 gtk_visibility.patch
 sysroot.patch
-resource_file_conflict.patch
 scroll_bounce_flag.patch
 mas_blink_no_private_api.patch
 mas_no_private_api.patch
@@ -107,4 +106,5 @@ build_disable_partition_alloc_on_mac.patch
 fix_non-client_mouse_tracking_and_message_bubbling_on_windows.patch
 build_make_libcxx_abi_unstable_false_for_electron.patch
 introduce_ozoneplatform_electron_can_call_x11_property.patch
+permit_resource_allowlist_generation_on_all_platforms.patch
 make_gtk_getlibgtk_public.patch
