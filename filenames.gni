@@ -509,6 +509,8 @@ filenames = {
     "shell/browser/ui/webui/accessibility_ui.h",
     "shell/browser/unresponsive_suppressor.cc",
     "shell/browser/unresponsive_suppressor.h",
+    "shell/browser/virtual_keyboard_notifier.cc",
+    "shell/browser/virtual_keyboard_notifier.h",
     "shell/browser/web_contents_permission_helper.cc",
     "shell/browser/web_contents_permission_helper.h",
     "shell/browser/web_contents_preferences.cc",

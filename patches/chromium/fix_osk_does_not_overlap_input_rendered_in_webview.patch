@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Kyrylo Hrechykhin <khrechykhin@microsoft.com>
+Date: Wed, 31 Aug 2022 16:44:12 +0200
+Subject: fix: OSK does not overlap input rendered in webview
+
+The changes in this patch introduces VirtualKeyboardNotifier singleton.
+Its main purpose is to notify render widget host views about virtual
+keyboard visibility change. RenderWidgetHostViewChildFrame is added as
+observer to VirtualKeyboardNotifier and got notified everytime virtual
+keyabord appears/disappears. RenderWidgetHostViewChildFrame sets insets
+that allow input to be visible above virtual keyboard.
+
+diff --git a/content/browser/renderer_host/render_widget_host_view_child_frame.cc b/content/browser/renderer_host/render_widget_host_view_child_frame.cc
+index fe70c30f83e72d63e38760b5535af79e2a7056e5..446d977d70e43e89fb98818e66d9cd4872ce0683 100644
+--- a/content/browser/renderer_host/render_widget_host_view_child_frame.cc
++++ b/content/browser/renderer_host/render_widget_host_view_child_frame.cc
+@@ -69,9 +69,17 @@ RenderWidgetHostViewChildFrame::RenderWidgetHostViewChildFrame(
+   GetHostFrameSinkManager()->SetFrameSinkDebugLabel(
+       frame_sink_id_, "RenderWidgetHostViewChildFrame");
+   host()->render_frame_metadata_provider()->AddObserver(this);
++
++  if (electron::VirtualKeyboardNotifier* virtual_keyboard_notifier = electron::VirtualKeyboardNotifier::GetInstance()) {
++    virtual_keyboard_notifier->AddObserver(this);
++  }
+ }
+ 
+ RenderWidgetHostViewChildFrame::~RenderWidgetHostViewChildFrame() {
++  if (electron::VirtualKeyboardNotifier* virtual_keyboard_notifier = electron::VirtualKeyboardNotifier::GetInstance()) {
++    virtual_keyboard_notifier->RemoveObserver(this);
++  }
++
+   // TODO(wjmaclean): The next two lines are a speculative fix for
+   // https://crbug.com/760074, based on the theory that perhaps something is
+   // destructing the class without calling Destroy() first.
+@@ -1000,6 +1008,15 @@ RenderWidgetHostViewChildFrame::GetRootRenderWidgetHostView() const {
+                           : nullptr;
+ }
+ 
++void RenderWidgetHostViewChildFrame::OnKeyboardVisible(const gfx::Rect& rect) {
++  SetInsets(gfx::Insets::TLBR(
++        0, 0, rect.IsEmpty() ? 0 : rect.height(), 0));
++}
++
++void RenderWidgetHostViewChildFrame::OnKeyboardHidden() {
++  SetInsets(gfx::Insets());
++}
++
+ bool RenderWidgetHostViewChildFrame::CanBecomeVisible() {
+   if (!frame_connector_)
+     return true;
+diff --git a/content/browser/renderer_host/render_widget_host_view_child_frame.h b/content/browser/renderer_host/render_widget_host_view_child_frame.h
+index 457dabe428e84230b2e831e9281feee06e7c8e76..f4b1c92fa9cf13ef3714ca220cb234c006d15f04 100644
+--- a/content/browser/renderer_host/render_widget_host_view_child_frame.h
++++ b/content/browser/renderer_host/render_widget_host_view_child_frame.h
+@@ -27,6 +27,7 @@
+ #include "content/browser/renderer_host/render_widget_host_view_base.h"
+ #include "content/common/content_export.h"
+ #include "content/public/browser/touch_selection_controller_client_manager.h"
++#include "electron/shell/browser/virtual_keyboard_notifier.h"
+ #include "services/viz/public/mojom/compositing/compositor_frame_sink.mojom.h"
+ #include "third_party/blink/public/common/widget/visual_properties.h"
+ #include "third_party/blink/public/mojom/frame/intrinsic_sizing_info.mojom-forward.h"
+@@ -58,7 +59,8 @@ class CONTENT_EXPORT RenderWidgetHostViewChildFrame
+     : public RenderWidgetHostViewBase,
+       public TouchSelectionControllerClientManager::Observer,
+       public RenderFrameMetadataProvider::Observer,
+-      public viz::HostFrameSinkClient {
++      public viz::HostFrameSinkClient,
++      public electron::VirtualKeyboardNotifier::Observer {
+  public:
+   // TODO(crbug.com/1182855): Pass multi-screen info from the parent.
+   static RenderWidgetHostViewChildFrame* Create(
+@@ -219,6 +221,9 @@ class CONTENT_EXPORT RenderWidgetHostViewChildFrame
+ 
+   RenderWidgetHostViewBase* GetRootRenderWidgetHostView() const;
+ 
++  void OnKeyboardVisible(const gfx::Rect& rect) override;
++  void OnKeyboardHidden() override;
++
+  protected:
+   friend class RenderWidgetHostView;
+   friend class RenderWidgetHostViewChildFrameTest;
+diff --git a/content/browser/renderer_host/virtual_keyboard_controller_win.cc b/content/browser/renderer_host/virtual_keyboard_controller_win.cc
+index 490ae92717b71128f932822c8c63688b4b41fe48..d78253c253da78e451e25a308a6c4e676c1f849d 100644
+--- a/content/browser/renderer_host/virtual_keyboard_controller_win.cc
++++ b/content/browser/renderer_host/virtual_keyboard_controller_win.cc
+@@ -6,6 +6,7 @@
+ 
+ #include "base/trace_event/trace_event.h"
+ #include "content/browser/renderer_host/render_widget_host_view_aura.h"
++#include "electron/shell/browser/virtual_keyboard_notifier.h"
+ #include "ui/base/ime/input_method.h"
+ #include "ui/base/ime/mojom/text_input_state.mojom.h"
+ #include "ui/base/ime/virtual_keyboard_controller.h"
+@@ -52,6 +53,10 @@ void VirtualKeyboardControllerWin::OnKeyboardVisible(
+   } else {
+     host_view_->NotifyVirtualKeyboardOverlayRect(keyboard_rect);
+   }
++
++  if (electron::VirtualKeyboardNotifier* virtual_keyboard_notifier = electron::VirtualKeyboardNotifier::GetInstance()) {
++    virtual_keyboard_notifier->NotifyKeyboardVisible(keyboard_rect);
++  }
+ }
+ 
+ void VirtualKeyboardControllerWin::OnKeyboardHidden() {
+@@ -69,6 +74,10 @@ void VirtualKeyboardControllerWin::OnKeyboardHidden() {
+   } else {
+     host_view_->NotifyVirtualKeyboardOverlayRect(gfx::Rect());
+   }
++
++  if (electron::VirtualKeyboardNotifier* virtual_keyboard_notifier = electron::VirtualKeyboardNotifier::GetInstance()) {
++    virtual_keyboard_notifier->NotifyKeyboardHidden();
++  }
+ }
+ 
+ void VirtualKeyboardControllerWin::ShowVirtualKeyboard() {
