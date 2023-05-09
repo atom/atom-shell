@@ -139,6 +139,9 @@ ElectronBrowserContext::ElectronBrowserContext(
                      &partition_location)) {
     const base::FilePath& partition_path = filepath_partition->get();
     path_ = std::move(partition_path);
+    if (auto quota_size_opt = options.FindInt("quota")) {
+      user_set_quota_ = quota_size_opt.value();
+    }
   }
 
   BrowserContextDependencyManager::GetInstance()->MarkBrowserContextLive(this);
@@ -171,6 +174,15 @@ ElectronBrowserContext::~ElectronBrowserContext() {
 
   BrowserThread::DeleteSoon(BrowserThread::IO, FROM_HERE,
                             std::move(resource_context_));
+}
+
+content::StoragePartition*
+ElectronBrowserContext::GetDefaultStoragePartition() {
+  if (user_set_quota_) {
+    return GetStoragePartition(
+        content::StoragePartitionConfig::CreateDefault(this, user_set_quota_));
+  }
+  return BrowserContext::GetDefaultStoragePartition();
 }
 
 void ElectronBrowserContext::InitPrefs() {

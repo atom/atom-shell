@@ -46,7 +46,8 @@ of an existing `Session` object.
 
 * `path` string
 * `options` Object (optional)
-  * `cache` boolean - Whether to enable cache.
+  * `cache` boolean (optional) - Whether to enable cache.
+  * `quota` number (optional) - Use a quota size for a partition (in bytes).
 
 Returns `Session` - A session instance from the absolute path as specified by the `path`
 string. When there is an existing `Session` with the same absolute path, it
@@ -56,7 +57,12 @@ be thrown if an empty string is provided.
 
 To create a `Session` with `options`, you have to ensure the `Session` with the
 `path` has never been used before. There is no way to change the `options`
-of an existing `Session` object.
+of an existing `Session` object. The optional `quota` parameter can be used to
+specify the a quota size that can be used by the session, which will be returned as the quota provided by navigator.storage.estimate(). If the `quota` is not provided, the
+size of the volume on which path is located will be used. A smaller quota size will allow
+the [LRU](https://en.wikipedia.org/wiki/Page_replacement_algorithm#Least_recently_used)
+algorithm to evict more data from the cache, though there is no guarantee that the
+cache will not exceed the quota size.
 
 ## Properties
 
