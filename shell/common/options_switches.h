@@ -116,6 +116,7 @@ extern const char kCORSSchemes[];
 extern const char kStreamingSchemes[];
 extern const char kAppUserModelId[];
 extern const char kAppPath[];
+extern const char kResourcesPath[];
 
 extern const char kScrollBounce[];
 extern const char kNodeIntegrationInWorker[];

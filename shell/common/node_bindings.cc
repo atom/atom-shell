@@ -13,6 +13,7 @@
 #include "base/command_line.h"
 #include "base/containers/fixed_flat_set.h"
 #include "base/environment.h"
+#include "base/files/file_util.h"
 #include "base/path_service.h"
 #include "base/run_loop.h"
 #include "base/strings/string_split.h"
@@ -34,6 +35,7 @@
 #include "shell/common/gin_helper/microtasks_scope.h"
 #include "shell/common/mac/main_application_bundle.h"
 #include "shell/common/node_includes.h"
+#include "shell/common/options_switches.h"
 #include "third_party/blink/renderer/bindings/core/v8/v8_initializer.h"  // nogncheck
 #include "third_party/electron_node/src/debug_utils.h"
 
@@ -306,6 +308,19 @@ namespace electron {
 namespace {
 
 base::FilePath GetResourcesPath() {
+  if (!electron::fuses::IsEmbeddedAsarIntegrityValidationEnabled() &&
+      !electron::api::App::IsPackaged()) {
+    base::FilePath resources_path =
+        base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
+            switches::kResourcesPath);
+    if (!resources_path.empty()) {
+      if (base::PathExists(resources_path)) {
+        return resources_path;
+      }
+      LOG(ERROR) << "--resources-path points to a non-existent directory";
+      resources_path.clear();
+    }
+  }
 #if BUILDFLAG(IS_MAC)
   return MainApplicationBundlePath().Append("Contents").Append("Resources");
 #else

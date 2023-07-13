@@ -204,6 +204,15 @@ authentication [per Chromium issue](https://bugs.chromium.org/p/chromium/issues/
 
 Enables remote debugging over HTTP on the specified `port`.
 
+### --resources-path=`path`
+
+Sets the resources path of an Electron application to the specified directory,
+this means that `process.resourcesPath` will point to it. If it's absent or an
+invalid path is passed then it falls back to the default value of the `resources`
+path relative to the Electron binary and emits an error message to the log if
+the path doesn't exist. It's ignored if the application is packaged or the
+`embeddedAsarIntegrityValidation` fuse is enabled.
+
 ### --v=`log_level`
 
 Gives the default maximal active V-logging level; 0 is the default. Normally

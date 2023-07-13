@@ -553,6 +553,13 @@ void ElectronBrowserClient::AppendExtraCommandLineSwitches(
       command_line->AppendSwitchPath(switches::kAppPath, app_path);
     }
 
+    base::FilePath resources_path =
+        base::CommandLine::ForCurrentProcess()->GetSwitchValuePath(
+            switches::kResourcesPath);
+    if (!resources_path.empty()) {
+      command_line->AppendSwitchPath(switches::kResourcesPath, resources_path);
+    }
+
     auto env = base::Environment::Create();
     if (env->HasVar("ELECTRON_PROFILE_INIT_SCRIPTS")) {
       command_line->AppendSwitch("profile-electron-init");
