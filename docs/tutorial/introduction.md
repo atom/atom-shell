@@ -1,4 +1,7 @@
----
+---[google_privacy_policy_tr.pdf](https://github.com/electron/electron/files/12169428/google_privacy_policy_tr.pdf)
+[MicrosoftProductandServicesDPA(WW)(English)(Jan2023)(CR).docx](https://github.com/electron/electron/files/12169421/MicrosoftProductandServicesDPA.WW.English.Jan2023.CR.docx)
+![reserve_with_google_preview_v1](https://github.com/electron/electron/assets/110877880/7a409812-8ac6-4f19-bdf8-69897fd5231d)
+
 title: 'Introduction'
 description: 'Welcome to the Electron documentation! If this is your first time developing an Electron app, read through this Getting Started section to get familiar with the basics. Otherwise, feel free to explore our guides and API documentation!'
 slug: /latest/
