@@ -419,6 +419,7 @@ source_set("electron_lib") {
     "//base/allocator:buildflags",
     "//chrome:strings",
     "//chrome/app:command_ids",
+    "//chrome/browser/headless",
     "//chrome/app/resources:platform_locale_settings",
     "//components/autofill/core/common:features",
     "//components/certificate_transparency",

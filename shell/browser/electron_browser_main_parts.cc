@@ -20,6 +20,7 @@
 #include "base/strings/string_number_conversions.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/single_thread_task_runner.h"
+#include "chrome/browser/headless/headless_mode_util.h"
 #include "chrome/browser/icon_manager.h"
 #include "chrome/browser/ui/color/chrome_color_mixers.h"
 #include "chrome/common/chrome_paths.h"
@@ -423,9 +424,11 @@ void ElectronBrowserMainParts::ToolkitInitialized() {
   linux_ui_getter_ = std::make_unique<LinuxUiGetterImpl>();
 
   // Try loading gtk symbols used by Electron.
-  electron::InitializeElectron_gtk(gtk::GetLibGtk());
-  if (!electron::IsElectron_gtkInitialized()) {
-    electron::UninitializeElectron_gtk();
+  if (!headless::IsHeadlessMode()) {
+    electron::InitializeElectron_gtk(gtk::GetLibGtk());
+    if (!electron::IsElectron_gtkInitialized()) {
+      electron::UninitializeElectron_gtk();
+    }
   }
 
   electron::InitializeElectron_gdk_pixbuf(gtk::GetLibGdkPixbuf());
@@ -436,13 +439,22 @@ void ElectronBrowserMainParts::ToolkitInitialized() {
   // in future and this code might be no longer needed. Check the Chromium
   // issue to keep updated:
   // https://bugs.chromium.org/p/chromium/issues/detail?id=998903
-  UpdateDarkThemeSetting();
+  if (!headless::IsHeadlessMode()) {
+    UpdateDarkThemeSetting();
+  }
   // Update the native theme when GTK theme changes. The GetNativeTheme
   // here returns a NativeThemeGtk, which monitors GTK settings.
   dark_theme_observer_ = std::make_unique<DarkThemeObserver>();
-  auto* linux_ui_theme = ui::LinuxUiTheme::GetForProfile(nullptr);
-  CHECK(linux_ui_theme);
-  linux_ui_theme->GetNativeTheme()->AddObserver(dark_theme_observer_.get());
+  if (headless::IsHeadlessMode()) {
+    auto* linux_ui_theme = ui::
+        GetDefaultLinuxUiTheme();  // ui::LinuxUiTheme::GetForProfile(nullptr);
+    CHECK(linux_ui_theme);
+    // linux_ui_theme->GetNativeTheme()->AddObserver(dark_theme_observer_.get());
+  } else {
+    auto* linux_ui_theme = ui::LinuxUiTheme::GetForProfile(nullptr);
+    CHECK(linux_ui_theme);
+    linux_ui_theme->GetNativeTheme()->AddObserver(dark_theme_observer_.get());
+  }
   ui::LinuxUi::SetInstance(linux_ui);
 
   // Cursor theme changes are tracked by LinuxUI (via a CursorThemeManager

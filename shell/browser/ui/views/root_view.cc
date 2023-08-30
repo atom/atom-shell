@@ -6,6 +6,7 @@
 
 #include <memory>
 
+#include "chrome/browser/headless/headless_mode_util.h"
 #include "content/public/browser/native_web_keyboard_event.h"
 #include "shell/browser/native_window.h"
 #include "shell/browser/ui/views/menu_bar.h"
@@ -58,7 +59,7 @@ void RootView::SetMenu(ElectronMenuModel* menu_model) {
   RegisterAcceleratorsWithFocusManager(menu_model);
 
   // Do not show menu bar in frameless window.
-  if (!window_->has_frame())
+  if (!window_->has_frame() || headless::IsHeadlessMode())
     return;
 
   if (!menu_bar_) {

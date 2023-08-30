@@ -9,6 +9,7 @@
 #include "base/base_switches.h"
 #include "base/command_line.h"
 #include "base/i18n/icu_util.h"
+#include "chrome/browser/headless/headless_mode_util.h"
 #include "content/public/app/content_main.h"
 #include "electron/buildflags/buildflags.h"
 #include "electron/fuses.h"
@@ -38,9 +39,14 @@ int main(int argc, char* argv[]) {
 
   electron::ElectronMainDelegate delegate;
   content::ContentMainParams params(&delegate);
-  electron::ElectronCommandLine::Init(argc, argv);
-  params.argc = argc;
-  params.argv = const_cast<const char**>(argv);
-  base::CommandLine::Init(params.argc, params.argv);
+
+  base::CommandLine::Init(argc, argv);
+  [[maybe_unused]] base::CommandLine* command_line(
+      base::CommandLine::ForCurrentProcess());
+  if (headless::IsHeadlessMode()) {
+    headless::SetUpCommandLine(command_line);
+  }
+
+  electron::ElectronCommandLine::InitializeFromCommandLine();
   return content::ContentMain(std::move(params));
 }
