@@ -18,6 +18,7 @@
 #include "shell/common/gin_helper/cleaned_up_at_exit.h"
 #include "shell/common/gin_helper/constructible.h"
 #include "shell/common/gin_helper/error_thrower.h"
+#include "shell/common/gin_helper/pinnable.h"
 #include "ui/gfx/image/image.h"
 
 namespace gin {
@@ -29,6 +30,7 @@ class Handle;
 namespace electron::api {
 
 class Notification : public gin::Wrappable<Notification>,
+                     public gin_helper::Pinnable<Notification>,
                      public gin_helper::EventEmitterMixin<Notification>,
                      public gin_helper::Constructible<Notification>,
                      public gin_helper::CleanedUpAtExit,

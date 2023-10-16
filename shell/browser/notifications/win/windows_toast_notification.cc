@@ -15,6 +15,7 @@
 #include "base/logging.h"
 #include "base/strings/string_util_win.h"
 #include "base/strings/utf_string_conversions.h"
+#include "base/win/scoped_hstring.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
 #include "shell/browser/notifications/notification_delegate.h"
@@ -31,6 +32,7 @@ using ABI::Windows::Data::Xml::Dom::IXmlElement;
 using ABI::Windows::Data::Xml::Dom::IXmlNamedNodeMap;
 using ABI::Windows::Data::Xml::Dom::IXmlNode;
 using ABI::Windows::Data::Xml::Dom::IXmlNodeList;
+using ABI::Windows::Data::Xml::Dom::IXmlNodeSerializer;
 using ABI::Windows::Data::Xml::Dom::IXmlText;
 using Microsoft::WRL::Wrappers::HStringReference;
 
@@ -232,6 +234,18 @@ HRESULT WindowsToastNotification::GetToastXml(
   }
 
   return S_OK;
+}
+
+std::string WindowsToastNotification::XmlStringFromDocument(IXmlDocument* doc) {
+  ComPtr<IXmlNodeSerializer> ser;
+  ComPtr<IXmlElement> doc_elem;
+  doc->get_DocumentElement(&doc_elem);
+  doc_elem.As<IXmlNodeSerializer>(&ser);
+  HSTRING result_xml;
+  ser->GetXml(&result_xml);
+  base::win::ScopedHString result_string(result_xml);
+
+  return result_string.GetAsUTF8();
 }
 
 HRESULT WindowsToastNotification::SetXmlScenarioReminder(IXmlDocument* doc) {

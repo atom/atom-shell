@@ -72,6 +72,11 @@ Notification::Notification(gin::Arguments* args) {
     opts.Get("closeButtonText", &close_button_text_);
     opts.Get("toastXml", &toast_xml_);
   }
+
+  // The notification should not be garbage collected until it is interacted
+  // with
+  if (timeout_type_ == u"never")
+    Pin(JavascriptEnvironment::GetIsolate());
 }
 
 Notification::~Notification() {
@@ -160,6 +165,10 @@ void Notification::SetHasReply(bool new_has_reply) {
 }
 
 void Notification::SetTimeoutType(const std::u16string& new_timeout_type) {
+  // The notification should be garbage collected if it is not set to `never`
+  if (timeout_type_ == u"never" && new_timeout_type != u"never") {
+    Unpin();
+  }
   timeout_type_ = new_timeout_type;
 }
 
@@ -193,10 +202,12 @@ void Notification::NotificationAction(int index) {
 }
 
 void Notification::NotificationClick() {
+  Unpin();
   Emit("click");
 }
 
 void Notification::NotificationReplied(const std::string& reply) {
+  Unpin();
   Emit("reply", reply);
 }
 
@@ -205,17 +216,22 @@ void Notification::NotificationDisplayed() {
 }
 
 void Notification::NotificationFailed(const std::string& error) {
+  Unpin();
   Emit("failed", error);
 }
 
-void Notification::NotificationDestroyed() {}
+void Notification::NotificationDestroyed() {
+  Unpin();
+}
 
 void Notification::NotificationClosed() {
+  Unpin();
   Emit("close");
 }
 
 void Notification::Close() {
   if (notification_) {
+    Unpin();
     notification_->Dismiss();
     notification_->set_delegate(nullptr);
     notification_.reset();

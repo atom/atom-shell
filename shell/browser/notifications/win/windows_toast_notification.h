@@ -87,6 +87,8 @@ class WindowsToastNotification : public Notification {
   HRESULT XmlDocumentFromString(
       const wchar_t* xmlString,
       ABI::Windows::Data::Xml::Dom::IXmlDocument** doc);
+  std::string XmlStringFromDocument(
+      ABI::Windows::Data::Xml::Dom::IXmlDocument* doc);
   HRESULT SetupCallbacks(
       ABI::Windows::UI::Notifications::IToastNotification* toast);
   bool RemoveCallbacks(
