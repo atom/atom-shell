@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Tam=C3=A1s=20Zahola?= <tzahola@gmail.com>
+Date: Fri, 8 Dec 2023 18:39:33 +0100
+Subject: fix: don't trigger microphone permission prompt with
+ enumerateDevices()
+
+macOS Sonoma shows the microphone permission prompt when ScopedAudioUnit
+is used to query the channel count of the device. Instead, use the
+AudioObjectGetProperty API directly on the AudioDevice.
+
+diff --git a/media/audio/mac/audio_manager_mac.cc b/media/audio/mac/audio_manager_mac.cc
+index b27691313cb15d663c903d05cdef20e44270c690..d473bd4b68a41e8d777ea0bf2bb3e804173c60f4 100644
+--- a/media/audio/mac/audio_manager_mac.cc
++++ b/media/audio/mac/audio_manager_mac.cc
+@@ -296,27 +296,6 @@ static bool GetDeviceTotalChannelCount(AudioDeviceID device,
+   return true;
+ }
+ 
+-// Returns the channel count from the |audio_unit|'s stream format for input
+-// scope / input element or output scope / output element.
+-static bool GetAudioUnitStreamFormatChannelCount(AudioUnit audio_unit,
+-                                                 AUElement element,
+-                                                 int* channels) {
+-  AudioStreamBasicDescription stream_format;
+-  UInt32 size = sizeof(stream_format);
+-  OSStatus result =
+-      AudioUnitGetProperty(audio_unit, kAudioUnitProperty_StreamFormat,
+-                           element == AUElement::OUTPUT ? kAudioUnitScope_Output
+-                                                        : kAudioUnitScope_Input,
+-                           element, &stream_format, &size);
+-  if (result != noErr) {
+-    OSSTATUS_DLOG(ERROR, result) << "Failed to get AudioUnit stream format.";
+-    return false;
+-  }
+-
+-  *channels = stream_format.mChannelsPerFrame;
+-  return true;
+-}
+-
+ // Returns the channel layout for |device| as provided by the AudioUnit attached
+ // to that device matching |element|. Returns true if the count could be pulled
+ // from the AudioUnit successfully, false otherwise.
+@@ -331,16 +310,33 @@ static bool GetDeviceChannels(AudioDeviceID device,
+   // TODO(https://crbug.com/796163): Find out if we can use channel layout on
+   // input element, or confirm that we can't.
+   if (element == AUElement::INPUT) {
+-    ScopedAudioUnit au(device, element);
+-    if (!au.is_valid()) {
++    AudioObjectPropertyAddress streamsProperty = {
++      .mSelector = kAudioDevicePropertyStreams,
++      .mScope = kAudioObjectPropertyScopeInput,
++      .mElement = 0,
++    };
++    UInt32 streamsSize;
++    if (AudioObjectGetPropertyDataSize(device, &streamsProperty, 0, nullptr, &streamsSize) != noErr) {
++      return false;
++    }
++    std::vector<AudioStreamID> streams(streamsSize / sizeof(AudioStreamID));
++    if (AudioObjectGetPropertyData(device, &streamsProperty, 0, nullptr, &streamsSize, streams.data()) != noErr) {
+       return false;
+     }
+ 
+-    if (!GetAudioUnitStreamFormatChannelCount(au.audio_unit(), element,
+-                                              channels)) {
++    AudioObjectPropertyAddress virtualFormatProperty = {
++      .mSelector = kAudioStreamPropertyVirtualFormat,
++      .mScope = kAudioObjectPropertyScopeGlobal,
++      .mElement = 0,
++    };
++    AudioStreamBasicDescription asbd;
++    UInt32 asbdSize = sizeof(asbd);
++    if (AudioObjectGetPropertyData(streams[0], &virtualFormatProperty, 0, nullptr, &asbdSize, &asbd) != noErr) {
+       return false;
+     }
+ 
++    *channels = asbd.mChannelsPerFrame;
++
+     DVLOG(2) << __FUNCTION__ << " Input channels: " << *channels;
+     return true;
+   }
