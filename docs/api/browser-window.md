@@ -1158,7 +1158,7 @@ Returns `boolean` - Whether the window's document has been edited.
 
 #### `win.capturePage([rect, opts])`
 
-* `rect` [Rectangle](structures/rectangle.md) (optional) - The area of the page to be captured.
+* `rect` [Rectangle](structures/rectangle.md) (optional) - The bounds to capture
 * `opts` Object (optional)
   * `stayHidden` boolean (optional) -  Keep the page hidden instead of visible. Default is `false`.
   * `stayAwake` boolean (optional) -  Keep the system awake instead of allowing it to sleep. Default is `false`.
