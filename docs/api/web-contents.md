@@ -1519,7 +1519,7 @@ console.log(requestId)
 * `opts` Object (optional)
   * `stayHidden` boolean (optional) -  Keep the page hidden instead of visible. Default is `false`.
   * `stayAwake` boolean (optional) -  Keep the system awake instead of allowing it to sleep. Default is `false`.
-  * `outputSize` [`Size`](structures/size.md) (optional) - The desired width and height in pixels (positive numbers) of the returned image.
+  * `outputSize` [Size](structures/size.md) (optional) - The desired width and height in pixels (positive numbers) of the returned image.
 
 Returns `Promise<NativeImage>` - Resolves with a [NativeImage](native-image.md)
 
