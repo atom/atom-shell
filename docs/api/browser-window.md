@@ -1167,17 +1167,13 @@ Returns `boolean` - Whether the window's document has been edited.
 Returns `Promise<NativeImage>` - Resolves with a [NativeImage](native-image.md)
 
 Captures a snapshot of the page within `rect`. Omitting `rect` will capture the whole visible page.
-The page is considered visible when its browser window is hidden and the capturer count is non-zero.
+If the page is not visible, `rect` may be empty. The page is considered visible when its browser window is hidden and the capturer count is non-zero.
 If you would like the page to stay hidden, you should ensure that `stayHidden` is set to true.
 
 The size of returned [NativeImage](native-image.md) will be `outputSize` if it was provided.
 Otherwise, the size would be large enought to fit all of the available pixels in the current system.
 **Note:** The size might be bigger than size of containing window.
 **Note:** Consider using `outputSize` when creating thumbnails. It may improve speed on low-end devices.
-
-Returns `Promise<NativeImage>` - Resolves with a [NativeImage](native-image.md)
-
-Captures a snapshot of the page within `rect`. Omitting `rect` will capture the whole visible page. If the page is not visible, `rect` may be empty. The page is considered visible when its browser window is hidden and the capturer count is non-zero. If you would like the page to stay hidden, you should ensure that `stayHidden` is set to true.
 
 #### `win.loadURL(url[, options])`
 
