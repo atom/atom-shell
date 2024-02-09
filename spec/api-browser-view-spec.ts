@@ -632,7 +632,19 @@ describe('BrowserView module', () => {
 
     it('returns image with requested size', async () => {
       const w = new BrowserWindow({ show: true });
-      const image = await w.capturePage({
+      view = new BrowserView({
+        webPreferences: {
+          backgroundThrottling: false
+        }
+      });
+      w.setBrowserView(view);
+      view.setBounds({
+        ...w.getBounds(),
+        x: 0,
+        y: 0
+      });
+      await view.webContents.loadFile(path.join(fixtures, 'pages', 'a.html'));
+      const image = await view.webContents.capturePage({
         x: 0,
         y: 0,
         width: 100,
@@ -644,7 +656,7 @@ describe('BrowserView module', () => {
         }
       });
 
-      expect(image.getSize()).to.equal({ width: 20, height: 20 });
+      expect(image.getSize()).to.deep.equal({ width: 20, height: 20 });
     });
 
     xit('resolves after the window is hidden and capturer count is non-zero', async () => {

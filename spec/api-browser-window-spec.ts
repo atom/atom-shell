@@ -2308,7 +2308,10 @@ describe('BrowserWindow module', () => {
     });
 
     it('returns image with requested size', async () => {
-      const w = new BrowserWindow({ show: true });
+      const w = new BrowserWindow({ show: false });
+      w.loadFile(path.join(fixtures, 'pages', 'a.html'));
+      await once(w, 'ready-to-show');
+      w.show();
       const image = await w.capturePage({
         x: 0,
         y: 0,
@@ -2321,7 +2324,7 @@ describe('BrowserWindow module', () => {
         }
       });
 
-      expect(image.getSize()).to.equal({ width: 20, height: 20 });
+      expect(image.getSize()).to.deep.equal({ width: 20, height: 20 });
     });
 
     ifit(process.platform === 'darwin')('honors the stayHidden argument', async () => {
