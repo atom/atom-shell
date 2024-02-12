@@ -127,3 +127,4 @@ fix_restore_original_resize_performance_on_macos.patch
 feat_allow_code_cache_in_custom_schemes.patch
 build_run_reclient_cfg_generator_after_chrome.patch
 fix_suppress_clang_-wimplicit-const-int-float-conversion_in.patch
+fix_getcursorscreenpoint_wrongly_returns_0_0.patch

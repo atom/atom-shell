@@ -59,7 +59,9 @@ class BrowserProcessImpl : public BrowserProcess {
 
 #if BUILDFLAG(IS_LINUX)
   void SetLinuxStorageBackend(os_crypt::SelectedLinuxBackend selected_backend);
-  const std::string& GetLinuxStorageBackend() const;
+  [[nodiscard]] const std::string& linux_storage_backend() const {
+    return selected_linux_storage_backend_;
+  }
 #endif
 
   void EndSession() override {}

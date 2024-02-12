@@ -98,7 +98,10 @@ class ElectronMenuModel : public ui::SimpleMenuModel {
   bool GetSharingItemAt(size_t index, SharingItem* item) const;
   // Set/Get the SharingItem of this menu.
   void SetSharingItem(SharingItem item);
-  const std::optional<SharingItem>& GetSharingItem() const;
+  [[nodiscard]] const std::optional<SharingItem>& sharing_item() const {
+    return sharing_item_;
+  }
+
 #endif
 
   // ui::SimpleMenuModel:

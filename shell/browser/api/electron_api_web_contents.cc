@@ -852,7 +852,7 @@ WebContents::WebContents(v8::Isolate* isolate,
   session_.Reset(isolate, session.ToV8());
 
   std::unique_ptr<content::WebContents> web_contents;
-  if (IsGuest()) {
+  if (is_guest()) {
     scoped_refptr<content::SiteInstance> site_instance =
         content::SiteInstance::CreateForURL(session->browser_context(),
                                             GURL("chrome-guest://fake-host"));
@@ -922,7 +922,7 @@ void WebContents::InitWithSessionAndOptions(
     const gin_helper::Dictionary& options) {
   Observe(owned_web_contents.get());
   InitWithWebContents(std::move(owned_web_contents), session->browser_context(),
-                      IsGuest());
+                      is_guest());
 
   inspectable_web_contents_->GetView()->SetDelegate(this);
 
@@ -982,7 +982,7 @@ void WebContents::InitWithSessionAndOptions(
 
   SetUserAgent(GetBrowserContext()->GetUserAgent());
 
-  if (IsGuest()) {
+  if (is_guest()) {
     NativeWindow* owner_window = nullptr;
     if (embedder_) {
       // New WebContents's owner_window is the embedder's owner_window.
@@ -1017,7 +1017,7 @@ void WebContents::InitWithExtensionView(v8::Isolate* isolate,
   // Allow toggling DevTools for background pages
   Observe(web_contents);
   InitWithWebContents(std::unique_ptr<content::WebContents>(web_contents),
-                      GetBrowserContext(), IsGuest());
+                      GetBrowserContext(), is_guest());
   inspectable_web_contents_->GetView()->SetDelegate(this);
 }
 #endif
@@ -1066,7 +1066,7 @@ WebContents::~WebContents() {
 
   // For guest view based on OOPIF, the WebContents is released by the embedder
   // frame, and we need to clear the reference to the memory.
-  bool not_owned_by_this = IsGuest() && attached_;
+  bool not_owned_by_this = is_guest() && attached_;
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   // And background pages are owned by extensions::ExtensionHost.
   if (type_ == Type::kBackgroundPage)
@@ -1096,7 +1096,7 @@ void WebContents::DeleteThisIfAlive() {
 void WebContents::Destroy() {
   // The content::WebContents should be destroyed asynchronously when possible
   // as user may choose to destroy WebContents during an event of it.
-  if (Browser::Get()->is_shutting_down() || IsGuest()) {
+  if (Browser::Get()->is_shutting_down() || is_guest()) {
     DeleteThisIfAlive();
   } else {
     content::GetUIThreadTaskRunner({})->PostTask(
@@ -2155,7 +2155,7 @@ void WebContents::DidFinishNavigation(
         Emit("did-navigate", url, http_response_code, http_status_text);
       }
     }
-    if (IsGuest())
+    if (is_guest())
       Emit("load-commit", url, is_main_frame);
   } else {
     auto url = navigation_handle->GetURL();
@@ -2372,10 +2372,6 @@ base::ProcessId WebContents::GetOSProcessID() const {
                                            ->GetProcess()
                                            .Handle();
   return base::GetProcId(process_handle);
-}
-
-WebContents::Type WebContents::GetType() const {
-  return type_;
 }
 
 bool WebContents::Equal(const WebContents* web_contents) const {
@@ -3371,7 +3367,7 @@ bool WebContents::IsFocused() const {
   if (!view)
     return false;
 
-  if (GetType() != Type::kBackgroundPage) {
+  if (type() != Type::kBackgroundPage) {
     auto* window = web_contents()->GetNativeView()->GetToplevelWindow();
     if (window && !window->IsVisible())
       return false;
@@ -3568,10 +3564,6 @@ void WebContents::OnCursorChanged(const ui::Cursor& cursor) {
   } else {
     Emit("cursor-changed", CursorTypeToString(cursor.type()));
   }
-}
-
-bool WebContents::IsGuest() const {
-  return type_ == Type::kWebView;
 }
 
 void WebContents::AttachToIframe(content::WebContents* embedder_web_contents,
@@ -3785,7 +3777,7 @@ void WebContents::SetImageAnimationPolicy(const std::string& new_policy) {
 }
 
 void WebContents::SetBackgroundColor(std::optional<SkColor> maybe_color) {
-  SkColor color = maybe_color.value_or((IsGuest() && guest_transparent_) ||
+  SkColor color = maybe_color.value_or((is_guest() && guest_transparent_) ||
                                                type_ == Type::kBrowserView
                                            ? SK_ColorTRANSPARENT
                                            : SK_ColorWHITE);
@@ -4307,7 +4299,7 @@ void WebContents::UpdateHtmlApiFullscreen(bool fullscreen) {
   }
 
   // Make sure all child webviews quit html fullscreen.
-  if (!fullscreen && !IsGuest()) {
+  if (!fullscreen && !is_guest()) {
     auto* manager = WebViewManager::GetWebViewManager(web_contents());
     manager->ForEachGuest(web_contents(), [&](content::WebContents* guest) {
       WebContents* api_web_contents = WebContents::From(guest);
@@ -4419,7 +4411,7 @@ void WebContents::FillObjectTemplate(v8::Isolate* isolate,
       .SetMethod("getZoomLevel", &WebContents::GetZoomLevel)
       .SetMethod("setZoomFactor", &WebContents::SetZoomFactor)
       .SetMethod("getZoomFactor", &WebContents::GetZoomFactor)
-      .SetMethod("getType", &WebContents::GetType)
+      .SetMethod("getType", &WebContents::type)
       .SetMethod("_getPreloadPaths", &WebContents::GetPreloadPaths)
       .SetMethod("getLastWebPreferences", &WebContents::GetLastWebPreferences)
       .SetMethod("getOwnerBrowserWindow", &WebContents::GetOwnerBrowserWindow)

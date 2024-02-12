@@ -124,7 +124,7 @@ void AutofillPopupView::OnSuggestionsChanged() {
     return;
 
   CreateChildViews();
-  if (popup_->GetLineCount() == 0) {
+  if (popup_->line_count() == 0) {
     popup_->Hide();
     return;
   }
@@ -177,28 +177,28 @@ void AutofillPopupView::DrawAutofillEntry(gfx::Canvas* canvas,
 
   int x_align_left = value_rect.x();
   const int value_width = gfx::GetStringWidth(
-      popup_->GetValueAt(index), popup_->GetValueFontListForRow(index));
+      popup_->value_at(index), popup_->GetValueFontListForRow(index));
   int value_x_align_left = x_align_left;
   value_x_align_left =
       is_rtl ? value_rect.right() - value_width : value_rect.x();
 
   canvas->DrawStringRectWithFlags(
-      popup_->GetValueAt(index), popup_->GetValueFontListForRow(index),
+      popup_->value_at(index), popup_->GetValueFontListForRow(index),
       GetColorProvider()->GetColor(ui::kColorResultsTableNormalText),
       gfx::Rect(value_x_align_left, value_rect.y(), value_width,
                 value_rect.height()),
       text_align);
 
   // Draw the label text, if one exists.
-  if (!popup_->GetLabelAt(index).empty()) {
-    const int label_width = gfx::GetStringWidth(
-        popup_->GetLabelAt(index), popup_->GetLabelFontListForRow(index));
+  if (auto const& label = popup_->label_at(index); !label.empty()) {
+    const int label_width =
+        gfx::GetStringWidth(label, popup_->GetLabelFontListForRow(index));
     int label_x_align_left = x_align_left;
     label_x_align_left =
         is_rtl ? value_rect.x() : value_rect.right() - label_width;
 
     canvas->DrawStringRectWithFlags(
-        popup_->GetLabelAt(index), popup_->GetLabelFontListForRow(index),
+        label, popup_->GetLabelFontListForRow(index),
         GetColorProvider()->GetColor(ui::kColorResultsTableDimmedText),
         gfx::Rect(label_x_align_left, entry_rect.y(), label_width,
                   entry_rect.height()),
@@ -212,8 +212,8 @@ void AutofillPopupView::CreateChildViews() {
 
   RemoveAllChildViews();
 
-  for (int i = 0; i < popup_->GetLineCount(); ++i) {
-    auto* child_view = new AutofillPopupChildView(popup_->GetValueAt(i));
+  for (int i = 0; i < popup_->line_count(); ++i) {
+    auto* child_view = new AutofillPopupChildView(popup_->value_at(i));
     child_view->set_drag_controller(this);
     AddChildView(child_view);
   }
@@ -234,8 +234,7 @@ void AutofillPopupView::DoUpdateBoundsAndRedrawPopup() {
 }
 
 void AutofillPopupView::OnPaint(gfx::Canvas* canvas) {
-  if (!popup_ ||
-      static_cast<size_t>(popup_->GetLineCount()) != children().size())
+  if (!popup_ || static_cast<size_t>(popup_->line_count()) != children().size())
     return;
   gfx::Canvas* draw_canvas = canvas;
   SkBitmap bitmap;
@@ -252,7 +251,7 @@ void AutofillPopupView::OnPaint(gfx::Canvas* canvas) {
       GetColorProvider()->GetColor(ui::kColorResultsTableNormalBackground));
   OnPaintBorder(draw_canvas);
 
-  for (int i = 0; i < popup_->GetLineCount(); ++i) {
+  for (int i = 0; i < popup_->line_count(); ++i) {
     gfx::Rect line_rect = popup_->GetRowBounds(i);
 
     DrawAutofillEntry(draw_canvas, i, line_rect);
@@ -381,7 +380,7 @@ bool AutofillPopupView::HandleKeyPressEvent(
       SetSelectedLine(0);
       return true;
     case ui::VKEY_NEXT:  // Page down.
-      SetSelectedLine(popup_->GetLineCount() - 1);
+      SetSelectedLine(popup_->line_count() - 1);
       return true;
     case ui::VKEY_ESCAPE:
       popup_->Hide();
@@ -421,7 +420,7 @@ void AutofillPopupView::AcceptSuggestion(int index) {
 }
 
 bool AutofillPopupView::AcceptSelectedLine() {
-  if (!selected_line_ || selected_line_.value() >= popup_->GetLineCount())
+  if (!selected_line_ || selected_line_.value() >= popup_->line_count())
     return false;
 
   AcceptSuggestion(selected_line_.value());
@@ -441,7 +440,7 @@ void AutofillPopupView::SetSelectedLine(std::optional<int> selected_line) {
     return;
   if (selected_line_ == selected_line)
     return;
-  if (selected_line && selected_line.value() >= popup_->GetLineCount())
+  if (selected_line && selected_line.value() >= popup_->line_count())
     return;
 
   auto previous_selected_line(selected_line_);
@@ -461,7 +460,7 @@ void AutofillPopupView::SelectNextLine() {
     return;
 
   int new_selected_line = selected_line_ ? *selected_line_ + 1 : 0;
-  if (new_selected_line >= popup_->GetLineCount())
+  if (new_selected_line >= popup_->line_count())
     new_selected_line = 0;
 
   SetSelectedLine(new_selected_line);
@@ -473,7 +472,7 @@ void AutofillPopupView::SelectPreviousLine() {
 
   int new_selected_line = selected_line_.value_or(0) - 1;
   if (new_selected_line < 0)
-    new_selected_line = popup_->GetLineCount() - 1;
+    new_selected_line = popup_->line_count() - 1;
 
   SetSelectedLine(new_selected_line);
 }

@@ -439,11 +439,14 @@ void NativeWindowMac::Close() {
   if ([window_ attachedSheet])
     [window_ endSheet:[window_ attachedSheet]];
 
+  // window_ could be nil after performClose.
+  bool should_notify = is_modal() && parent() && IsVisible();
+
   [window_ performClose:nil];
 
   // Closing a sheet doesn't trigger windowShouldClose,
   // so we need to manually call it ourselves here.
-  if (is_modal() && parent() && IsVisible()) {
+  if (should_notify) {
     NotifyWindowCloseButtonClicked();
   }
 }
@@ -561,12 +564,9 @@ void NativeWindowMac::Hide() {
   [window_ orderOut:nil];
 }
 
-bool NativeWindowMac::IsOccluded() const {
-  return !([window_ occlusionState] & NSWindowOcclusionStateVisible);
-}
-
 bool NativeWindowMac::IsVisible() const {
-  return [window_ isVisible] && !IsMinimized();
+  bool occluded = [window_ occlusionState] == NSWindowOcclusionStateVisible;
+  return [window_ isVisible] && !occluded && !IsMinimized();
 }
 
 bool NativeWindowMac::IsEnabled() const {
@@ -641,7 +641,7 @@ bool NativeWindowMac::IsMaximized() const {
   if (HasStyleMask(NSWindowStyleMaskResizable) != 0)
     return [window_ isZoomed];
 
-  NSRect rectScreen = GetAspectRatio() > 0.0
+  NSRect rectScreen = aspect_ratio() > 0.0
                           ? default_frame_for_zoom()
                           : [[NSScreen mainScreen] visibleFrame];
 

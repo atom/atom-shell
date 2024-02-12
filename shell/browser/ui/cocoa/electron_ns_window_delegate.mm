@@ -76,7 +76,7 @@ using FullScreenTransitionState =
 - (NSRect)windowWillUseStandardFrame:(NSWindow*)window
                         defaultFrame:(NSRect)frame {
   if (!shell_->zoom_to_page_width()) {
-    if (shell_->GetAspectRatio() > 0.0)
+    if (shell_->aspect_ratio() > 0.0)
       shell_->set_default_frame_for_zoom(frame);
     return frame;
   }
@@ -104,7 +104,7 @@ using FullScreenTransitionState =
   // Set the width. Don't touch y or height.
   frame.size.width = zoomed_width;
 
-  if (shell_->GetAspectRatio() > 0.0)
+  if (shell_->aspect_ratio() > 0.0)
     shell_->set_default_frame_for_zoom(frame);
 
   return frame;
@@ -139,13 +139,12 @@ using FullScreenTransitionState =
 
 - (NSSize)windowWillResize:(NSWindow*)sender toSize:(NSSize)frameSize {
   NSSize newSize = frameSize;
-  double aspectRatio = shell_->GetAspectRatio();
   NSWindow* window = shell_->GetNativeWindow().GetNativeNSWindow();
 
-  if (aspectRatio > 0.0) {
-    gfx::Size windowSize = shell_->GetSize();
-    gfx::Size contentSize = shell_->GetContentSize();
-    gfx::Size extraSize = shell_->GetAspectRatioExtraSize();
+  if (const double aspectRatio = shell_->aspect_ratio(); aspectRatio > 0.0) {
+    const gfx::Size windowSize = shell_->GetSize();
+    const gfx::Size contentSize = shell_->GetContentSize();
+    const gfx::Size extraSize = shell_->aspect_ratio_extra_size();
 
     double titleBarHeight = windowSize.height() - contentSize.height();
     double extraWidthPlusFrame =

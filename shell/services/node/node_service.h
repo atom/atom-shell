@@ -61,6 +61,12 @@ class NodeService : public node::mojom::NodeService {
   void Initialize(node::mojom::NodeServiceParamsPtr params) override;
 
  private:
+  // This needs to be initialized first so that it can be destroyed last
+  // after the node::Environment is destroyed. This ensures that if
+  // there are crashes in the node::Environment destructor, they
+  // will be propagated to the exit handler.
+  mojo::Receiver<node::mojom::NodeService> receiver_{this};
+
   bool node_env_stopped_ = false;
 
   const std::unique_ptr<NodeBindings> node_bindings_;
@@ -73,8 +79,6 @@ class NodeService : public node::mojom::NodeService {
 
   // depends-on: js_env_'s isolate
   std::shared_ptr<node::Environment> node_env_;
-
-  mojo::Receiver<node::mojom::NodeService> receiver_{this};
 };
 
 }  // namespace electron

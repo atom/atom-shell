@@ -83,7 +83,7 @@ InspectableWebContentsViewViews::InspectableWebContentsViewViews(
     : InspectableWebContentsView(inspectable_web_contents),
       devtools_web_view_(new views::WebView(nullptr)),
       title_(u"Developer Tools") {
-  if (!inspectable_web_contents_->IsGuest() &&
+  if (!inspectable_web_contents_->is_guest() &&
       inspectable_web_contents_->GetWebContents()->GetNativeView()) {
     auto* contents_web_view = new views::WebView(nullptr);
     contents_web_view->SetWebContents(
@@ -116,8 +116,7 @@ void InspectableWebContentsViewViews::ShowDevTools(bool activate) {
   if (devtools_window_) {
     devtools_window_web_view_->SetWebContents(
         inspectable_web_contents_->GetDevToolsWebContents());
-    devtools_window_->SetBounds(
-        inspectable_web_contents()->GetDevToolsBounds());
+    devtools_window_->SetBounds(inspectable_web_contents()->dev_tools_bounds());
     if (activate) {
       devtools_window_->Show();
     } else {
@@ -182,7 +181,7 @@ void InspectableWebContentsViewViews::SetIsDocked(bool docked, bool activate) {
     views::Widget::InitParams params;
     params.ownership = views::Widget::InitParams::WIDGET_OWNS_NATIVE_WIDGET;
     params.delegate = devtools_window_delegate_;
-    params.bounds = inspectable_web_contents()->GetDevToolsBounds();
+    params.bounds = inspectable_web_contents()->dev_tools_bounds();
 
 #if BUILDFLAG(IS_LINUX)
     params.wm_role_name = "devtools";

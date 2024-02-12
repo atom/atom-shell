@@ -340,10 +340,6 @@ void BrowserProcessImpl::SetLinuxStorageBackend(
       break;
   }
 }
-
-const std::string& BrowserProcessImpl::GetLinuxStorageBackend() const {
-  return selected_linux_storage_backend_;
-}
 #endif  // BUILDFLAG(IS_LINUX)
 
 void BrowserProcessImpl::SetApplicationLocale(const std::string& locale) {

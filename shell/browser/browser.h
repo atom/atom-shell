@@ -110,7 +110,7 @@ class Browser : public WindowListObserver {
 
   // Set/Get the badge count.
   bool SetBadgeCount(std::optional<int> count);
-  int GetBadgeCount();
+  [[nodiscard]] int badge_count() const { return badge_count_; }
 
 #if BUILDFLAG(IS_WIN)
   struct LaunchItem {

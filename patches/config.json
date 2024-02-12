@@ -1,27 +1,15 @@
-{
-  "src/electron/patches/chromium": "src",
-
-  "src/electron/patches/boringssl": "src/third_party/boringssl/src",
-
-  "src/electron/patches/devtools_frontend": "src/third_party/devtools-frontend/src",
-
-  "src/electron/patches/ffmpeg": "src/third_party/ffmpeg",
-
-  "src/electron/patches/v8":  "src/v8",
-
-  "src/electron/patches/node": "src/third_party/electron_node",
-
-  "src/electron/patches/nan": "src/third_party/nan",
-
-  "src/electron/patches/perfetto": "src/third_party/perfetto",
-
-  "src/electron/patches/squirrel.mac": "src/third_party/squirrel.mac",
-
-  "src/electron/patches/Mantle": "src/third_party/squirrel.mac/vendor/Mantle",
-
-  "src/electron/patches/ReactiveObjC": "src/third_party/squirrel.mac/vendor/ReactiveObjC",
-
-  "src/electron/patches/webrtc": "src/third_party/webrtc",
-
-  "src/electron/patches/reclient-configs": "src/third_party/engflow-reclient-configs"
-}
+[
+  { "patch_dir": "src/electron/patches/chromium", "repo": "src" },
+  { "patch_dir": "src/electron/patches/boringssl", "repo": "src/third_party/boringssl/src" },
+  { "patch_dir": "src/electron/patches/devtools_frontend", "repo": "src/third_party/devtools-frontend/src" },
+  { "patch_dir": "src/electron/patches/ffmpeg", "repo": "src/third_party/ffmpeg" },
+  { "patch_dir": "src/electron/patches/v8", "repo": "src/v8" },
+  { "patch_dir": "src/electron/patches/node", "repo": "src/third_party/electron_node" },
+  { "patch_dir": "src/electron/patches/nan", "repo": "src/third_party/nan" },
+  { "patch_dir": "src/electron/patches/perfetto", "repo": "src/third_party/perfetto" },
+  { "patch_dir": "src/electron/patches/squirrel.mac", "repo": "src/third_party/squirrel.mac" },
+  { "patch_dir": "src/electron/patches/Mantle", "repo": "src/third_party/squirrel.mac/vendor/Mantle" },
+  { "patch_dir": "src/electron/patches/ReactiveObjC", "repo": "src/third_party/squirrel.mac/vendor/ReactiveObjC" },
+  { "patch_dir": "src/electron/patches/webrtc", "repo": "src/third_party/webrtc" },
+  { "patch_dir": "src/electron/patches/reclient-configs", "repo": "src/third_party/engflow-reclient-configs" }
+]

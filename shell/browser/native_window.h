@@ -87,7 +87,6 @@ class NativeWindow : public base::SupportsUserData,
   virtual void Show() = 0;
   virtual void ShowInactive() = 0;
   virtual void Hide() = 0;
-  virtual bool IsOccluded() const = 0;
   virtual bool IsVisible() const = 0;
   virtual bool IsEnabled() const = 0;
   virtual void SetEnabled(bool enable) = 0;
@@ -264,8 +263,10 @@ class NativeWindow : public base::SupportsUserData,
   virtual bool IsMenuBarVisible() const;
 
   // Set the aspect ratio when resizing window.
-  double GetAspectRatio() const;
-  gfx::Size GetAspectRatioExtraSize() const;
+  [[nodiscard]] double aspect_ratio() const { return aspect_ratio_; }
+  [[nodiscard]] gfx::Size aspect_ratio_extra_size() const {
+    return aspect_ratio_extraSize_;
+  }
   virtual void SetAspectRatio(double aspect_ratio, const gfx::Size& extra_size);
 
   // File preview APIs.

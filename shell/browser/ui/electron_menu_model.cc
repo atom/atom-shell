@@ -99,11 +99,6 @@ bool ElectronMenuModel::GetSharingItemAt(size_t index,
 void ElectronMenuModel::SetSharingItem(SharingItem item) {
   sharing_item_.emplace(std::move(item));
 }
-
-const std::optional<ElectronMenuModel::SharingItem>&
-ElectronMenuModel::GetSharingItem() const {
-  return sharing_item_;
-}
 #endif
 
 void ElectronMenuModel::MenuWillClose() {

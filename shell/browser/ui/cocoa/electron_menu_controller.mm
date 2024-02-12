@@ -493,8 +493,8 @@ NSArray* ConvertSharingItemToNS(const SharingItem& item) {
   if (menu_)
     return menu_;
 
-  if (model_ && model_->GetSharingItem()) {
-    NSMenu* menu = [self createShareMenuForItem:*model_->GetSharingItem()];
+  if (model_ && model_->sharing_item()) {
+    NSMenu* menu = [self createShareMenuForItem:*model_->sharing_item()];
     menu_ = menu;
   } else {
     menu_ = [[NSMenu alloc] initWithTitle:@""];

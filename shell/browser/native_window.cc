@@ -520,14 +520,6 @@ bool NativeWindow::IsMenuBarVisible() const {
   return true;
 }
 
-double NativeWindow::GetAspectRatio() const {
-  return aspect_ratio_;
-}
-
-gfx::Size NativeWindow::GetAspectRatioExtraSize() const {
-  return aspect_ratio_extraSize_;
-}
-
 void NativeWindow::SetAspectRatio(double aspect_ratio,
                                   const gfx::Size& extra_size) {
   aspect_ratio_ = aspect_ratio;

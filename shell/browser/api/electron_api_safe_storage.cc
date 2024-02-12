@@ -31,7 +31,7 @@ bool IsEncryptionAvailable() {
   return OSCrypt::IsEncryptionAvailable() ||
          (use_password_v10 &&
           static_cast<BrowserProcessImpl*>(g_browser_process)
-                  ->GetLinuxStorageBackend() == "basic_text");
+                  ->linux_storage_backend() == "basic_text");
 #else
   return OSCrypt::IsEncryptionAvailable();
 #endif
@@ -46,7 +46,7 @@ std::string GetSelectedLinuxBackend() {
   if (!Browser::Get()->is_ready())
     return "unknown";
   return static_cast<BrowserProcessImpl*>(g_browser_process)
-      ->GetLinuxStorageBackend();
+      ->linux_storage_backend();
 }
 #endif
 

@@ -201,10 +201,9 @@ const LINTERS = [{
       process.exit(1);
     }
 
-    const config = JSON.parse(fs.readFileSync(patchesConfig, 'utf8'));
-    for (const key of Object.keys(config)) {
+    for (const target of JSON.parse(fs.readFileSync(patchesConfig, 'utf8'))) {
       // The directory the config points to should exist
-      const targetPatchesDir = path.resolve(__dirname, '../../..', key);
+      const targetPatchesDir = path.resolve(__dirname, '../../..', target.patch_dir);
       if (!fs.existsSync(targetPatchesDir)) {
         console.error(`target patch directory: "${targetPatchesDir}" does not exist`);
         process.exit(1);

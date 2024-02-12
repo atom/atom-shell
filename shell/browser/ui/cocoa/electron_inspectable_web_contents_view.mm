@@ -27,7 +27,7 @@
   devtools_is_first_responder_ = NO;
   attached_to_window_ = NO;
 
-  if (inspectableWebContentsView_->inspectable_web_contents()->IsGuest()) {
+  if (inspectableWebContentsView_->inspectable_web_contents()->is_guest()) {
     fake_view_ = [[NSView alloc] init];
     [fake_view_ setAutoresizingMask:NSViewWidthSizable | NSViewHeightSizable];
     [self addSubview:fake_view_];
