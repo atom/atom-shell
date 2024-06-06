@@ -57,8 +57,11 @@ class NodeService : public node::mojom::NodeService {
   NodeService(const NodeService&) = delete;
   NodeService& operator=(const NodeService&) = delete;
 
-  // mojom::NodeService implementation:
+  // mojom::NodeService:
   void Initialize(node::mojom::NodeServiceParamsPtr params) override;
+  void InitializeNetworkService(
+      mojo::PendingRemote<network::mojom::URLLoaderFactory> url_loader_factory,
+      mojo::PendingRemote<network::mojom::HostResolver> host_resolver) override;
 
  private:
   // This needs to be initialized first so that it can be destroyed last

@@ -68,15 +68,18 @@ NodeService::~NodeService() {
   }
 }
 
+void NodeService::InitializeNetworkService(
+    mojo::PendingRemote<network::mojom::URLLoaderFactory> url_loader_factory,
+    mojo::PendingRemote<network::mojom::HostResolver> host_resolver) {
+  URLLoaderBundle::GetInstance()->SetURLLoaderFactory(
+      std::move(url_loader_factory), mojo::Remote(std::move(host_resolver)));
+}
+
 void NodeService::Initialize(node::mojom::NodeServiceParamsPtr params) {
   if (NodeBindings::IsInitialized())
     return;
 
   ParentPort::GetInstance()->Initialize(std::move(params->port));
-
-  URLLoaderBundle::GetInstance()->SetURLLoaderFactory(
-      std::move(params->url_loader_factory),
-      mojo::Remote(std::move(params->host_resolver)));
 
   js_env_ = std::make_unique<JavascriptEnvironment>(node_bindings_->uv_loop());
 

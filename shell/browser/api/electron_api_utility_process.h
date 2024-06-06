@@ -48,6 +48,7 @@ class UtilityProcessWrapper
   static raw_ptr<UtilityProcessWrapper> FromProcessId(base::ProcessId pid);
 
   void Shutdown(int exit_code);
+  void EnsureNetworkServiceInitialized();
 
   // gin::Wrappable
   static gin::WrapperInfo kWrapperInfo;
@@ -84,6 +85,7 @@ class UtilityProcessWrapper
   int stdout_read_fd_ = -1;
   int stderr_read_fd_ = -1;
   bool connector_closed_ = false;
+  bool network_context_initialized_ = false;
   std::unique_ptr<mojo::Connector> connector_;
   blink::MessagePortDescriptor host_port_;
   mojo::Remote<node::mojom::NodeService> node_service_remote_;

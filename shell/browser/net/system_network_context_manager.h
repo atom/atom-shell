@@ -41,11 +41,16 @@ class SystemNetworkContextManager {
   SystemNetworkContextManager& operator=(const SystemNetworkContextManager&) =
       delete;
 
+  // Checks if the global SystemNetworkContextManager has been created.
+  static bool HasInstance();
+
   // Creates the global instance of SystemNetworkContextManager. If an
   // instance already exists, this will cause a DCHECK failure.
   static SystemNetworkContextManager* CreateInstance(PrefService* pref_service);
 
-  // Gets the global SystemNetworkContextManager instance.
+  // Gets the global SystemNetworkContextManager instance. If it has not been
+  // created yet, NetworkService is called, which will cause the
+  // SystemNetworkContextManager to be created.
   static SystemNetworkContextManager* GetInstance();
 
   // Destroys the global SystemNetworkContextManager instance.

@@ -126,7 +126,7 @@ void BrowserProcessImpl::PreCreateThreads() {
   // Must be created before the IOThread.
   // Once IOThread class is no longer needed,
   // this can be created on first use.
-  if (!SystemNetworkContextManager::GetInstance())
+  if (!SystemNetworkContextManager::HasInstance())
     SystemNetworkContextManager::CreateInstance(local_state_.get());
 }
 

@@ -194,22 +194,6 @@ UtilityProcessWrapper::UtilityProcessWrapper(
   connector_->set_connection_error_handler(base::BindOnce(
       &UtilityProcessWrapper::CloseConnectorPort, weak_factory_.GetWeakPtr()));
 
-  mojo::PendingRemote<network::mojom::URLLoaderFactory> url_loader_factory;
-  network::mojom::URLLoaderFactoryParamsPtr loader_params =
-      network::mojom::URLLoaderFactoryParams::New();
-  loader_params->process_id = pid_;
-  loader_params->is_orb_enabled = false;
-  loader_params->is_trusted = true;
-  network::mojom::NetworkContext* network_context =
-      g_browser_process->system_network_context_manager()->GetContext();
-  network_context->CreateURLLoaderFactory(
-      url_loader_factory.InitWithNewPipeAndPassReceiver(),
-      std::move(loader_params));
-  params->url_loader_factory = std::move(url_loader_factory);
-  mojo::PendingRemote<network::mojom::HostResolver> host_resolver;
-  network_context->CreateHostResolver(
-      {}, host_resolver.InitWithNewPipeAndPassReceiver());
-  params->host_resolver = std::move(host_resolver);
   node_service_remote_->Initialize(std::move(params));
 }
 
@@ -248,6 +232,30 @@ void UtilityProcessWrapper::CloseConnectorPort() {
     host_port_.Reset();
     connector_closed_ = true;
   }
+}
+
+void UtilityProcessWrapper::EnsureNetworkServiceInitialized() {
+  if (network_context_initialized_)
+    return;
+
+  network_context_initialized_ = true;
+  mojo::PendingRemote<network::mojom::URLLoaderFactory> url_loader_factory;
+  network::mojom::URLLoaderFactoryParamsPtr loader_params =
+      network::mojom::URLLoaderFactoryParams::New();
+  loader_params->process_id = pid_;
+  loader_params->is_orb_enabled = false;
+  loader_params->is_trusted = true;
+  network::mojom::NetworkContext* network_context =
+      g_browser_process->system_network_context_manager()->GetContext();
+  network_context->CreateURLLoaderFactory(
+      url_loader_factory.InitWithNewPipeAndPassReceiver(),
+      std::move(loader_params));
+  mojo::PendingRemote<network::mojom::HostResolver> host_resolver;
+  network_context->CreateHostResolver(
+      {}, host_resolver.InitWithNewPipeAndPassReceiver());
+
+  node_service_remote_->InitializeNetworkService(std::move(url_loader_factory),
+                                                 std::move(host_resolver));
 }
 
 void UtilityProcessWrapper::Shutdown(int exit_code) {
@@ -431,6 +439,9 @@ void Initialize(v8::Local<v8::Object> exports,
   v8::Isolate* isolate = context->GetIsolate();
   gin_helper::Dictionary dict(isolate, exports);
   dict.SetMethod("_fork", &electron::api::UtilityProcessWrapper::Create);
+  dict.SetMethod(
+      "_ensureNetworkServiceInitialized",
+      &electron::api::UtilityProcessWrapper::EnsureNetworkServiceInitialized);
 }
 
 }  // namespace

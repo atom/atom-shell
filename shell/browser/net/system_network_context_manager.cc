@@ -215,7 +215,20 @@ SystemNetworkContextManager* SystemNetworkContextManager::CreateInstance(
 }
 
 // static
+bool SystemNetworkContextManager::HasInstance() {
+  return !!g_system_network_context_manager;
+}
+
+// static
 SystemNetworkContextManager* SystemNetworkContextManager::GetInstance() {
+  if (!g_system_network_context_manager) {
+    // Initialize the network service, which will trigger
+    // ElectronBrowserClient::OnNetworkServiceCreated(), which calls
+    // CreateInstance() to initialize |g_system_network_context_manager|.
+    content::GetNetworkService();
+    DCHECK(g_system_network_context_manager);
+  }
+
   return g_system_network_context_manager;
 }
 
@@ -223,6 +236,7 @@ SystemNetworkContextManager* SystemNetworkContextManager::GetInstance() {
 void SystemNetworkContextManager::DeleteInstance() {
   DCHECK(g_system_network_context_manager);
   delete g_system_network_context_manager;
+  g_system_network_context_manager = nullptr;
 }
 
 // c.f.

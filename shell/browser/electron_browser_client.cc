@@ -997,6 +997,10 @@ void ElectronBrowserClient::OnNetworkServiceCreated(
   if (!g_browser_process)
     return;
 
+  if (!SystemNetworkContextManager::HasInstance())
+    SystemNetworkContextManager::CreateInstance(
+        g_browser_process->local_state());
+
   g_browser_process->system_network_context_manager()->OnNetworkServiceCreated(
       network_service);
 }
