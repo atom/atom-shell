@@ -1162,9 +1162,10 @@ Captures a snapshot of the page within `rect`. Omitting `rect` will capture the 
 If the page is not visible, `rect` may be empty. The page is considered visible when its browser window is hidden and the capturer count is non-zero.
 If you would like the page to stay hidden, you should ensure that `stayHidden` is set to true.
 
-The size of returned [NativeImage](native-image.md) will be `outputSize` if it was provided.
-Otherwise, the size would be large enought to fit all of the available pixels in the current system.
+The size of returned [NativeImage](native-image.md) will be `outputSize` if it was provided. Default is the size of
+WebContents in physical pixels, that is WebContents height multiplied by device pixel ratio and WebContents width multiplied by device pixel ratio.
 **Note:** The size might be bigger than size of containing window.
+**Note:** When using `outputSize` it is responsibility of caller to preserve aspect ratio. If aspect ratio of `outputSize` is not the same as page aspect ratio the output image will be scaled.
 **Note:** Consider using `outputSize` when creating thumbnails. It may improve speed on low-end devices.
 
 #### `win.loadURL(url[, options])`
