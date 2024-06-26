@@ -21,7 +21,6 @@ In sandboxed renderers the `process` object contains only a subset of the APIs:
 * `getSystemMemoryInfo()`
 * `getSystemVersion()`
 * `getCPUUsage()`
-* `getIOCounters()`
 * `uptime()`
 * `argv`
 * `execPath`
@@ -161,10 +160,6 @@ The time is represented as number of milliseconds since epoch. It returns null i
 ### `process.getCPUUsage()`
 
 Returns [`CPUUsage`](structures/cpu-usage.md)
-
-### `process.getIOCounters()` _Windows_ _Linux_
-
-Returns [`IOCounters`](structures/io-counters.md)
 
 ### `process.getHeapStatistics()`
 

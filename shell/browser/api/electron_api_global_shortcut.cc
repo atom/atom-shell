@@ -60,7 +60,6 @@ void GlobalShortcut::OnKeyPressed(const ui::Accelerator& accelerator) {
     // This should never occur, because if it does, GlobalShortcutListener
     // notifies us with wrong accelerator.
     NOTREACHED();
-    return;
   }
   accelerator_callback_map_[accelerator].Run();
 }

@@ -470,6 +470,9 @@ Converter<std::optional<blink::mojom::FormControlType>>::ToV8(
       case blink::mojom::FormControlType::kButtonButton:
         str = "button-button";
         break;
+      case blink::mojom::FormControlType::kButtonPopover:
+        str = "popover-button";
+        break;
       case blink::mojom::FormControlType::kButtonReset:
         str = "reset-button";
         break;

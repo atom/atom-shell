@@ -127,6 +127,7 @@ int NodeMain(int argc, char* argv[]) {
   bool node_options_enabled = electron::fuses::IsNodeOptionsEnabled();
   if (!node_options_enabled) {
     os_env->UnSetVar("NODE_OPTIONS");
+    os_env->UnSetVar("NODE_EXTRA_CA_CERTS");
   }
 
 #if BUILDFLAG(IS_MAC)
@@ -259,8 +260,7 @@ int NodeMain(int argc, char* argv[]) {
       env = node::CreateEnvironment(
           isolate_data, isolate->GetCurrentContext(), result->args(),
           result->exec_args(),
-          static_cast<node::EnvironmentFlags::Flags>(env_flags), {}, {},
-          &OnNodePreload);
+          static_cast<node::EnvironmentFlags::Flags>(env_flags));
       CHECK_NE(nullptr, env);
 
       node::SetIsolateUpForNode(isolate);
@@ -285,7 +285,7 @@ int NodeMain(int argc, char* argv[]) {
     }
 
     v8::HandleScope scope(isolate);
-    node::LoadEnvironment(env, node::StartExecutionCallback{});
+    node::LoadEnvironment(env, node::StartExecutionCallback{}, &OnNodePreload);
 
     // Potential reasons we get Nothing here may include: the env
     // is stopping, or the user hooks process.emit('exit').

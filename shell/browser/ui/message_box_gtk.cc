@@ -47,7 +47,7 @@ base::flat_map<int, GtkWidget*>& GetDialogsMap() {
   return *dialogs;
 }
 
-class GtkMessageBox : public NativeWindowObserver {
+class GtkMessageBox : private NativeWindowObserver {
  public:
   explicit GtkMessageBox(const MessageBoxSettings& settings)
       : id_(settings.id),
@@ -182,6 +182,7 @@ class GtkMessageBox : public NativeWindowObserver {
     Show();
   }
 
+  // NativeWindowObserver
   void OnWindowClosed() override {
     parent_->RemoveObserver(this);
     parent_ = nullptr;

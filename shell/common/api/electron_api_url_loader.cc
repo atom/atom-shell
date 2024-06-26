@@ -14,6 +14,7 @@
 #include "base/containers/fixed_flat_map.h"
 #include "base/memory/raw_ptr.h"
 #include "base/no_destructor.h"
+#include "base/notreached.h"
 #include "base/sequence_checker.h"
 #include "base/strings/string_number_conversions.h"
 #include "gin/handle.h"
@@ -151,7 +152,7 @@ class BufferDataSource : public mojo::DataPipeProducer::DataSource {
       }
       result.bytes_read = copyable_size;
     } else {
-      NOTREACHED();
+      NOTREACHED_IN_MIGRATION();
       result.result = MOJO_RESULT_OUT_OF_RANGE;
     }
     return result;
@@ -181,6 +182,8 @@ class JSChunkedDataPipeGetter : public gin::Wrappable<JSChunkedDataPipeGetter>,
         .SetMethod("write", &JSChunkedDataPipeGetter::WriteChunk)
         .SetMethod("done", &JSChunkedDataPipeGetter::Done);
   }
+
+  const char* GetTypeName() override { return "JSChunkedDataPipeGetter"; }
 
   static gin::WrapperInfo kWrapperInfo;
   ~JSChunkedDataPipeGetter() override = default;
@@ -471,47 +474,43 @@ void SimpleURLLoaderWrapper::Cancel() {
 }
 scoped_refptr<network::SharedURLLoaderFactory>
 SimpleURLLoaderWrapper::GetURLLoaderFactoryForURL(const GURL& url) {
-  if (electron::IsUtilityProcess()) {
+  if (electron::IsUtilityProcess())
     return URLLoaderBundle::GetInstance()->GetSharedURLLoaderFactory();
-  }
+
   CHECK(browser_context_);
-  scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory;
-  auto* protocol_registry =
-      ProtocolRegistry::FromBrowserContext(browser_context_);
   // Explicitly handle intercepted protocols here, even though
   // ProxyingURLLoaderFactory would handle them later on, so that we can
   // correctly intercept file:// scheme URLs.
-  bool bypass_custom_protocol_handlers =
-      request_options_ & kBypassCustomProtocolHandlers;
-  if (!bypass_custom_protocol_handlers &&
-      protocol_registry->IsProtocolIntercepted(url.scheme())) {
-    auto& protocol_handler =
-        protocol_registry->intercept_handlers().at(url.scheme());
-    mojo::PendingRemote<network::mojom::URLLoaderFactory> pending_remote =
-        ElectronURLLoaderFactory::Create(protocol_handler.first,
-                                         protocol_handler.second);
-    url_loader_factory = network::SharedURLLoaderFactory::Create(
-        std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-            std::move(pending_remote)));
-  } else if (!bypass_custom_protocol_handlers &&
-             protocol_registry->IsProtocolRegistered(url.scheme())) {
-    auto& protocol_handler = protocol_registry->handlers().at(url.scheme());
-    mojo::PendingRemote<network::mojom::URLLoaderFactory> pending_remote =
-        ElectronURLLoaderFactory::Create(protocol_handler.first,
-                                         protocol_handler.second);
-    url_loader_factory = network::SharedURLLoaderFactory::Create(
-        std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-            std::move(pending_remote)));
-  } else if (url.SchemeIsFile()) {
-    mojo::PendingRemote<network::mojom::URLLoaderFactory> pending_remote =
-        AsarURLLoaderFactory::Create();
-    url_loader_factory = network::SharedURLLoaderFactory::Create(
-        std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-            std::move(pending_remote)));
-  } else {
-    url_loader_factory = browser_context_->GetURLLoaderFactory();
+  if (const bool bypass = request_options_ & kBypassCustomProtocolHandlers;
+      !bypass) {
+    const auto scheme = url.scheme();
+    const auto* const protocol_registry =
+        ProtocolRegistry::FromBrowserContext(browser_context_);
+
+    if (const auto* const protocol_handler =
+            protocol_registry->FindIntercepted(scheme)) {
+      return network::SharedURLLoaderFactory::Create(
+          std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+              ElectronURLLoaderFactory::Create(protocol_handler->first,
+                                               protocol_handler->second)));
+    }
+
+    if (const auto* const protocol_handler =
+            protocol_registry->FindRegistered(scheme)) {
+      return network::SharedURLLoaderFactory::Create(
+          std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+              ElectronURLLoaderFactory::Create(protocol_handler->first,
+                                               protocol_handler->second)));
+    }
   }
-  return url_loader_factory;
+
+  if (url.SchemeIsFile()) {
+    return network::SharedURLLoaderFactory::Create(
+        std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+            AsarURLLoaderFactory::Create()));
+  }
+
+  return browser_context_->GetURLLoaderFactory();
 }
 
 // static

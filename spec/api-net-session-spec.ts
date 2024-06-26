@@ -378,7 +378,7 @@ describe('net module (session)', () => {
         url: 'https://electronjs.org',
         domain: 'wssss.iamabaddomain.fun',
         name: 'cookie1'
-      })).to.eventually.be.rejectedWith(/Failed to set cookie with an invalid domain attribute/);
+      })).to.eventually.be.rejectedWith(/Failed to set cookie - The cookie was set with an invalid Domain attribute./);
     });
 
     it('should be able correctly filter out cookies that are session', async () => {
@@ -615,6 +615,25 @@ describe('net module (session)', () => {
           partition: 1 as any
         });
       }).to.throw('`partition` should be a string');
+    });
+
+    it('should throw if given a header value that is empty(null/undefined)', () => {
+      const emptyHeaderValues = [null, undefined];
+      const errorMsg = '`value` required in setHeader("foo", value)';
+
+      for (const emptyValue of emptyHeaderValues) {
+        expect(() => {
+          net.request({
+            url: 'https://foo',
+            headers: { foo: emptyValue as any }
+          } as any);
+        }).to.throw(errorMsg);
+
+        const request = net.request({ url: 'https://foo' });
+        expect(() => {
+          request.setHeader('foo', emptyValue as any);
+        }).to.throw(errorMsg);
+      }
     });
   });
 

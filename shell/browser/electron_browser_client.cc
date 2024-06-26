@@ -58,13 +58,14 @@
 #include "electron/fuses.h"
 #include "electron/shell/common/api/api.mojom.h"
 #include "extensions/browser/extension_navigation_ui_data.h"
+#include "extensions/common/extension_id.h"
 #include "mojo/public/cpp/bindings/binder_map.h"
 #include "net/ssl/ssl_cert_request_info.h"
 #include "net/ssl/ssl_private_key.h"
 #include "ppapi/buildflags/buildflags.h"
 #include "ppapi/host/ppapi_host.h"
 #include "printing/buildflags/buildflags.h"
-#include "services/device/public/cpp/geolocation/geolocation_manager.h"
+#include "services/device/public/cpp/geolocation/geolocation_system_permission_manager.h"
 #include "services/device/public/cpp/geolocation/location_provider.h"
 #include "services/network/public/cpp/features.h"
 #include "services/network/public/cpp/is_potentially_trustworthy.h"
@@ -214,7 +215,7 @@
 #include "components/pdf/browser/pdf_document_helper.h"             // nogncheck
 #include "components/pdf/browser/pdf_navigation_throttle.h"
 #include "components/pdf/browser/pdf_url_loader_request_interceptor.h"
-#include "components/pdf/common/internal_plugin_helpers.h"
+#include "components/pdf/common/constants.h"  // nogncheck
 #include "shell/browser/electron_pdf_document_helper_client.h"
 #endif
 
@@ -282,11 +283,10 @@ RenderProcessHostPrivilege GetPrivilegeRequiredByUrl(
 
 RenderProcessHostPrivilege GetProcessPrivilege(
     content::RenderProcessHost* process_host,
-    extensions::ProcessMap* process_map,
-    extensions::ExtensionRegistry* registry) {
-  std::set<std::string> extension_ids =
-      process_map->GetExtensionsInProcess(process_host->GetID());
-  if (extension_ids.empty())
+    extensions::ProcessMap* process_map) {
+  std::optional<extensions::ExtensionId> extension_id =
+      process_map->GetExtensionIdForProcess(process_host->GetID());
+  if (!extension_id.has_value())
     return RenderProcessHostPrivilege::kNormal;
 
   return RenderProcessHostPrivilege::kExtension;
@@ -456,7 +456,15 @@ void ElectronBrowserClient::AppendExtraCommandLineSwitches(
     base::CommandLine* command_line,
     int process_id) {
   // Make sure we're about to launch a known executable
+#if BUILDFLAG(IS_LINUX)
+  // On Linux, do not perform this check for /proc/self/exe. It will always
+  // point to the currently running executable so this check is not
+  // necessary, and if the executable has been deleted it will return a fake
+  // name that causes this check to fail.
+  if (command_line->GetProgram() != base::FilePath(base::kProcSelfExe)) {
+#else
   {
+#endif
     ScopedAllowBlockingForElectron allow_blocking;
     base::FilePath child_path;
     base::FilePath program =
@@ -556,16 +564,6 @@ void ElectronBrowserClient::AppendExtraCommandLineSwitches(
     if (env->HasVar("ELECTRON_PROFILE_INIT_SCRIPTS")) {
       command_line->AppendSwitch("profile-electron-init");
     }
-
-    // Extension background pages don't have WebContentsPreferences, but they
-    // support WebSQL by default.
-#if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
-    content::RenderProcessHost* process =
-        content::RenderProcessHost::FromID(process_id);
-    if (extensions::ProcessMap::Get(process->GetBrowserContext())
-            ->Contains(process_id))
-      command_line->AppendSwitch(switches::kEnableWebSQL);
-#endif
 
     content::WebContents* web_contents =
         GetWebContentsFromProcessID(process_id);
@@ -742,8 +740,7 @@ bool ElectronBrowserClient::IsSuitableHost(
   // required by the site.
   RenderProcessHostPrivilege privilege_required =
       GetPrivilegeRequiredByUrl(site_url, registry);
-  return GetProcessPrivilege(process_host, process_map, registry) ==
-         privilege_required;
+  return GetProcessPrivilege(process_host, process_map) == privilege_required;
 #else
   return content::ContentBrowserClient::IsSuitableHost(process_host, site_url);
 #endif
@@ -948,15 +945,9 @@ ElectronBrowserClient::CreateThrottlesForNavigation(
 #endif
 
 #if BUILDFLAG(ENABLE_PDF_VIEWER)
-  std::unique_ptr<content::NavigationThrottle> pdf_iframe_throttle =
-      PDFIFrameNavigationThrottle::MaybeCreateThrottleFor(handle);
-  if (pdf_iframe_throttle)
-    throttles.push_back(std::move(pdf_iframe_throttle));
-  std::unique_ptr<content::NavigationThrottle> pdf_throttle =
-      pdf::PdfNavigationThrottle::MaybeCreateThrottleFor(
-          handle, std::make_unique<ChromePdfStreamDelegate>());
-  if (pdf_throttle)
-    throttles.push_back(std::move(pdf_throttle));
+  throttles.push_back(std::make_unique<PDFIFrameNavigationThrottle>(handle));
+  throttles.push_back(std::make_unique<pdf::PdfNavigationThrottle>(
+      handle, std::make_unique<ChromePdfStreamDelegate>()));
 #endif
 
   return throttles;
@@ -1036,22 +1027,22 @@ blink::UserAgentMetadata ElectronBrowserClient::GetUserAgentMetadata() {
   return embedder_support::GetUserAgentMetadata();
 }
 
-void ElectronBrowserClient::RegisterNonNetworkNavigationURLLoaderFactories(
-    int frame_tree_node_id,
-    NonNetworkURLLoaderFactoryMap* factories) {
+mojo::PendingRemote<network::mojom::URLLoaderFactory>
+ElectronBrowserClient::CreateNonNetworkNavigationURLLoaderFactory(
+    const std::string& scheme,
+    int frame_tree_node_id) {
   content::WebContents* web_contents =
       content::WebContents::FromFrameTreeNodeId(frame_tree_node_id);
   content::BrowserContext* context = web_contents->GetBrowserContext();
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
-  factories->emplace(
-      extensions::kExtensionScheme,
-      extensions::CreateExtensionNavigationURLLoaderFactory(
-          context, false /* we don't support extensions::WebViewGuest */));
+  if (scheme == extensions::kExtensionScheme) {
+    return extensions::CreateExtensionNavigationURLLoaderFactory(
+        context, false /* we don't support extensions::WebViewGuest */);
+  }
 #endif
   // Always allow navigating to file:// URLs.
   auto* protocol_registry = ProtocolRegistry::FromBrowserContext(context);
-  protocol_registry->RegisterURLLoaderFactories(factories,
-                                                true /* allow_file_access */);
+  return protocol_registry->CreateNonNetworkNavigationURLLoaderFactory(scheme);
 }
 
 void ElectronBrowserClient::
@@ -1301,6 +1292,7 @@ void ElectronBrowserClient::WillCreateURLLoaderFactory(
     int render_process_id,
     URLLoaderFactoryType type,
     const url::Origin& request_initiator,
+    const net::IsolationInfo& isolation_info,
     std::optional<int64_t> navigation_id,
     ukm::SourceIdObj ukm_source_id,
     network::URLLoaderFactoryBuilder& factory_builder,
@@ -1397,7 +1389,7 @@ void ElectronBrowserClient::OverrideURLLoaderFactoryParams(
     auto* web_contents = content::WebContents::FromRenderFrameHost(rfh);
     auto* prefs = WebContentsPreferences::From(web_contents);
     if (prefs && !prefs->IsWebSecurityEnabled()) {
-      factory_params->is_corb_enabled = false;
+      factory_params->is_orb_enabled = false;
       factory_params->disable_web_security = true;
     }
   }
@@ -1500,10 +1492,10 @@ void ElectronBrowserClient::
                           render_frame_host.GetGlobalId()));
 #endif
 #if BUILDFLAG(ENABLE_PDF_VIEWER)
-  associated_registry.AddInterface<pdf::mojom::PdfService>(base::BindRepeating(
+  associated_registry.AddInterface<pdf::mojom::PdfHost>(base::BindRepeating(
       [](content::RenderFrameHost* render_frame_host,
-         mojo::PendingAssociatedReceiver<pdf::mojom::PdfService> receiver) {
-        pdf::PDFDocumentHelper::BindPdfService(
+         mojo::PendingAssociatedReceiver<pdf::mojom::PdfHost> receiver) {
+        pdf::PDFDocumentHelper::BindPdfHost(
             std::move(receiver), render_frame_host,
             std::make_unique<ElectronPDFDocumentHelperClient>());
       },
@@ -1727,8 +1719,9 @@ void ElectronBrowserClient::RegisterBrowserInterfaceBindersForServiceWorker(
 }
 
 #if BUILDFLAG(IS_MAC)
-device::GeolocationManager* ElectronBrowserClient::GetGeolocationManager() {
-  return device::GeolocationManager::GetInstance();
+device::GeolocationSystemPermissionManager*
+ElectronBrowserClient::GetGeolocationSystemPermissionManager() {
+  return device::GeolocationSystemPermissionManager::GetInstance();
 }
 #endif
 

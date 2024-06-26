@@ -18,10 +18,10 @@ to STDOUT_FILENO/STD_OUTPUT_HANDLE and STDERR_FILENO/STD_ERROR_HANDLE allowing t
 parent process to read from the pipe.
 
 diff --git a/content/browser/child_process_launcher.h b/content/browser/child_process_launcher.h
-index fff0bf658a41f2f85db6086662768726f4a177a6..4f50fd78ea423efbeb0db6b8551b0f161b83ae9f 100644
+index 613feee88115d32905a3f8889cdf51d71cd5b4ec..da2fefd7b6e93a6f8b6eb008ebaac976f4ce64ea 100644
 --- a/content/browser/child_process_launcher.h
 +++ b/content/browser/child_process_launcher.h
-@@ -33,6 +33,7 @@
+@@ -32,6 +32,7 @@
  
  #if BUILDFLAG(IS_WIN)
  #include "base/win/windows_types.h"
@@ -29,7 +29,7 @@ index fff0bf658a41f2f85db6086662768726f4a177a6..4f50fd78ea423efbeb0db6b8551b0f16
  #endif
  
  #if BUILDFLAG(IS_POSIX)
-@@ -166,7 +167,10 @@ struct ChildProcessLauncherFileData {
+@@ -165,7 +166,10 @@ struct ChildProcessLauncherFileData {
        delete;
    ~ChildProcessLauncherFileData();
  
@@ -41,7 +41,7 @@ index fff0bf658a41f2f85db6086662768726f4a177a6..4f50fd78ea423efbeb0db6b8551b0f16
    // Files opened by the browser and passed as corresponding file descriptors
    // in the child process. If a FilePath is provided, the file will be opened
    // and the descriptor cached for future process launches. If a ScopedFD is
-@@ -181,6 +185,15 @@ struct ChildProcessLauncherFileData {
+@@ -180,6 +184,15 @@ struct ChildProcessLauncherFileData {
    std::map<std::string, absl::variant<base::FilePath, base::ScopedFD>>
        files_to_preload;
  #endif
@@ -58,10 +58,10 @@ index fff0bf658a41f2f85db6086662768726f4a177a6..4f50fd78ea423efbeb0db6b8551b0f16
  
  // Launches a process asynchronously and notifies the client of the process
 diff --git a/content/browser/child_process_launcher_helper_linux.cc b/content/browser/child_process_launcher_helper_linux.cc
-index 795ad47165f2f02e816f424ce74391a435c61a32..ace57135682f4372814acfbd202d1b077ecb1c0c 100644
+index 31a2a14a95540477297943df9b09b1e4659a884d..c02a81b1bd14a300dbbb47ad7aac2d2d7f3bb10f 100644
 --- a/content/browser/child_process_launcher_helper_linux.cc
 +++ b/content/browser/child_process_launcher_helper_linux.cc
-@@ -63,6 +63,11 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
+@@ -64,6 +64,11 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
        options->fds_to_remap.emplace_back(sandbox_fd, GetSandboxFD());
      }
  
@@ -73,7 +73,7 @@ index 795ad47165f2f02e816f424ce74391a435c61a32..ace57135682f4372814acfbd202d1b07
      // (For Electron), if we're launching without zygote, that means we're
      // launching an unsandboxed process (since all sandboxed processes are
      // forked from the zygote). Relax the allow_new_privs option to permit
-@@ -72,7 +77,9 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
+@@ -73,7 +78,9 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
        options->allow_new_privs = true;
      }
  
@@ -84,7 +84,7 @@ index 795ad47165f2f02e816f424ce74391a435c61a32..ace57135682f4372814acfbd202d1b07
      DCHECK(GetZygoteForLaunch());
      // Environment variables could be supported in the future, but are not
 diff --git a/content/browser/child_process_launcher_helper_mac.cc b/content/browser/child_process_launcher_helper_mac.cc
-index 8736af0021dccba915e3d2303191ae3ec80f6e75..56f8384c3ff4959272363cb71e4c380ee9125273 100644
+index 24f86e68b2df0a084ae2151d5cd14a356d067f94..c424edfb7c65b9c5ae542a405446f0c15fce8995 100644
 --- a/content/browser/child_process_launcher_helper_mac.cc
 +++ b/content/browser/child_process_launcher_helper_mac.cc
 @@ -123,7 +123,8 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
@@ -97,7 +97,7 @@ index 8736af0021dccba915e3d2303191ae3ec80f6e75..56f8384c3ff4959272363cb71e4c380e
    options->disclaim_responsibility = delegate_->DisclaimResponsibility();
    options->enable_cpu_security_mitigations =
        delegate_->EnableCpuSecurityMitigations();
-@@ -187,6 +188,11 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
+@@ -193,6 +194,11 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
          base::StringPrintf("%s%d", sandbox::switches::kSeatbeltClient, pipe));
    }
  
@@ -110,19 +110,19 @@ index 8736af0021dccba915e3d2303191ae3ec80f6e75..56f8384c3ff4959272363cb71e4c380e
  }
  
 diff --git a/content/browser/child_process_launcher_helper_win.cc b/content/browser/child_process_launcher_helper_win.cc
-index 4b7c732a6ee2771156120f7a6d43020013cdf209..493c53aeda0841af95de81eac262558494c8a675 100644
+index 2a01487c8ff837357f6d62dba80115b0ec64c343..8b1ed51630dc4fe77bd0edadb85f04fb8962cdd8 100644
 --- a/content/browser/child_process_launcher_helper_win.cc
 +++ b/content/browser/child_process_launcher_helper_win.cc
-@@ -21,6 +21,8 @@
- #include "sandbox/policy/win/sandbox_win.h"
- #include "sandbox/win/src/sandbox_types.h"
+@@ -24,6 +24,8 @@
+ #include "mojo/public/cpp/platform/named_platform_channel.h"
+ #include "mojo/public/cpp/platform/platform_channel.h"
  
 +#include <windows.h>
 +
  namespace {
  
- // /prefetch:# arguments to use when launching various process types. It has
-@@ -190,6 +192,30 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
+ // Helper to avoid marking the log file as non-executable every time we launch a
+@@ -132,6 +134,30 @@ bool ChildProcessLauncherHelper::BeforeLaunchOnLauncherThread(
      mojo_channel_->PrepareToPassRemoteEndpoint(&options->handles_to_inherit,
                                                 command_line());
    }
@@ -153,7 +153,7 @@ index 4b7c732a6ee2771156120f7a6d43020013cdf209..493c53aeda0841af95de81eac2625584
    return true;
  }
  
-@@ -217,7 +243,7 @@ ChildProcessLauncherHelper::LaunchProcessOnLauncherThread(
+@@ -159,7 +185,7 @@ ChildProcessLauncherHelper::LaunchProcessOnLauncherThread(
    ChildProcessLauncherHelper::Process process;
    *launch_result =
        StartSandboxedProcess(delegate_.get(), *command_line(),
@@ -163,13 +163,14 @@ index 4b7c732a6ee2771156120f7a6d43020013cdf209..493c53aeda0841af95de81eac2625584
  }
  
 diff --git a/content/browser/service_process_host_impl.cc b/content/browser/service_process_host_impl.cc
-index 97cda5eb354a16b53a2224de009898d85b348a69..75d7bc00759226859af635d66cdfbc3dd565b4a2 100644
+index be6402b33d7e0e2aab7cbb2844ba4600a166e7a9..642f8b6da39615d1c68584ff18fc57ceb95b84b2 100644
 --- a/content/browser/service_process_host_impl.cc
 +++ b/content/browser/service_process_host_impl.cc
-@@ -208,6 +208,15 @@ void LaunchServiceProcess(mojo::GenericPendingReceiver receiver,
-     host->SetPinUser32();
+@@ -204,6 +204,16 @@ void LaunchServiceProcess(mojo::GenericPendingReceiver receiver,
+       options.allow_gpu_client.value()) {
+     host->SetAllowGpuClient();
    }
- #endif  // BUILDFLAG(IS_WIN)
++
 +#if BUILDFLAG(IS_WIN)
 +  host->SetStdioHandles(std::move(options.stdout_handle), std::move(options.stderr_handle));
 +#elif BUILDFLAG(IS_POSIX)
@@ -183,10 +184,10 @@ index 97cda5eb354a16b53a2224de009898d85b348a69..75d7bc00759226859af635d66cdfbc3d
    host->GetChildProcess()->BindServiceInterface(std::move(receiver));
  }
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index f3d7fb47d0950a3489271bf8e44fe48e10277b5d..e7f30e95727137fc54f8493dfa8eb36b74fbdcb4 100644
+index 7e82cd311a6286475d149310ecd492f6114e2ba8..38bd3928ecfca0cdd47b6f91735e85a4bfbdc661 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
-@@ -177,11 +177,13 @@ const ChildProcessData& UtilityProcessHost::GetData() {
+@@ -178,11 +178,13 @@ const ChildProcessData& UtilityProcessHost::GetData() {
    return process_->GetData();
  }
  
@@ -202,7 +203,7 @@ index f3d7fb47d0950a3489271bf8e44fe48e10277b5d..e7f30e95727137fc54f8493dfa8eb36b
  
  bool UtilityProcessHost::Start() {
    return StartProcess();
-@@ -247,6 +249,24 @@ void UtilityProcessHost::SetZygoteForTesting(ZygoteCommunication* handle) {
+@@ -229,6 +231,24 @@ void UtilityProcessHost::SetZygoteForTesting(ZygoteCommunication* handle) {
  }
  #endif  // BUILDFLAG(USE_ZYGOTE)
  
@@ -227,7 +228,7 @@ index f3d7fb47d0950a3489271bf8e44fe48e10277b5d..e7f30e95727137fc54f8493dfa8eb36b
  mojom::ChildProcess* UtilityProcessHost::GetChildProcess() {
    return static_cast<ChildProcessHostImpl*>(process_->GetHost())
        ->child_process();
-@@ -461,9 +481,22 @@ bool UtilityProcessHost::StartProcess() {
+@@ -437,9 +457,22 @@ bool UtilityProcessHost::StartProcess() {
      }
  #endif  // BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS_ASH)
  
@@ -252,12 +253,12 @@ index f3d7fb47d0950a3489271bf8e44fe48e10277b5d..e7f30e95727137fc54f8493dfa8eb36b
  #if BUILDFLAG(IS_WIN)
      if (!preload_libraries_.empty()) {
 diff --git a/content/browser/utility_process_host.h b/content/browser/utility_process_host.h
-index 01a921c772f769c64ac97bfc5e74862a801e3e61..9bfc30138a01520d59760a49d15dd4819feb0556 100644
+index 9791ae2f761043b9eecd9064a6fd39a6e2339af4..1083f1683a05825f51f5b2d71f8107d910fa2474 100644
 --- a/content/browser/utility_process_host.h
 +++ b/content/browser/utility_process_host.h
-@@ -35,6 +35,10 @@
- #include "mojo/public/cpp/system/message_pipe.h"
- #endif
+@@ -29,6 +29,10 @@
+ #include "content/public/common/zygote/zygote_handle.h"
+ #endif  // BUILDFLAG(USE_ZYGOTE)
  
 +#if BUILDFLAG(IS_WIN)
 +#include "base/win/scoped_handle.h"
@@ -266,7 +267,7 @@ index 01a921c772f769c64ac97bfc5e74862a801e3e61..9bfc30138a01520d59760a49d15dd481
  namespace base {
  class Thread;
  }  // namespace base
-@@ -104,9 +108,13 @@ class CONTENT_EXPORT UtilityProcessHost
+@@ -98,9 +102,13 @@ class CONTENT_EXPORT UtilityProcessHost
  
    // Returns information about the utility child process.
    const ChildProcessData& GetData();
@@ -282,7 +283,7 @@ index 01a921c772f769c64ac97bfc5e74862a801e3e61..9bfc30138a01520d59760a49d15dd481
  
    // Starts the utility process.
    bool Start();
-@@ -154,6 +162,16 @@ class CONTENT_EXPORT UtilityProcessHost
+@@ -138,6 +146,16 @@ class CONTENT_EXPORT UtilityProcessHost
    void SetZygoteForTesting(ZygoteCommunication* handle);
  #endif  // BUILDFLAG(USE_ZYGOTE)
  
@@ -299,7 +300,7 @@ index 01a921c772f769c64ac97bfc5e74862a801e3e61..9bfc30138a01520d59760a49d15dd481
    // Returns a control interface for the running child process.
    mojom::ChildProcess* GetChildProcess();
  
-@@ -209,6 +227,22 @@ class CONTENT_EXPORT UtilityProcessHost
+@@ -191,6 +209,22 @@ class CONTENT_EXPORT UtilityProcessHost
    std::optional<raw_ptr<ZygoteCommunication>> zygote_for_testing_;
  #endif  // BUILDFLAG(USE_ZYGOTE)
  
@@ -323,7 +324,7 @@ index 01a921c772f769c64ac97bfc5e74862a801e3e61..9bfc30138a01520d59760a49d15dd481
    // launch failed.
    enum class LaunchState {
 diff --git a/content/browser/utility_sandbox_delegate.cc b/content/browser/utility_sandbox_delegate.cc
-index 2f3977d62535e299ef3b5954b9d67291afae2a57..edc825c691f7b55cd38fa31a9229fdf02bb5ff24 100644
+index bb7667de8bb189d5daccf0ae824bffbb092f1c22..2e5beb5ac9dac293ca3d2824972d26d8fcd9fe06 100644
 --- a/content/browser/utility_sandbox_delegate.cc
 +++ b/content/browser/utility_sandbox_delegate.cc
 @@ -29,13 +29,15 @@ UtilitySandboxedProcessLauncherDelegate::
@@ -367,10 +368,10 @@ index 2f3977d62535e299ef3b5954b9d67291afae2a57..edc825c691f7b55cd38fa31a9229fdf0
  #if BUILDFLAG(USE_ZYGOTE)
  ZygoteCommunication* UtilitySandboxedProcessLauncherDelegate::GetZygote() {
 diff --git a/content/browser/utility_sandbox_delegate.h b/content/browser/utility_sandbox_delegate.h
-index 0e07a9799748f30c5768651f44b5e5aa52c514f3..b1915bcad540f0c90b71677e59083a11461519f2 100644
+index c1e56dc93b80594ffb55e11291e7bd152f029d61..928f3f693eed4252d9d34a64dd392af7e48e4190 100644
 --- a/content/browser/utility_sandbox_delegate.h
 +++ b/content/browser/utility_sandbox_delegate.h
-@@ -28,7 +28,9 @@ class UtilitySandboxedProcessLauncherDelegate
+@@ -29,7 +29,9 @@ class UtilitySandboxedProcessLauncherDelegate
   public:
    UtilitySandboxedProcessLauncherDelegate(sandbox::mojom::Sandbox sandbox_type,
                                            const base::EnvironmentMap& env,
@@ -402,7 +403,7 @@ index 0e07a9799748f30c5768651f44b5e5aa52c514f3..b1915bcad540f0c90b71677e59083a11
  
  #if BUILDFLAG(IS_WIN)
    std::vector<base::FilePath> preload_libraries_;
-@@ -77,8 +77,10 @@ class UtilitySandboxedProcessLauncherDelegate
+@@ -76,8 +76,10 @@ class UtilitySandboxedProcessLauncherDelegate
    std::optional<raw_ptr<ZygoteCommunication>> zygote_;
  #endif  // BUILDFLAG(USE_ZYGOTE)
  
@@ -436,7 +437,7 @@ index 498f60227d13eb2e476413f88eaa58cc0babf461..619639ad5d22a1121b0e0d5f2c9e3c10
  
  }  // namespace content
 diff --git a/content/public/browser/service_process_host.cc b/content/public/browser/service_process_host.cc
-index e6bd27288a8d29dcf263a0677d2629d0aa7cf7c4..24d5acf41ea3fb825d813a040644aef1c9d6d4ee 100644
+index 8defae52a201a97c402e304216ce772a717a9f7e..a3cdeab1c22cf9f1b5ea0c25d2d7cbff9b68b683 100644
 --- a/content/public/browser/service_process_host.cc
 +++ b/content/public/browser/service_process_host.cc
 @@ -52,12 +52,45 @@ ServiceProcessHost::Options::WithExtraCommandLineSwitches(
@@ -486,7 +487,7 @@ index e6bd27288a8d29dcf263a0677d2629d0aa7cf7c4..24d5acf41ea3fb825d813a040644aef1
  ServiceProcessHost::Options&
  ServiceProcessHost::Options::WithPreloadedLibraries(
 diff --git a/content/public/browser/service_process_host.h b/content/public/browser/service_process_host.h
-index 69c6f20a95c1da6a3f2ae02e81073bef0733af4e..8efbbd030729276114c40b33ee72822b02444a84 100644
+index 0062d2cb6634b8b29977a0312516b1b13936b40a..22e1191b57f56aa31b2c82fcc3ec0972f16752a8 100644
 --- a/content/public/browser/service_process_host.h
 +++ b/content/public/browser/service_process_host.h
 @@ -14,6 +14,7 @@
@@ -495,9 +496,9 @@ index 69c6f20a95c1da6a3f2ae02e81073bef0733af4e..8efbbd030729276114c40b33ee72822b
  #include "base/observer_list_types.h"
 +#include "base/process/launch.h"
  #include "base/process/process_handle.h"
- #include "base/strings/string_piece.h"
- #include "build/chromecast_buildflags.h"
-@@ -35,6 +36,10 @@
+ #include "content/common/content_export.h"
+ #include "content/public/browser/service_process_info.h"
+@@ -28,6 +29,10 @@
  #include "base/types/pass_key.h"
  #endif  // BUILDFLAG(IS_WIN)
  
@@ -508,7 +509,7 @@ index 69c6f20a95c1da6a3f2ae02e81073bef0733af4e..8efbbd030729276114c40b33ee72822b
  namespace base {
  class Process;
  }  // namespace base
-@@ -100,11 +105,30 @@ class CONTENT_EXPORT ServiceProcessHost {
+@@ -94,11 +99,30 @@ class CONTENT_EXPORT ServiceProcessHost {
      // Specifies extra command line switches to append before launch.
      Options& WithExtraCommandLineSwitches(std::vector<std::string> switches);
  
@@ -539,7 +540,7 @@ index 69c6f20a95c1da6a3f2ae02e81073bef0733af4e..8efbbd030729276114c40b33ee72822b
  #if BUILDFLAG(IS_WIN)
      // Specifies libraries to preload before the sandbox is locked down. Paths
      // should be absolute paths. Libraries will be preloaded before sandbox
-@@ -131,11 +155,20 @@ class CONTENT_EXPORT ServiceProcessHost {
+@@ -127,11 +151,20 @@ class CONTENT_EXPORT ServiceProcessHost {
      std::optional<GURL> site;
      std::optional<int> child_flags;
      std::vector<std::string> extra_switches;
@@ -552,8 +553,8 @@ index 69c6f20a95c1da6a3f2ae02e81073bef0733af4e..8efbbd030729276114c40b33ee72822b
      base::OnceCallback<void(const base::Process&)> process_callback;
  #if BUILDFLAG(IS_WIN)
      std::vector<base::FilePath> preload_libraries;
-     bool pin_user32;
  #endif  // BUILDFLAG(IS_WIN)
+     std::optional<bool> allow_gpu_client;
 +    base::FilePath current_directory;
 +    base::EnvironmentMap environment;
 +    bool clear_environment = false;
@@ -627,10 +628,10 @@ index cb43aa14c9742f3788ae58c3e49b890cd532f327..6a738f7aade504f2ff3bb6647a0da8f8
  #if BUILDFLAG(IS_MAC)
    // Whether or not to disclaim TCC responsibility for the process, defaults to
 diff --git a/sandbox/policy/win/sandbox_win.cc b/sandbox/policy/win/sandbox_win.cc
-index f71cf0fb270d75a483866990cf9f054e06f12611..8bc758bb20a45929e6bdec85c29e2603eee00701 100644
+index 3354330593ebcd1a9cb2f444977b37e9f79b9d90..0b38d2e5b70a0c5bb09fd003f340a52bf39e0eb4 100644
 --- a/sandbox/policy/win/sandbox_win.cc
 +++ b/sandbox/policy/win/sandbox_win.cc
-@@ -694,11 +694,9 @@ base::win::ScopedHandle CreateUnsandboxedJob() {
+@@ -765,11 +765,9 @@ base::win::ScopedHandle CreateUnsandboxedJob() {
  // command line flag.
  ResultCode LaunchWithoutSandbox(
      const base::CommandLine& cmd_line,
@@ -643,7 +644,7 @@ index f71cf0fb270d75a483866990cf9f054e06f12611..8bc758bb20a45929e6bdec85c29e2603
    // Network process runs in a job even when unsandboxed. This is to ensure it
    // does not outlive the browser, which could happen if there is a lot of I/O
    // on process shutdown, in which case TerminateProcess can fail. See
-@@ -918,7 +916,7 @@ bool SandboxWin::InitTargetServices(TargetServices* target_services) {
+@@ -1000,7 +998,7 @@ bool SandboxWin::InitTargetServices(TargetServices* target_services) {
  ResultCode SandboxWin::GeneratePolicyForSandboxedProcess(
      const base::CommandLine& cmd_line,
      const std::string& process_type,
@@ -652,7 +653,7 @@ index f71cf0fb270d75a483866990cf9f054e06f12611..8bc758bb20a45929e6bdec85c29e2603
      SandboxDelegate* delegate,
      TargetPolicy* policy) {
    const base::CommandLine& launcher_process_command_line =
-@@ -932,7 +930,7 @@ ResultCode SandboxWin::GeneratePolicyForSandboxedProcess(
+@@ -1014,7 +1012,7 @@ ResultCode SandboxWin::GeneratePolicyForSandboxedProcess(
    }
  
    // Add any handles to be inherited to the policy.
@@ -661,7 +662,7 @@ index f71cf0fb270d75a483866990cf9f054e06f12611..8bc758bb20a45929e6bdec85c29e2603
      policy->AddHandleToShare(handle);
  
    if (!policy->GetConfig()->IsConfigured()) {
-@@ -947,6 +945,13 @@ ResultCode SandboxWin::GeneratePolicyForSandboxedProcess(
+@@ -1029,6 +1027,13 @@ ResultCode SandboxWin::GeneratePolicyForSandboxedProcess(
    // have no effect. These calls can fail with SBOX_ERROR_BAD_PARAMS.
    policy->SetStdoutHandle(GetStdHandle(STD_OUTPUT_HANDLE));
    policy->SetStderrHandle(GetStdHandle(STD_ERROR_HANDLE));
@@ -675,7 +676,7 @@ index f71cf0fb270d75a483866990cf9f054e06f12611..8bc758bb20a45929e6bdec85c29e2603
  #endif
  
    if (!delegate->PreSpawnTarget(policy))
-@@ -959,7 +964,7 @@ ResultCode SandboxWin::GeneratePolicyForSandboxedProcess(
+@@ -1041,7 +1046,7 @@ ResultCode SandboxWin::GeneratePolicyForSandboxedProcess(
  ResultCode SandboxWin::StartSandboxedProcess(
      const base::CommandLine& cmd_line,
      const std::string& process_type,
@@ -683,8 +684,8 @@ index f71cf0fb270d75a483866990cf9f054e06f12611..8bc758bb20a45929e6bdec85c29e2603
 +    const base::LaunchOptions* options,
      SandboxDelegate* delegate,
      base::Process* process) {
-   const base::ElapsedTimer timer;
-@@ -967,13 +972,13 @@ ResultCode SandboxWin::StartSandboxedProcess(
+   SandboxLaunchTimer timer;
+@@ -1049,7 +1054,7 @@ ResultCode SandboxWin::StartSandboxedProcess(
    // Avoid making a policy if we won't use it.
    if (IsUnsandboxedProcess(delegate->GetSandboxType(), cmd_line,
                             *base::CommandLine::ForCurrentProcess())) {
@@ -693,13 +694,15 @@ index f71cf0fb270d75a483866990cf9f054e06f12611..8bc758bb20a45929e6bdec85c29e2603
                                  process);
    }
  
-   auto policy = g_broker_services->CreatePolicy(delegate->GetSandboxTag());
+@@ -1057,7 +1062,7 @@ ResultCode SandboxWin::StartSandboxedProcess(
+   timer.OnPolicyCreated();
+ 
    ResultCode result = GeneratePolicyForSandboxedProcess(
 -      cmd_line, process_type, handles_to_inherit, delegate, policy.get());
 +      cmd_line, process_type, options, delegate, policy.get());
    if (SBOX_ALL_OK != result)
      return result;
- 
+   timer.OnPolicyGenerated();
 diff --git a/sandbox/policy/win/sandbox_win.h b/sandbox/policy/win/sandbox_win.h
 index 54d808db3a0a2aff198e132fae02c8649a0b547e..e1f5321298e634a310afc10773b93fedbad22431 100644
 --- a/sandbox/policy/win/sandbox_win.h

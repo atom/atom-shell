@@ -11,6 +11,9 @@ DEPS                                    @electron/wg-upgrades
 /docs/breaking-changes.md               @electron/wg-releases
 /npm/                                   @electron/wg-releases
 /script/release                         @electron/wg-releases
+appveyor.yml                            @electron/wg-releases
+appveyor-bake.yml                       @electron/wg-releases
+appveyor-woa.yml                        @electron/wg-releases
 
 # Security WG
 /lib/browser/devtools.ts                @electron/wg-security

@@ -21,6 +21,7 @@ class TrayIconCocoa : public TrayIcon {
   TrayIconCocoa();
   ~TrayIconCocoa() override;
 
+  // TrayIcon
   void SetImage(const gfx::Image& image) override;
   void SetPressedImage(const gfx::Image& image) override;
   void SetToolTip(const std::string& tool_tip) override;

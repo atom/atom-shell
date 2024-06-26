@@ -9,10 +9,14 @@ An example of implementing a protocol that has the same effect as the
 
 ```js
 const { app, protocol, net } = require('electron')
+const path = require('node:path')
+const url = require('node:url')
 
 app.whenReady().then(() => {
-  protocol.handle('atom', (request) =>
-    net.fetch('file://' + request.url.slice('atom://'.length)))
+  protocol.handle('atom', (request) => {
+    const filePath = request.url.slice('atom://'.length)
+    return net.fetch(url.pathToFileURL(path.join(__dirname, filePath)).toString())
+  })
 })
 ```
 
@@ -42,7 +46,7 @@ app.whenReady().then(() => {
 
   ses.protocol.handle('atom', (request) => {
     const filePath = request.url.slice('atom://'.length)
-    return net.fetch(url.pathToFileURL(path.join(__dirname, filePath)).toString())
+    return net.fetch(url.pathToFileURL(path.resolve(__dirname, filePath)).toString())
   })
 
   const mainWindow = new BrowserWindow({ webPreferences: { partition } })
@@ -75,9 +79,8 @@ protocol.registerSchemesAsPrivileged([
 ])
 ```
 
-A standard scheme adheres to what RFC 3986 calls [generic URI
-syntax](https://tools.ietf.org/html/rfc3986#section-3). For example `http` and
-`https` are standard schemes, while `file` is not.
+A standard scheme adheres to what RFC 3986 calls [generic URI syntax](https://tools.ietf.org/html/rfc3986#section-3).
+For example `http` and `https` are standard schemes, while `file` is not.
 
 Registering a scheme as standard allows relative and absolute resources to
 be resolved correctly when served. Otherwise the scheme will behave like the
@@ -111,7 +114,7 @@ expect streaming responses.
 
 * `scheme` string - scheme to handle, for example `https` or `my-app`. This is
   the bit before the `:` in a URL.
-* `handler` Function<[GlobalResponse](https://nodejs.org/api/globals.html#response) | Promise<GlobalResponse>>
+* `handler` Function\<[GlobalResponse](https://nodejs.org/api/globals.html#response) | Promise\<GlobalResponse\>\>
   * `request` [GlobalRequest](https://nodejs.org/api/globals.html#request)
 
 Register a protocol handler for `scheme`. Requests made to URLs with this

@@ -28,7 +28,6 @@ ElectronNavigationThrottle::WillStartRequest() {
   auto* contents = handle->GetWebContents();
   if (!contents) {
     NOTREACHED();
-    return PROCEED;
   }
 
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
@@ -69,7 +68,6 @@ ElectronNavigationThrottle::WillRedirectRequest() {
   auto* contents = handle->GetWebContents();
   if (!contents) {
     NOTREACHED();
-    return PROCEED;
   }
 
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();

@@ -60,7 +60,7 @@ app.whenReady().then(() => {
 
 **MacOS**
 
-* Icons passed to the Tray constructor should be [Template Images](native-image.md#template-image).
+* Icons passed to the Tray constructor should be [Template Images](native-image.md#template-image-macos).
 * To make sure your icon isn't grainy on retina monitors, be sure your `@2x` image is 144dpi.
 * If you are bundling your application (e.g., with webpack for development), be sure that the file names are not being mangled or hashed. The filename needs to end in Template, and the `@2x` image needs to have the same filename as the standard image, or MacOS will not magically invert your image's colors or use the high density image.
 * 16x16 (72dpi) and 32x32@2x (144dpi) work well for most icons.

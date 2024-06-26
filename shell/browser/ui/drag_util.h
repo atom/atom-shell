@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "electron/shell/common/api/api.mojom.h"
+#include "third_party/blink/public/mojom/page/draggable_region.mojom-forward.h"
 #include "third_party/skia/include/core/SkRegion.h"
 #include "ui/gfx/image/image.h"
 
@@ -24,7 +25,7 @@ void DragFileItems(const std::vector<base::FilePath>& files,
 
 // Convert draggable regions in raw format to SkRegion format.
 std::unique_ptr<SkRegion> DraggableRegionsToSkRegion(
-    const std::vector<mojom::DraggableRegionPtr>& regions);
+    const std::vector<blink::mojom::DraggableRegionPtr>& regions);
 
 }  // namespace electron
 

@@ -36,11 +36,12 @@ parentPort.on('removeListener', (name: string) => {
 });
 
 // Finally load entry script.
-const { loadESM } = __non_webpack_require__('internal/process/esm_loader');
+const { runEntryPointWithESMLoader } = __non_webpack_require__('internal/modules/run_main');
 const mainEntry = pathToFileURL(entryScript);
-loadESM(async (esmLoader: any) => {
+
+runEntryPointWithESMLoader(async (cascadedLoader: any) => {
   try {
-    await esmLoader.import(mainEntry.toString(), undefined, Object.create(null));
+    await cascadedLoader.import(mainEntry.toString(), undefined, Object.create(null));
   } catch (err) {
     // @ts-ignore internalBinding is a secret internal global that we shouldn't
     // really be using, so we ignore the type error instead of declaring it in types

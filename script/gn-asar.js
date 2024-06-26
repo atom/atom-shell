@@ -1,6 +1,6 @@
 const asar = require('@electron/asar');
 const assert = require('node:assert');
-const fs = require('fs-extra');
+const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
@@ -41,12 +41,12 @@ try {
   // Copy all files to a tmp dir to avoid including scrap files in the ASAR
   for (const file of files) {
     const newLocation = path.resolve(tmpPath, path.relative(base[0], file));
-    fs.mkdirsSync(path.dirname(newLocation));
+    fs.mkdirSync(path.dirname(newLocation), { recursive: true });
     fs.writeFileSync(newLocation, fs.readFileSync(file));
   }
 } catch (err) {
   console.error('Unexpected error while generating ASAR', err);
-  fs.remove(tmpPath)
+  fs.promises.rm(tmpPath, { force: true, recursive: true })
     .then(() => process.exit(1))
     .catch(() => process.exit(1));
   return;
@@ -59,5 +59,5 @@ asar.createPackageWithOptions(tmpPath, out[0], {})
       console.error('Unexpected error while generating ASAR', err);
       process.exit(1);
     };
-    fs.remove(tmpPath).then(exit).catch(exit);
-  }).then(() => fs.remove(tmpPath));
+    fs.promises.rm(tmpPath, { force: true, recursive: true }).then(exit).catch(exit);
+  }).then(() => fs.promises.rm(tmpPath, { force: true, recursive: true }));

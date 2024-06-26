@@ -21,9 +21,6 @@ void ElectronSpeechRecognitionManagerDelegate::OnRecognitionStart(
 
 void ElectronSpeechRecognitionManagerDelegate::OnAudioStart(int session_id) {}
 
-void ElectronSpeechRecognitionManagerDelegate::OnEnvironmentEstimationComplete(
-    int session_id) {}
-
 void ElectronSpeechRecognitionManagerDelegate::OnSoundStart(int session_id) {}
 
 void ElectronSpeechRecognitionManagerDelegate::OnSoundEnd(int session_id) {}
@@ -35,11 +32,11 @@ void ElectronSpeechRecognitionManagerDelegate::OnRecognitionEnd(
 
 void ElectronSpeechRecognitionManagerDelegate::OnRecognitionResults(
     int session_id,
-    const std::vector<blink::mojom::SpeechRecognitionResultPtr>& results) {}
+    const std::vector<media::mojom::WebSpeechRecognitionResultPtr>& results) {}
 
 void ElectronSpeechRecognitionManagerDelegate::OnRecognitionError(
     int session_id,
-    const blink::mojom::SpeechRecognitionError& error) {}
+    const media::mojom::SpeechRecognitionError& error) {}
 
 void ElectronSpeechRecognitionManagerDelegate::OnAudioLevelsChange(
     int session_id,
@@ -61,5 +58,8 @@ bool ElectronSpeechRecognitionManagerDelegate::FilterProfanities(
     int render_process_id) {
   return false;
 }
+
+void ElectronSpeechRecognitionManagerDelegate::BindSpeechRecognitionContext(
+    mojo::PendingReceiver<media::mojom::SpeechRecognitionContext> receiver) {}
 
 }  // namespace electron

@@ -217,7 +217,6 @@ void NotifyIconHost::Remove(NotifyIcon* icon) {
 
   if (i == notify_icons_.end()) {
     NOTREACHED();
-    return;
   }
 
   mouse_entered_exited_detector_->IconRemoved(*i);

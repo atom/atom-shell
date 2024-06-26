@@ -25,6 +25,7 @@
 #include "shell/browser/browser.h"
 #include "shell/browser/javascript_environment.h"
 #include "shell/browser/ui/cocoa/electron_native_widget_mac.h"
+#include "shell/browser/ui/cocoa/electron_ns_panel.h"
 #include "shell/browser/ui/cocoa/electron_ns_window.h"
 #include "shell/browser/ui/cocoa/electron_ns_window_delegate.h"
 #include "shell/browser/ui/cocoa/electron_preview_item.h"
@@ -117,53 +118,6 @@ struct Converter<electron::NativeWindowMac::VisualEffectState> {
 namespace electron {
 
 namespace {
-
-bool IsFramelessWindow(NSView* view) {
-  NSWindow* nswindow = [view window];
-  if (![nswindow respondsToSelector:@selector(shell)])
-    return false;
-  NativeWindow* window = [static_cast<ElectronNSWindow*>(nswindow) shell];
-  return window && !window->has_frame();
-}
-
-bool IsPanel(NSWindow* window) {
-  return [window isKindOfClass:[NSPanel class]];
-}
-
-IMP original_set_frame_size = nullptr;
-IMP original_view_did_move_to_superview = nullptr;
-
-// This method is directly called by NSWindow during a window resize on OSX
-// 10.10.0, beta 2. We must override it to prevent the content view from
-// shrinking.
-void SetFrameSize(NSView* self, SEL _cmd, NSSize size) {
-  if (!IsFramelessWindow(self)) {
-    auto original =
-        reinterpret_cast<decltype(&SetFrameSize)>(original_set_frame_size);
-    return original(self, _cmd, size);
-  }
-  // For frameless window, resize the view to cover full window.
-  if ([self superview])
-    size = [[self superview] bounds].size;
-  auto super_impl = reinterpret_cast<decltype(&SetFrameSize)>(
-      [[self superclass] instanceMethodForSelector:_cmd]);
-  super_impl(self, _cmd, size);
-}
-
-// The contentView gets moved around during certain full-screen operations.
-// This is less than ideal, and should eventually be removed.
-void ViewDidMoveToSuperview(NSView* self, SEL _cmd) {
-  if (!IsFramelessWindow(self)) {
-    // [BridgedContentView viewDidMoveToSuperview];
-    auto original = reinterpret_cast<decltype(&ViewDidMoveToSuperview)>(
-        original_view_did_move_to_superview);
-    if (original)
-      original(self, _cmd);
-    return;
-  }
-  [self setFrame:[[self superview] bounds]];
-}
-
 // -[NSWindow orderWindow] does not handle reordering for children
 // windows. Their order is fixed to the attachment order (the last attached
 // window is on the top). Therefore, work around it by re-parenting in our
@@ -279,11 +233,12 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
 
   // Create views::Widget and assign window_ with it.
   // TODO(zcbenz): Get rid of the window_ in future.
-  views::Widget::InitParams params;
-  params.ownership = views::Widget::InitParams::WIDGET_OWNS_NATIVE_WIDGET;
+  views::Widget::InitParams params(
+      views::Widget::InitParams::WIDGET_OWNS_NATIVE_WIDGET,
+      views::Widget::InitParams::TYPE_WINDOW);
   params.bounds = bounds;
   params.delegate = this;
-  params.type = views::Widget::InitParams::TYPE_WINDOW;
+  params.headless_mode = true;
   params.native_widget =
       new ElectronNativeWidgetMac(this, windowType, styleMask, widget());
   widget()->Init(std::move(params));
@@ -410,7 +365,7 @@ void NativeWindowMac::SetContentView(views::View* view) {
   set_content_view(view);
   root_view->AddChildView(content_view());
 
-  root_view->Layout();
+  root_view->DeprecatedLayoutImmediately();
 }
 
 void NativeWindowMac::Close() {
@@ -470,30 +425,9 @@ void NativeWindowMac::Focus(bool focus) {
   if (focus) {
     // If we're a panel window, we do not want to activate the app,
     // which enables Electron-apps to build Spotlight-like experiences.
-    //
-    // On macOS < Sonoma, "activateIgnoringOtherApps:NO" would not
-    // activate apps if focusing a window that is inActive. That
-    // changed with macOS Sonoma, which also deprecated
-    // "activateIgnoringOtherApps". For the panel-specific usecase,
-    // we can simply replace "activateIgnoringOtherApps:NO" with
-    // "activate". For details on why we cannot replace all calls 1:1,
-    // please see
-    // https://github.com/electron/electron/pull/40307#issuecomment-1801976591.
-    //
-    // There's a slim chance we should have never called
-    // activateIgnoringOtherApps, but we tried that many years ago
-    // and saw weird focus bugs on other macOS versions. So, to make
-    // this safe, we're gating by versions.
-    if (@available(macOS 14.0, *)) {
-      if (!IsPanel(window_)) {
-        [[NSApplication sharedApplication] activate];
-      } else {
-        [[NSApplication sharedApplication] activateIgnoringOtherApps:NO];
-      }
-    } else {
+    if (!IsPanel()) {
       [[NSApplication sharedApplication] activateIgnoringOtherApps:NO];
     }
-
     [window_ makeKeyAndOrderFront:nil];
   } else {
     [window_ orderOut:nil];
@@ -521,10 +455,10 @@ void NativeWindowMac::Show() {
   if (parent())
     InternalSetParentWindow(parent(), true);
 
-  // This method is supposed to put focus on window, however if the app does not
-  // have focus then "makeKeyAndOrderFront" will only show the window.
-  [NSApp activateIgnoringOtherApps:YES];
-
+  // Panels receive key focus when shown but should not activate the app.
+  if (!IsPanel()) {
+    [[NSApplication sharedApplication] activateIgnoringOtherApps:YES];
+  }
   [window_ makeKeyAndOrderFront:nil];
 }
 
@@ -535,7 +469,7 @@ void NativeWindowMac::ShowInactive() {
   if (parent())
     InternalSetParentWindow(parent(), true);
 
-  [window_ orderFrontRegardless];
+  [window_ orderFrontKeepWindowKeyState];
 }
 
 void NativeWindowMac::Hide() {
@@ -664,6 +598,10 @@ void NativeWindowMac::Restore() {
 
 bool NativeWindowMac::IsMinimized() const {
   return [window_ isMiniaturized];
+}
+
+bool NativeWindowMac::IsPanel() {
+  return [window_ isKindOfClass:[ElectronNSPanel class]];
 }
 
 bool NativeWindowMac::HandleDeferredClose() {
@@ -1049,7 +987,7 @@ std::string NativeWindowMac::GetTitle() const {
 
 void NativeWindowMac::FlashFrame(bool flash) {
   if (flash) {
-    attention_request_id_ = [NSApp requestUserAttention:NSInformationalRequest];
+    attention_request_id_ = [NSApp requestUserAttention:NSCriticalRequest];
   } else {
     [NSApp cancelUserAttentionRequest:attention_request_id_];
     attention_request_id_ = 0;

@@ -18,8 +18,6 @@ namespace electron {
 // Observer to dispatch those events.
 class ExtendedWebContentsObserver : public base::CheckedObserver {
  public:
-  virtual void OnDraggableRegionsUpdated(
-      const std::vector<mojom::DraggableRegionPtr>& regions) {}
   virtual void OnSetContentBounds(const gfx::Rect& rect) {}
   virtual void OnActivateContents() {}
   virtual void OnPageTitleUpdated(const std::u16string& title,

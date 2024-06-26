@@ -15,7 +15,7 @@ short-circuit all the permissions checks in MSDC for now to allow us to
 unduplicate this code.
 
 diff --git a/components/webrtc/media_stream_devices_controller.cc b/components/webrtc/media_stream_devices_controller.cc
-index e7aa270fce64dbf884393b08063890eb56f186a7..397a37518a094d2a538cefe9c3ff2ee85f7ef3ef 100644
+index fc6ed7e7de02c6c27dd93cb40a01ab1881c98990..2e745a5cccbae20b9d1e22e2b4fe0d2d3c47a629 100644
 --- a/components/webrtc/media_stream_devices_controller.cc
 +++ b/components/webrtc/media_stream_devices_controller.cc
 @@ -57,7 +57,8 @@ bool PermissionIsRequested(blink::PermissionType permission,
@@ -72,7 +72,7 @@ index e7aa270fce64dbf884393b08063890eb56f186a7..397a37518a094d2a538cefe9c3ff2ee8
  }
  
  MediaStreamDevicesController::~MediaStreamDevicesController() {
-@@ -447,6 +455,7 @@ bool MediaStreamDevicesController::PermissionIsBlockedForReason(
+@@ -429,6 +437,7 @@ bool MediaStreamDevicesController::PermissionIsBlockedForReason(
      return false;
    }
  
@@ -80,7 +80,7 @@ index e7aa270fce64dbf884393b08063890eb56f186a7..397a37518a094d2a538cefe9c3ff2ee8
    // TODO(raymes): This function wouldn't be needed if
    // PermissionManager::RequestPermissions returned a denial reason.
    content::PermissionResult result =
-@@ -457,6 +466,7 @@ bool MediaStreamDevicesController::PermissionIsBlockedForReason(
+@@ -439,6 +448,7 @@ bool MediaStreamDevicesController::PermissionIsBlockedForReason(
      DCHECK_EQ(blink::mojom::PermissionStatus::DENIED, result.status);
      return true;
    }
@@ -89,7 +89,7 @@ index e7aa270fce64dbf884393b08063890eb56f186a7..397a37518a094d2a538cefe9c3ff2ee8
  }
  
 diff --git a/components/webrtc/media_stream_devices_controller.h b/components/webrtc/media_stream_devices_controller.h
-index b4258f59081c5d99b9c3edf02ca538499a5a435e..3bb6ac4e27fb39283d71a46dd3af7b9f7258d1e2 100644
+index 4d3bf184243a4c1296f41070e934730a3bd2620e..78610ff9fb93cfa1c9aae898d6f8c83520fc860a 100644
 --- a/components/webrtc/media_stream_devices_controller.h
 +++ b/components/webrtc/media_stream_devices_controller.h
 @@ -48,7 +48,8 @@ class MediaStreamDevicesController {

@@ -90,25 +90,28 @@ async function main () {
     env.LDFLAGS = ldflags;
   }
 
-  const { status: buildStatus } = cp.spawnSync(NPX_CMD, ['node-gyp', 'rebuild', '--verbose', '--directory', 'test', '-j', 'max'], {
+  const { status: buildStatus, signal } = cp.spawnSync(NPX_CMD, ['node-gyp', 'rebuild', '--verbose', '--directory', 'test', '-j', 'max'], {
     env,
     cwd: NAN_DIR,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
   });
 
-  if (buildStatus !== 0) {
+  if (buildStatus !== 0 || signal != null) {
     console.error('Failed to build nan test modules');
-    return process.exit(buildStatus);
+    return process.exit(buildStatus !== 0 ? buildStatus : signal);
   }
 
   const { status: installStatus } = cp.spawnSync(NPX_CMD, [`yarn@${YARN_VERSION}`, 'install'], {
     env,
     cwd: NAN_DIR,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
   });
-  if (installStatus !== 0) {
+
+  if (installStatus !== 0 || signal != null) {
     console.error('Failed to install nan node_modules');
-    return process.exit(installStatus);
+    return process.exit(installStatus !== 0 ? installStatus : signal);
   }
 
   const onlyTests = args.only && args.only.split(',');

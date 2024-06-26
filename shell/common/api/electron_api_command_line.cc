@@ -14,12 +14,11 @@
 namespace {
 
 bool HasSwitch(const std::string& name) {
-  return base::CommandLine::ForCurrentProcess()->HasSwitch(name.c_str());
+  return base::CommandLine::ForCurrentProcess()->HasSwitch(name);
 }
 
 base::CommandLine::StringType GetSwitchValue(const std::string& name) {
-  return base::CommandLine::ForCurrentProcess()->GetSwitchValueNative(
-      name.c_str());
+  return base::CommandLine::ForCurrentProcess()->GetSwitchValueNative(name);
 }
 
 void AppendSwitch(const std::string& switch_string,

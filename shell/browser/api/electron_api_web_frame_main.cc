@@ -72,7 +72,17 @@ WebFrameMain* WebFrameMain::FromFrameTreeNodeId(int frame_tree_node_id) {
 
 // static
 WebFrameMain* WebFrameMain::FromRenderFrameHost(content::RenderFrameHost* rfh) {
-  return rfh ? FromFrameTreeNodeId(rfh->GetFrameTreeNodeId()) : nullptr;
+  if (!rfh)
+    return nullptr;
+
+  // TODO(codebytere): remove after refactoring away from FrameTreeNodeId as map
+  // key.
+  auto* ftn =
+      static_cast<content::RenderFrameHostImpl*>(rfh)->frame_tree_node();
+  if (!ftn)
+    return nullptr;
+
+  return FromFrameTreeNodeId(rfh->GetFrameTreeNodeId());
 }
 
 gin::WrapperInfo WebFrameMain::kWrapperInfo = {gin::kEmbedderNativeGin};
@@ -358,8 +368,9 @@ gin::Handle<WebFrameMain> WebFrameMain::New(v8::Isolate* isolate) {
 // static
 gin::Handle<WebFrameMain> WebFrameMain::From(v8::Isolate* isolate,
                                              content::RenderFrameHost* rfh) {
-  if (rfh == nullptr)
+  if (!rfh)
     return gin::Handle<WebFrameMain>();
+
   auto* web_frame = FromRenderFrameHost(rfh);
   if (web_frame)
     return gin::CreateHandle(isolate, web_frame);
@@ -376,12 +387,14 @@ gin::Handle<WebFrameMain> WebFrameMain::From(v8::Isolate* isolate,
 gin::Handle<WebFrameMain> WebFrameMain::FromOrNull(
     v8::Isolate* isolate,
     content::RenderFrameHost* rfh) {
-  if (rfh == nullptr)
+  if (!rfh)
     return gin::Handle<WebFrameMain>();
+
   auto* web_frame = FromRenderFrameHost(rfh);
-  if (web_frame)
-    return gin::CreateHandle(isolate, web_frame);
-  return gin::Handle<WebFrameMain>();
+  if (!web_frame)
+    return gin::Handle<WebFrameMain>();
+
+  return gin::CreateHandle(isolate, web_frame);
 }
 
 // static

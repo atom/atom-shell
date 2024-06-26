@@ -79,10 +79,10 @@
 }
 
 /**
- * Process product informations and start the payment.
+ * Process product information and start the payment.
  *
  * @param request - The product request.
- * @param response - The informations about the list of products.
+ * @param response - The information about the list of products.
  */
 - (void)productsRequest:(SKProductsRequest*)request
      didReceiveResponse:(SKProductsResponse*)response {

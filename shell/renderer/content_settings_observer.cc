@@ -23,14 +23,6 @@ ContentSettingsObserver::ContentSettingsObserver(
 ContentSettingsObserver::~ContentSettingsObserver() = default;
 
 bool ContentSettingsObserver::AllowStorageAccessSync(StorageType storage_type) {
-  if (storage_type == StorageType::kDatabase &&
-      // Command line support is still relevant for extensions.
-      !(base::CommandLine::ForCurrentProcess()->HasSwitch(
-            switches::kEnableWebSQL) ||
-        render_frame()->GetBlinkPreferences().enable_websql)) {
-    return false;
-  }
-
   blink::WebFrame* frame = render_frame()->GetWebFrame();
   if (frame->GetSecurityOrigin().IsOpaque() ||
       frame->Top()->GetSecurityOrigin().IsOpaque())

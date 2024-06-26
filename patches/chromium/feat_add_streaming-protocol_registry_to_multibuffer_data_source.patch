@@ -13,10 +13,10 @@ other protocols to register their streaming behavior. MultibufferDataSource::Ass
 then refers to the list so that it can correctly determine the data source's settings.
 
 diff --git a/third_party/blink/renderer/platform/media/multi_buffer_data_source.cc b/third_party/blink/renderer/platform/media/multi_buffer_data_source.cc
-index a7e9ab69fa13a0ad2e5aa97f09a8da4d9d51a48f..f994f23c16cc7dbc703d5e2289803940bafa5271 100644
+index fefae60e6d53cd18368e27c2c76ef936e5d9fb5b..534b57c20c9fbfbd90234787ac16a67ff18474e7 100644
 --- a/third_party/blink/renderer/platform/media/multi_buffer_data_source.cc
 +++ b/third_party/blink/renderer/platform/media/multi_buffer_data_source.cc
-@@ -12,8 +12,10 @@
+@@ -13,8 +13,10 @@
  #include "base/functional/callback_helpers.h"
  #include "base/location.h"
  #include "base/memory/raw_ptr.h"
@@ -27,7 +27,7 @@ index a7e9ab69fa13a0ad2e5aa97f09a8da4d9d51a48f..f994f23c16cc7dbc703d5e2289803940
  #include "media/base/media_log.h"
  #include "net/base/net_errors.h"
  #include "third_party/blink/renderer/platform/media/buffered_data_source_host_impl.h"
-@@ -62,8 +64,20 @@ const int kUpdateBufferSizeFrequency = 32;
+@@ -63,8 +65,20 @@ const int kUpdateBufferSizeFrequency = 32;
  // How long to we delay a seek after a read?
  constexpr base::TimeDelta kSeekDelay = base::Milliseconds(20);
  
@@ -48,7 +48,7 @@ index a7e9ab69fa13a0ad2e5aa97f09a8da4d9d51a48f..f994f23c16cc7dbc703d5e2289803940
  class MultiBufferDataSource::ReadOperation {
   public:
    ReadOperation() = delete;
-@@ -155,7 +169,14 @@ bool MultiBufferDataSource::media_has_played() const {
+@@ -156,7 +170,14 @@ bool MultiBufferDataSource::media_has_played() const {
  
  bool MultiBufferDataSource::AssumeFullyBuffered() const {
    DCHECK(url_data_);
@@ -63,12 +63,20 @@ index a7e9ab69fa13a0ad2e5aa97f09a8da4d9d51a48f..f994f23c16cc7dbc703d5e2289803940
 +  return true;
  }
  
- void MultiBufferDataSource::SetReader(MultiBufferReader* reader) {
+ void MultiBufferDataSource::SetReader(
 diff --git a/third_party/blink/renderer/platform/media/multi_buffer_data_source.h b/third_party/blink/renderer/platform/media/multi_buffer_data_source.h
-index faad2219254615fedba155c41598478026190788..f1e8feb1f235faed58f76346622eaa22f5a351f4 100644
+index 5277d480ce3ac065501a986b323e8f3a983acd75..6666dd87cd8971c7ed05a4bc141e19b9be549e54 100644
 --- a/third_party/blink/renderer/platform/media/multi_buffer_data_source.h
 +++ b/third_party/blink/renderer/platform/media/multi_buffer_data_source.h
-@@ -34,6 +34,8 @@ namespace blink {
+@@ -17,6 +17,7 @@
+ #include "media/base/data_source.h"
+ #include "media/base/ranges.h"
+ #include "media/base/tuneable.h"
++#include "third_party/blink/public/platform/web_common.h"
+ #include "third_party/blink/renderer/platform/media/url_index.h"
+ #include "third_party/blink/renderer/platform/platform_export.h"
+ #include "third_party/blink/renderer/platform/wtf/vector.h"
+@@ -34,6 +35,8 @@ namespace blink {
  class BufferedDataSourceHost;
  class MultiBufferReader;
  

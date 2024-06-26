@@ -167,10 +167,6 @@ void MenuBar::OnDidChangeFocus(View* focused_before, View* focused_now) {
     root_view_->RestoreFocus();
 }
 
-const char* MenuBar::GetClassName() const {
-  return kViewClassName;
-}
-
 void MenuBar::ButtonPressed(size_t id, const ui::Event& event) {
   // Hide the accelerator when a submenu is activated.
   SetAcceleratorVisibility(pane_has_focus());

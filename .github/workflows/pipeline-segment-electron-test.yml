@@ -1,0 +1,196 @@
+name: Pipeline Segment - Electron Test
+
+on:
+  workflow_call:
+    inputs:
+      target-platform:
+        type: string
+        description: 'Platform to run on, can be macos or linux'
+        required: true
+      target-arch:
+        type: string
+        description: 'Arch to build for, can be x64, arm64 or arm'
+        required: true
+      test-runs-on:
+        type: string
+        description: 'What host to run the tests on'
+        required: true
+      test-container:
+        type: string
+        description: 'JSON container information for aks runs-on'
+        required: false
+        default: '{"image":null}'
+      is-asan: 
+        description: 'Building the Address Sanitizer (ASan) Linux build'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: electron-test-${{ inputs.target-platform }}-${{ inputs.target-arch }}-${{ inputs.is-asan }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !endsWith(github.ref, '-x-y') }}
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+env:
+  ELECTRON_OUT_DIR: Default
+  ELECTRON_RBE_JWT: ${{ secrets.ELECTRON_RBE_JWT }}
+  ELECTRON_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  test:
+    runs-on: ${{ inputs.test-runs-on }}
+    container: ${{ fromJSON(inputs.test-container) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type: ${{ inputs.target-platform == 'macos' && fromJSON('["darwin","mas"]') || fromJSON('["linux"]') }}
+        shard: ${{ inputs.target-platform == 'macos' && fromJSON('[1, 2]') || fromJSON('[1, 2, 3]') }}
+    env:
+      BUILD_TYPE: ${{ matrix.build-type }}
+      TARGET_ARCH: ${{ inputs.target-arch }}
+      ARTIFACT_KEY: ${{ matrix.build-type }}_${{ inputs.target-arch }}
+    steps:
+    - name: Fix node20 on arm32 runners
+      if: ${{ inputs.target-arch == 'arm' }}
+      run: |
+        cp $(which node) /mnt/runner-externals/node20/bin/
+    - name: Add TCC permissions on macOS
+      if: ${{ inputs.target-platform == 'macos' }}
+      run: |
+        configure_user_tccdb () {
+          local values=$1
+          local dbPath="$HOME/Library/Application Support/com.apple.TCC/TCC.db"
+          local sqlQuery="INSERT OR REPLACE INTO access VALUES($values);"
+          sqlite3 "$dbPath" "$sqlQuery"
+        }
+
+        configure_sys_tccdb () {
+          local values=$1
+          local dbPath="/Library/Application Support/com.apple.TCC/TCC.db"
+          local sqlQuery="INSERT OR REPLACE INTO access VALUES($values);"
+          sudo sqlite3 "$dbPath" "$sqlQuery"
+        }
+
+        userValuesArray=(
+            "'kTCCServiceMicrophone','/usr/local/opt/runner/provisioner/provisioner',1,2,4,1,NULL,NULL,0,'UNUSED',NULL,0,1687786159"
+            "'kTCCServiceCamera','/usr/local/opt/runner/provisioner/provisioner',1,2,4,1,NULL,NULL,0,'UNUSED',NULL,0,1687786159"
+            "'kTCCServiceBluetoothAlways','/usr/local/opt/runner/provisioner/provisioner',1,2,4,1,NULL,NULL,0,'UNUSED',NULL,0,1687786159"
+        )
+        for values in "${userValuesArray[@]}"; do
+          # Sonoma and higher have a few extra values
+          # Ref: https://github.com/actions/runner-images/blob/main/images/macos/scripts/build/configure-tccdb-macos.sh
+          if [ "$OSTYPE" = "darwin23" ]; then
+            configure_user_tccdb "$values,NULL,NULL,'UNUSED',${values##*,}"
+            configure_sys_tccdb "$values,NULL,NULL,'UNUSED',${values##*,}"
+          else
+            configure_user_tccdb "$values"
+            configure_sys_tccdb "$values"
+          fi
+        done
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Install Dependencies
+      run: |
+        cd src/electron
+        node script/yarn install --frozen-lockfile
+    - name: Get Depot Tools
+      timeout-minutes: 5
+      run: |
+        git clone --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+        if [ "`uname`" = "Darwin" ]; then
+          # remove ninjalog_uploader_wrapper.py from autoninja since we don't use it and it causes problems
+          sed -i '' '/ninjalog_uploader_wrapper.py/d' ./depot_tools/autoninja
+        else
+          sed -i '/ninjalog_uploader_wrapper.py/d' ./depot_tools/autoninja
+          # Remove swift-format dep from cipd on macOS until we send a patch upstream.
+          cd depot_tools
+          git apply --3way ../src/electron/.github/workflows/config/gclient.diff
+        fi
+        # Ensure depot_tools does not update.
+        test -d depot_tools && cd depot_tools
+        touch .disable_auto_update
+    - name: Add Depot Tools to PATH
+      run: echo "$(pwd)/depot_tools" >> $GITHUB_PATH
+    - name: Load ASan specific environment variables
+      if: ${{ inputs.is-asan == true }}
+      run: |
+        echo "ARTIFACT_KEY=${{ matrix.build-type }}_${{ inputs.target-arch }}_asan" >> $GITHUB_ENV
+        echo "DISABLE_CRASH_REPORTER_TESTS=true" >> $GITHUB_ENV
+        echo "IS_ASAN=true" >> $GITHUB_ENV
+    - name: Download Generated Artifacts
+      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      with:
+        name: generated_artifacts_${{ env.ARTIFACT_KEY }}
+        path: ./generated_artifacts_${{ matrix.build-type }}_${{ inputs.target-arch }}
+    - name: Download Src Artifacts
+      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      with:
+        name: src_artifacts_${{ env.ARTIFACT_KEY }}
+        path: ./src_artifacts_${{ matrix.build-type }}_${{ inputs.target-arch }}
+    - name: Restore Generated Artifacts
+      run: ./src/electron/script/actions/restore-artifacts.sh
+    - name: Unzip Dist, Mksnapshot & Chromedriver
+      run: |
+        cd src/out/Default
+        unzip -:o dist.zip
+        unzip -:o chromedriver.zip
+        unzip -:o mksnapshot.zip
+    - name: Import & Trust Self-Signed Codesigning Cert on MacOS
+      if: ${{ inputs.target-platform == 'macos' && inputs.target-arch == 'x64' }}
+      run: |
+        sudo security authorizationdb write com.apple.trust-settings.admin allow
+        cd src/electron
+        ./script/codesign/generate-identity.sh
+    - name: Run Electron Tests
+      shell: bash
+      env:
+        MOCHA_REPORTER: mocha-multi-reporters
+        ELECTRON_TEST_RESULTS_DIR: junit
+        MOCHA_MULTI_REPORTERS: mocha-junit-reporter, tap
+        ELECTRON_DISABLE_SECURITY_WARNINGS: 1
+        ELECTRON_SKIP_NATIVE_MODULE_TESTS: true
+        DISPLAY: ':99.0'
+      run: |
+        cd src/electron
+        # Get which tests are on this shard
+        tests_files=$(node script/split-tests ${{ matrix.shard }} ${{ inputs.target-platform == 'macos' && 2 || 3 }})
+
+        # Run tests
+        if [ "`uname`" = "Darwin" ]; then
+          echo "About to start tests"
+          node script/yarn test --runners=main --trace-uncaught --enable-logging --files $tests_files
+        else
+          chown :builduser .. && chmod g+w ..
+          chown -R :builduser . && chmod -R g+w .
+          chmod 4755 ../out/Default/chrome-sandbox
+          runuser -u builduser -- git config --global --add safe.directory $(pwd)
+          if [ "${{ inputs.is-asan }}" == "true" ]; then
+            cd ..
+            ASAN_SYMBOLIZE="$PWD/tools/valgrind/asan/asan_symbolize.py --executable-path=$PWD/out/Default/electron"
+            export ASAN_OPTIONS="symbolize=0 handle_abort=1"
+            export G_SLICE=always-malloc
+            export NSS_DISABLE_ARENA_FREE_LIST=1
+            export NSS_DISABLE_UNLOAD=1
+            export LLVM_SYMBOLIZER_PATH=$PWD/third_party/llvm-build/Release+Asserts/bin/llvm-symbolizer
+            export MOCHA_TIMEOUT=180000
+            echo "Piping output to ASAN_SYMBOLIZE ($ASAN_SYMBOLIZE)"
+            cd electron
+            runuser -u builduser -- xvfb-run script/actions/run-tests.sh script/yarn test --runners=main --trace-uncaught --enable-logging --files $tests_files | $ASAN_SYMBOLIZE
+          else
+            runuser -u builduser -- xvfb-run script/actions/run-tests.sh script/yarn test --runners=main --trace-uncaught --enable-logging --files $tests_files
+          fi
+        fi
+    - name: Wait for active SSH sessions
+      if: always() && !cancelled()
+      run: |
+        while [ -f /var/.ssh-lock ]
+        do
+          sleep 60
+        done

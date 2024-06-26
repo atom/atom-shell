@@ -28,19 +28,18 @@ In file included from ../../third_party/electron_node/src/env-inl.h:32:
 1 error generated.
 
 diff --git a/src/util.h b/src/util.h
-index 28873dbe4024df70a43fdc01ebd70c09acd118b0..f270efded6930f9fda56c7e277e0e3b4de6c91f4 100644
+index cd4fe2e422a7843f5a3f0f4b336a8625a0b24bcf..8edd50e598d8612144b8da9236e63f9079b99156 100644
 --- a/src/util.h
 +++ b/src/util.h
-@@ -131,10 +131,10 @@ void DumpJavaScriptBacktrace(FILE* fp);
-   do {                                                                        \
-     /* Make sure that this struct does not end up in inline code, but      */ \
-     /* rather in a read-only data section when modifying this code.        */ \
--    static const node::AssertionInfo args = {                                 \
-+    static const node::AssertionInfo error_and_abort_args = {                 \
-       __FILE__ ":" STRINGIFY(__LINE__), #expr, PRETTY_FUNCTION_NAME           \
-     };                                                                        \
--    node::Assert(args);                                                       \
-+    node::Assert(error_and_abort_args);                                       \
-   } while (0)
- 
- #ifdef __GNUC__
+@@ -146,9 +146,9 @@ void DumpJavaScriptBacktrace(FILE* fp);
+   do {                                                                         \
+     /* Make sure that this struct does not end up in inline code, but      */  \
+     /* rather in a read-only data section when modifying this code.        */  \
+-    static const node::AssertionInfo args = {                                  \
++    static const node::AssertionInfo error_and_abort_args = {                  \
+         __FILE__ ":" STRINGIFY(__LINE__), #expr, PRETTY_FUNCTION_NAME};        \
+-    node::Assert(args);                                                        \
++    node::Assert(error_and_abort_args);                                        \
+     /* `node::Assert` doesn't return. Add an [[noreturn]] abort() here to  */  \
+     /* make the compiler happy about no return value in the caller         */  \
+     /* function when calling ERROR_AND_ABORT.                              */  \

@@ -9,10 +9,10 @@ This patch can be removed when Node.js upgrades to a version of V8 containing
 the above CL.
 
 diff --git a/lib/.eslintrc.yaml b/lib/.eslintrc.yaml
-index fbaf641789e8dc2b1ba991ad7ee755271e756ee1..53bc3ce5e144f5988a9164c41e6bbc6cc44582d2 100644
+index 0cf84a0da5ee9e63d7b01d0a27946fc29090e516..ee16099ddc9abe5c19b319c111d1319c33b17be4 100644
 --- a/lib/.eslintrc.yaml
 +++ b/lib/.eslintrc.yaml
-@@ -33,10 +33,6 @@ rules:
+@@ -30,10 +30,6 @@ rules:
        message: Use `const { AbortController } = require('internal/abort_controller');` instead of the global.
      - name: AbortSignal
        message: Use `const { AbortSignal } = require('internal/abort_controller');` instead of the global.
@@ -24,7 +24,7 @@ index fbaf641789e8dc2b1ba991ad7ee755271e756ee1..53bc3ce5e144f5988a9164c41e6bbc6c
        message: Use `const { Blob } = require('buffer');` instead of the global.
      - name: BroadcastChannel
 diff --git a/lib/internal/main/worker_thread.js b/lib/internal/main/worker_thread.js
-index 56697c3b2c2209ff58b8fefbccec03c7e3d9f9a0..4eb7230edcd0fb3d21e80218f6a912eb308fc89d 100644
+index 30f7a5f79e50fdeb4e1775a0e56dafa4c6908898..f7250985277c4127425ef36dff566c1fe06603e2 100644
 --- a/lib/internal/main/worker_thread.js
 +++ b/lib/internal/main/worker_thread.js
 @@ -112,7 +112,7 @@ port.on('message', (message) => {

@@ -14,7 +14,7 @@
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/point_f.h"
-#include "ui/gfx/geometry/rect.h"
+#include "ui/gfx/geometry/rect_conversions.h"
 #include "ui/gfx/geometry/resize_utils.h"
 #include "ui/gfx/geometry/size.h"
 
@@ -100,11 +100,12 @@ bool Converter<gfx::Rect>::FromV8(v8::Isolate* isolate,
   gin::Dictionary dict(isolate);
   if (!gin::ConvertFromV8(isolate, val, &dict))
     return false;
-  int x, y, width, height;
+  float x, y, width, height;
   if (!dict.Get("x", &x) || !dict.Get("y", &y) || !dict.Get("width", &width) ||
       !dict.Get("height", &height))
     return false;
-  *out = gfx::Rect(x, y, width, height);
+
+  *out = ToRoundedRect(gfx::RectF(x, y, width, height));
   return true;
 }
 

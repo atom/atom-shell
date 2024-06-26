@@ -2,14 +2,15 @@ import { expect } from 'chai';
 import * as cp from 'node:child_process';
 import * as http from 'node:http';
 import * as express from 'express';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as psList from 'ps-list';
 import { AddressInfo } from 'node:net';
 import { ifdescribe, ifit } from './lib/spec-helpers';
-import { copyApp, getCodesignIdentity, shouldRunCodesignTests, signApp, spawn, withTempDirectory } from './lib/codesign-helpers';
+import { copyMacOSFixtureApp, getCodesignIdentity, shouldRunCodesignTests, signApp, spawn } from './lib/codesign-helpers';
 import * as uuid from 'uuid';
 import { autoUpdater, systemPreferences } from 'electron';
+import { withTempDirectory } from './lib/fs-helpers';
 
 // We can only test the auto updater on darwin non-component builds
 ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
@@ -65,16 +66,16 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
     if (!cachedZips[key]) {
       let updateZipPath: string;
       await withTempDirectory(async (dir) => {
-        const secondAppPath = await copyApp(dir, fixture);
+        const secondAppPath = await copyMacOSFixtureApp(dir, fixture);
         const appPJPath = path.resolve(secondAppPath, 'Contents', 'Resources', 'app', 'package.json');
-        await fs.writeFile(
+        await fs.promises.writeFile(
           appPJPath,
-          (await fs.readFile(appPJPath, 'utf8')).replace('1.0.0', version)
+          (await fs.promises.readFile(appPJPath, 'utf8')).replace('1.0.0', version)
         );
         const infoPath = path.resolve(secondAppPath, 'Contents', 'Info.plist');
-        await fs.writeFile(
+        await fs.promises.writeFile(
           infoPath,
-          (await fs.readFile(infoPath, 'utf8')).replace(/(<key>CFBundleShortVersionString<\/key>\s+<string>)[^<]+/g, `$1${version}`)
+          (await fs.promises.readFile(infoPath, 'utf8')).replace(/(<key>CFBundleShortVersionString<\/key>\s+<string>)[^<]+/g, `$1${version}`)
         );
         await mutateAppPreSign?.mutate(secondAppPath);
         await signApp(secondAppPath, identity);
@@ -98,7 +99,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
   // On arm64 builds the built app is self-signed by default so the setFeedURL call always works
   ifit(process.arch !== 'arm64')('should fail to set the feed URL when the app is not signed', async () => {
     await withTempDirectory(async (dir) => {
-      const appPath = await copyApp(dir);
+      const appPath = await copyMacOSFixtureApp(dir);
       const launchResult = await launchApp(appPath, ['http://myupdate']);
       console.log(launchResult);
       expect(launchResult.code).to.equal(1);
@@ -108,7 +109,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
 
   it('should cleanly set the feed URL when the app is signed', async () => {
     await withTempDirectory(async (dir) => {
-      const appPath = await copyApp(dir);
+      const appPath = await copyMacOSFixtureApp(dir);
       await signApp(appPath, identity);
       const launchResult = await launchApp(appPath, ['http://myupdate']);
       expect(launchResult.code).to.equal(0);
@@ -149,7 +150,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
 
     it('should hit the update endpoint when checkForUpdates is called', async () => {
       await withTempDirectory(async (dir) => {
-        const appPath = await copyApp(dir, 'check');
+        const appPath = await copyMacOSFixtureApp(dir, 'check');
         await signApp(appPath, identity);
         server.get('/update-check', (req, res) => {
           res.status(204).send();
@@ -166,7 +167,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
 
     it('should hit the update endpoint with customer headers when checkForUpdates is called', async () => {
       await withTempDirectory(async (dir) => {
-        const appPath = await copyApp(dir, 'check-with-headers');
+        const appPath = await copyMacOSFixtureApp(dir, 'check-with-headers');
         await signApp(appPath, identity);
         server.get('/update-check', (req, res) => {
           res.status(204).send();
@@ -183,7 +184,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
 
     it('should hit the download endpoint when an update is available and error if the file is bad', async () => {
       await withTempDirectory(async (dir) => {
-        const appPath = await copyApp(dir, 'update');
+        const appPath = await copyMacOSFixtureApp(dir, 'update');
         await signApp(appPath, identity);
         server.get('/update-file', (req, res) => {
           res.status(500).send('This is not a file');
@@ -217,12 +218,12 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
       mutateAppPostSign?: Mutation;
     }, fn: (appPath: string, zipPath: string) => Promise<void>) => {
       await withTempDirectory(async (dir) => {
-        const appPath = await copyApp(dir, opts.startFixture);
+        const appPath = await copyMacOSFixtureApp(dir, opts.startFixture);
         await opts.mutateAppPreSign?.mutate(appPath);
         const infoPath = path.resolve(appPath, 'Contents', 'Info.plist');
-        await fs.writeFile(
+        await fs.promises.writeFile(
           infoPath,
-          (await fs.readFile(infoPath, 'utf8')).replace(/(<key>CFBundleShortVersionString<\/key>\s+<string>)[^<]+/g, '$11.0.0')
+          (await fs.promises.readFile(infoPath, 'utf8')).replace(/(<key>CFBundleShortVersionString<\/key>\s+<string>)[^<]+/g, '$11.0.0')
         );
         await signApp(appPath, identity);
 
@@ -377,9 +378,9 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
             mutationKey: 'prevent-downgrades',
             mutate: async (appPath) => {
               const infoPath = path.resolve(appPath, 'Contents', 'Info.plist');
-              await fs.writeFile(
+              await fs.promises.writeFile(
                 infoPath,
-                (await fs.readFile(infoPath, 'utf8')).replace('<key>NSSupportsAutomaticGraphicsSwitching</key>', '<key>ElectronSquirrelPreventDowngrades</key><true/><key>NSSupportsAutomaticGraphicsSwitching</key>')
+                (await fs.promises.readFile(infoPath, 'utf8')).replace('<key>NSSupportsAutomaticGraphicsSwitching</key>', '<key>ElectronSquirrelPreventDowngrades</key><true/><key>NSSupportsAutomaticGraphicsSwitching</key>')
               );
             }
           }
@@ -417,9 +418,9 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
             mutationKey: 'prevent-downgrades',
             mutate: async (appPath) => {
               const infoPath = path.resolve(appPath, 'Contents', 'Info.plist');
-              await fs.writeFile(
+              await fs.promises.writeFile(
                 infoPath,
-                (await fs.readFile(infoPath, 'utf8')).replace('<key>NSSupportsAutomaticGraphicsSwitching</key>', '<key>ElectronSquirrelPreventDowngrades</key><true/><key>NSSupportsAutomaticGraphicsSwitching</key>')
+                (await fs.promises.readFile(infoPath, 'utf8')).replace('<key>NSSupportsAutomaticGraphicsSwitching</key>', '<key>ElectronSquirrelPreventDowngrades</key><true/><key>NSSupportsAutomaticGraphicsSwitching</key>')
               );
             }
           }
@@ -557,7 +558,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
 
         await shipItFlipFlopPromise;
         expect(requests).to.have.lengthOf(2, 'should not have relaunched the updated app');
-        expect(JSON.parse(await fs.readFile(path.resolve(appPath, 'Contents/Resources/app/package.json'), 'utf8')).version).to.equal('1.0.0', 'should still be the old version on disk');
+        expect(JSON.parse(await fs.promises.readFile(path.resolve(appPath, 'Contents/Resources/app/package.json'), 'utf8')).version).to.equal('1.0.0', 'should still be the old version on disk');
 
         retainerHandle.kill('SIGINT');
       });
@@ -630,7 +631,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
           mutationKey: 'add-resource',
           mutate: async (appPath) => {
             const resourcesPath = path.resolve(appPath, 'Contents', 'Resources', 'app', 'injected.txt');
-            await fs.writeFile(resourcesPath, 'demo');
+            await fs.promises.writeFile(resourcesPath, 'demo');
           }
         }
       }, async (appPath, updateZipPath) => {
@@ -668,8 +669,8 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
           mutationKey: 'modify-shipit',
           mutate: async (appPath) => {
             const shipItPath = path.resolve(appPath, 'Contents', 'Frameworks', 'Squirrel.framework', 'Resources', 'ShipIt');
-            await fs.remove(shipItPath);
-            await fs.symlink('/tmp/ShipIt', shipItPath, 'file');
+            await fs.promises.rm(shipItPath, { force: true, recursive: true });
+            await fs.promises.symlink('/tmp/ShipIt', shipItPath, 'file');
           }
         }
       }, async (appPath, updateZipPath) => {
@@ -707,7 +708,7 @@ ifdescribe(shouldRunCodesignTests)('autoUpdater behavior', function () {
           mutationKey: 'modify-eframework',
           mutate: async (appPath) => {
             const shipItPath = path.resolve(appPath, 'Contents', 'Frameworks', 'Electron Framework.framework', 'Electron Framework');
-            await fs.appendFile(shipItPath, Buffer.from('123'));
+            await fs.promises.appendFile(shipItPath, Buffer.from('123'));
           }
         }
       }, async (appPath, updateZipPath) => {

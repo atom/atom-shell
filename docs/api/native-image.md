@@ -4,36 +4,41 @@
 
 Process: [Main](../glossary.md#main-process), [Renderer](../glossary.md#renderer-process)
 
-In Electron, for the APIs that take images, you can pass either file paths or
-`NativeImage` instances. An empty image will be used when `null` is passed.
+The `nativeImage` module provides a unified interface for manipulating
+system images. These can be handy if you want to provide multiple scaled
+versions of the same icon or take advantage of macOS [template images][template-image].
 
-For example, when creating a tray or setting a window's icon, you can pass an
-image file path as a `string`:
+Electron APIs that take image files accept either file paths or
+`NativeImage` instances. An empty and transparent image will be used when `null` is passed.
 
-```js
+For example, when creating a [Tray](../api/tray.md) or setting a [BrowserWindow](../api/browser-window.md)'s
+icon, you can either pass an image file path as a string:
+
+```js title='Main Process'
 const { BrowserWindow, Tray } = require('electron')
 
-const appIcon = new Tray('/Users/somebody/images/icon.png')
+const tray = new Tray('/Users/somebody/images/icon.png')
 const win = new BrowserWindow({ icon: '/Users/somebody/images/window.png' })
-console.log(appIcon, win)
 ```
 
-Or read the image from the clipboard, which returns a `NativeImage`:
+or generate a `NativeImage` instance from the same file:
 
-```js
-const { clipboard, Tray } = require('electron')
-const image = clipboard.readImage()
-const appIcon = new Tray(image)
-console.log(appIcon)
+```js title='Main Process'
+const { BrowserWindow, nativeImage, Tray } = require('electron')
+
+const trayIcon = nativeImage.createFromPath('/Users/somebody/images/icon.png')
+const appIcon = nativeImage.createFromPath('/Users/somebody/images/window.png')
+const tray = new Tray(trayIcon)
+const win = new BrowserWindow({ icon: appIcon })
 ```
 
 ## Supported Formats
 
-Currently `PNG` and `JPEG` image formats are supported. `PNG` is recommended
-because of its support for transparency and lossless compression.
+Currently, `PNG` and `JPEG` image formats are supported across all platforms.
+`PNG` is recommended because of its support for transparency and lossless compression.
 
 On Windows, you can also load `ICO` icons from file paths. For best visual
-quality, it is recommended to include at least the following sizes in the:
+quality, we recommend including at least the following sizes:
 
 * Small icon
   * 16x16 (100% DPI scale)
@@ -47,9 +52,9 @@ quality, it is recommended to include at least the following sizes in the:
   * 64x64 (200% DPI scale)
   * 256x256
 
-Check the _Size requirements_ section in [this article][icons].
+Check the _Icon Scaling_ section in the Windows [App Icon Construction][icons] reference.
 
-[icons]: https://learn.microsoft.com/en-us/windows/win32/uxguide/vis-icons
+[icons]: https://learn.microsoft.com/en-us/windows/apps/design/style/iconography/app-icon-construction#icon-scaling
 
 :::note
 
@@ -60,16 +65,17 @@ image encoding and decoding.
 
 ## High Resolution Image
 
-On platforms that have high-DPI support such as Apple Retina displays, you can
-append `@2x` after image's base filename to mark it as a high resolution image.
+On platforms that support high pixel density displays (such as Apple Retina),
+you can append `@2x` after image's base filename to mark it as a 2x scale
+high resolution image.
 
 For example, if `icon.png` is a normal image that has standard resolution, then
-`icon@2x.png` will be treated as a high resolution image that has double DPI
-density.
+`icon@2x.png` will be treated as a high resolution image that has double
+Dots per Inch (DPI) density.
 
 If you want to support displays with different DPI densities at the same time,
 you can put images with different sizes in the same folder and use the filename
-without DPI suffixes. For example:
+without DPI suffixes within Electron. For example:
 
 ```plaintext
 images/
@@ -78,10 +84,9 @@ images/
 └── icon@3x.png
 ```
 
-```js
+```js title='Main Process'
 const { Tray } = require('electron')
-const appIcon = new Tray('/Users/somebody/images/icon.png')
-console.log(appIcon)
+const appTray = new Tray('/Users/somebody/images/icon.png')
 ```
 
 The following suffixes for DPI are also supported:
@@ -98,27 +103,23 @@ The following suffixes for DPI are also supported:
 * `@4x`
 * `@5x`
 
-## Template Image
+## Template Image _macOS_
 
-Template images consist of black and an alpha channel.
+On macOS, [template images][template-image] consist of black and an alpha channel.
 Template images are not intended to be used as standalone images and are usually
 mixed with other content to create the desired final appearance.
 
-The most common case is to use template images for a menu bar icon, so it can
+The most common case is to use template images for a menu bar (Tray) icon, so it can
 adapt to both light and dark menu bars.
 
-**Note:** Template image is only supported on macOS.
-
-To mark an image as a template image, its filename should end with the word
-`Template`. For example:
-
-* `xxxTemplate.png`
-* `xxxTemplate@2x.png`
+To mark an image as a template image, its base filename should end with the word
+`Template` (e.g. `xxxTemplate.png`). You can also specify template images at
+different DPI densities (e.g. `xxxTemplate@2x.png`).
 
 ## Methods
 
 The `nativeImage` module has the following methods, all of which return
-an instance of the `NativeImage` class:
+an instance of the [`NativeImage`](#class-nativeimage) class:
 
 ### `nativeImage.createEmpty()`
 
@@ -137,7 +138,7 @@ Note: The Windows implementation will ignore `size.height` and scale the height 
 
 ### `nativeImage.createFromPath(path)`
 
-* `path` string
+* `path` string - path to a file that we intend to construct an image out of.
 
 Returns `NativeImage`
 
@@ -146,7 +147,7 @@ returns an empty image if the `path` does not exist, cannot be read, or is not
 a valid image.
 
 ```js
-const nativeImage = require('electron').nativeImage
+const { nativeImage } = require('electron')
 
 const image = nativeImage.createFromPath('/Users/somebody/images/icon.png')
 console.log(image)
@@ -183,7 +184,7 @@ Creates a new `NativeImage` instance from `buffer`. Tries to decode as PNG or JP
 
 Returns `NativeImage`
 
-Creates a new `NativeImage` instance from `dataURL`.
+Creates a new `NativeImage` instance from `dataUrl`, a base 64 encoded [Data URL][data-url] string.
 
 ### `nativeImage.createFromNamedImage(imageName[, hslShift])` _macOS_
 
@@ -192,14 +193,14 @@ Creates a new `NativeImage` instance from `dataURL`.
 
 Returns `NativeImage`
 
-Creates a new `NativeImage` instance from the NSImage that maps to the
-given image name. See [`System Icons`](https://developer.apple.com/design/human-interface-guidelines/macos/icons-and-images/system-icons/)
-for a list of possible values.
+Creates a new `NativeImage` instance from the `NSImage` that maps to the
+given image name. See Apple's [`NSImageName`](https://developer.apple.com/documentation/appkit/nsimagename#2901388)
+documentation for a list of possible values.
 
 The `hslShift` is applied to the image with the following rules:
 
 * `hsl_shift[0]` (hue): The absolute hue value for the image - 0 and 1 map
-     to 0 and 360 on the hue color wheel (red).
+    to 0 and 360 on the hue color wheel (red).
 * `hsl_shift[1]` (saturation): A saturation shift for the image, with the
     following key values:
     0 = remove all color.
@@ -216,7 +217,9 @@ This means that `[-1, 0, 1]` will make the image completely white and
 
 In some cases, the `NSImageName` doesn't match its string representation; one example of this is `NSFolderImageName`, whose string representation would actually be `NSFolder`. Therefore, you'll need to determine the correct string representation for your image before passing it in. This can be done with the following:
 
-`echo -e '#import <Cocoa/Cocoa.h>\nint main() { NSLog(@"%@", SYSTEM_IMAGE_NAME); }' | clang -otest -x objective-c -framework Cocoa - && ./test`
+```sh
+echo -e '#import <Cocoa/Cocoa.h>\nint main() { NSLog(@"%@", SYSTEM_IMAGE_NAME); }' | clang -otest -x objective-c -framework Cocoa - && ./test
+```
 
 where `SYSTEM_IMAGE_NAME` should be replaced with any value from [this list](https://developer.apple.com/documentation/appkit/nsimagename?language=objc).
 
@@ -257,7 +260,7 @@ data.
 * `options` Object (optional)
   * `scaleFactor` Number (optional) - Defaults to 1.0.
 
-Returns `string` - The data URL of the image.
+Returns `string` - The [Data URL][data-url] of the image.
 
 #### `image.getBitmap([options])`
 
@@ -273,7 +276,7 @@ current event loop tick; otherwise the data might be changed or destroyed.
 #### `image.getNativeHandle()` _macOS_
 
 Returns `Buffer` - A [Buffer][buffer] that stores C pointer to underlying native handle of
-the image. On macOS, a pointer to `NSImage` instance would be returned.
+the image. On macOS, a pointer to `NSImage` instance is returned.
 
 Notice that the returned pointer is a weak pointer to the underlying native
 image instead of a copy, so you _must_ ensure that the associated
@@ -295,11 +298,11 @@ If `scaleFactor` is passed, this will return the size corresponding to the image
 
 * `option` boolean
 
-Marks the image as a template image.
+Marks the image as a macOS [template image][template-image].
 
 #### `image.isTemplateImage()`
 
-Returns `boolean` - Whether the image is a template image.
+Returns `boolean` - Whether the image is a macOS [template image][template-image].
 
 #### `image.crop(rect)`
 
@@ -328,13 +331,13 @@ will be preserved in the resized image.
 
 * `scaleFactor` Number (optional) - Defaults to 1.0.
 
-Returns `Number` - The image's aspect ratio.
+Returns `Number` - The image's aspect ratio (width divided by height).
 
 If `scaleFactor` is passed, this will return the aspect ratio corresponding to the image representation most closely matching the passed value.
 
 #### `image.getScaleFactors()`
 
-Returns `Number[]` - An array of all scale factors corresponding to representations for a given nativeImage.
+Returns `Number[]` - An array of all scale factors corresponding to representations for a given `NativeImage`.
 
 #### `image.addRepresentation(options)`
 
@@ -349,15 +352,17 @@ Returns `Number[]` - An array of all scale factors corresponding to representati
     encoded PNG or JPEG image.
 
 Add an image representation for a specific scale factor. This can be used
-to explicitly add different scale factor representations to an image. This
+to programmatically add different scale factor representations to an image. This
 can be called on empty images.
-
-[buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer
 
 ### Instance Properties
 
 #### `nativeImage.isMacTemplateImage` _macOS_
 
-A `boolean` property that determines whether the image is considered a [template image](https://developer.apple.com/documentation/appkit/nsimage/1520017-template).
+A `boolean` property that determines whether the image is considered a [template image][template-image].
 
 Please note that this property only has an effect on macOS.
+
+[buffer]: https://nodejs.org/api/buffer.html#buffer_class_buffer
+[data-url]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URLs
+[template-image]: https://developer.apple.com/documentation/appkit/nsimage/1520017-template

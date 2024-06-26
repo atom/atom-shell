@@ -29,9 +29,9 @@
 #include "third_party/blink/public/web/web_local_frame.h"
 
 namespace features {
-
-const base::Feature kContextBridgeMutability{"ContextBridgeMutability",
-                                             base::FEATURE_DISABLED_BY_DEFAULT};
+BASE_FEATURE(kContextBridgeMutability,
+             "ContextBridgeMutability",
+             base::FEATURE_DISABLED_BY_DEFAULT);
 }
 
 namespace electron {

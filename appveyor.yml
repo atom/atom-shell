@@ -29,7 +29,7 @@
 
 version: 1.0.{build}
 build_cloud: electronhq-16-core
-image: e-123.0.6272.0
+image: e-127.0.6521.0
 environment:
   GIT_CACHE_PATH: C:\Users\appveyor\libcc_cache
   ELECTRON_OUT_DIR: Default
@@ -39,7 +39,7 @@ environment:
   MOCHA_MULTI_REPORTERS: "@marshallofsound/mocha-appveyor-reporter, tap"
   DEPOT_TOOLS_WIN_TOOLCHAIN: 1
   DEPOT_TOOLS_WIN_TOOLCHAIN_BASE_URL: "https://dev-cdn.electronjs.org/windows-toolchains/_"
-  GYP_MSVS_HASH_27370823e7: 28622d16b1
+  GYP_MSVS_HASH_7393122652: 3ba76c5c20
   PYTHONIOENCODING: UTF-8
 
   matrix:
@@ -104,7 +104,7 @@ for:
       - mkdir third_party
       - ps: >-
           node -e "require('./src/utils/reclient.js').downloadAndPrepare({})"
-      - ps: $env:RECLIENT_HELPER = node -p "require('./src/utils/reclient.js').helperPath"
+      - ps: $env:RECLIENT_HELPER = node -p "require('./src/utils/reclient.js').helperPath({})"
       - ps: >-
           & $env:RECLIENT_HELPER login
       - ps: >-

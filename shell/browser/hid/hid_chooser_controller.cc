@@ -10,7 +10,6 @@
 #include "base/containers/contains.h"
 #include "base/functional/bind.h"
 #include "base/ranges/algorithm.h"
-#include "base/stl_util.h"
 #include "gin/data_object_builder.h"
 #include "services/device/public/cpp/hid/hid_blocklist.h"
 #include "services/device/public/cpp/hid/hid_switches.h"
@@ -350,7 +349,7 @@ bool HidChooserController::RemoveDeviceInfo(
   auto find_it = device_map_.find(id);
   DCHECK(find_it != device_map_.end());
   auto& device_infos = find_it->second;
-  base::EraseIf(device_infos,
+  std::erase_if(device_infos,
                 [&device](const device::mojom::HidDeviceInfoPtr& d) {
                   return d->guid == device.guid;
                 });
@@ -358,7 +357,7 @@ bool HidChooserController::RemoveDeviceInfo(
     return false;
   // A device was disconnected. Remove it from the chooser list.
   device_map_.erase(find_it);
-  base::Erase(items_, id);
+  std::erase(items_, id);
   return true;
 }
 

@@ -7,7 +7,7 @@ Subject: test: match wpt/streams/transferable/transform-stream-members.any.js
 All four of this calls should fail - see third_party/blink/web_tests/external/wpt/streams/transferable/transform-stream-members.any-expected.txt
 
 diff --git a/test/wpt/status/streams.json b/test/wpt/status/streams.json
-index 3b6e0ce6429f9dddb0b1a6882ce9e3a5158300e5..7ec49a378bfc84728b473d5df69675fff1dfdfef 100644
+index 8d6a4c6d2fe27b349ca8a4cbcdc51c3eec06ede9..1e7af48a149ba2c8bed01cd6584e59dc0bc6b676 100644
 --- a/test/wpt/status/streams.json
 +++ b/test/wpt/status/streams.json
 @@ -50,7 +50,9 @@

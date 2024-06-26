@@ -44,7 +44,13 @@ void ParentPort::PostMessage(v8::Local<v8::Value> message_value) {
   if (!connector_closed_ && connector_ && connector_->is_valid()) {
     v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
     blink::TransferableMessage transferable_message;
-    electron::SerializeV8Value(isolate, message_value, &transferable_message);
+
+    if (!electron::SerializeV8Value(isolate, message_value,
+                                    &transferable_message)) {
+      // SerializeV8Value sets an exception.
+      return;
+    }
+
     mojo::Message mojo_message =
         blink::mojom::TransferableMessage::WrapAsMessage(
             std::move(transferable_message));

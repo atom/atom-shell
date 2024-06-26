@@ -21,7 +21,7 @@ namespace api {
 class ServiceWorkerContext
     : public gin::Wrappable<ServiceWorkerContext>,
       public gin_helper::EventEmitterMixin<ServiceWorkerContext>,
-      public content::ServiceWorkerContextObserver {
+      private content::ServiceWorkerContextObserver {
  public:
   static gin::Handle<ServiceWorkerContext> Create(
       v8::Isolate* isolate,

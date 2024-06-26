@@ -1,0 +1,50 @@
+<html>
+<body>
+<script type="text/javascript" charset="utf-8">
+  const {ipcRenderer} = require('electron');
+
+  window.localStorage.setItem('test', 'hello localstorage');
+  ipcRenderer.on('get-localstorage', () => {
+    const result = window.localStorage.getItem('test');
+    ipcRenderer.send('result-localstorage', result);
+  });
+
+  const deleteRequest = window.indexedDB.deleteDatabase('testdb');
+  deleteRequest.onerror = deleteRequest.onsuccess = (event) => {
+    const openRequest = window.indexedDB.open('testdb');
+    openRequest.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      db.onerror = (event) => {
+        console.error(event);
+      };
+      const objectStore = db.createObjectStore('testdata');
+      objectStore.createIndex('test', '');
+    };
+    openRequest.onsuccess = (event) => {
+      const db = event.target.result;
+      const addRequest = db.transaction("testdata", "readwrite").objectStore("testdata").add("hello indexeddb", 'test');
+      addRequest.onsuccess = () => {
+        ipcRenderer.send('indexeddb-ready');
+      };
+    };
+  };
+  ipcRenderer.on('get-indexeddb', () => {
+    const openRequest = window.indexedDB.open('testdb');
+    openRequest.onerror = (event) => {
+      console.error(event);
+    };
+    openRequest.onsuccess = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('testdata')) {
+        ipcRenderer.send('result-indexeddb', undefined);
+        return;
+      }
+      const getRequest = db.transaction('testdata', 'readonly').objectStore('testdata').get('test');
+      getRequest.onsuccess = (event) => {
+        ipcRenderer.send('result-indexeddb', event.target.result);
+      };
+    };
+  });
+</script>
+</body>
+</html>

@@ -10,7 +10,8 @@ if (fs.existsSync(checkPath)) {
     command.slice(1),
     {
       stdio: 'inherit',
-      cwd: checkPath
+      cwd: checkPath,
+      shell: process.platform === 'win32'
     }
   );
   child.on('exit', code => process.exit(code));

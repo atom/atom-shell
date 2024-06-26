@@ -392,7 +392,6 @@ void ProxyingWebSocket::OnAuthRequiredComplete(AuthRequiredResponse rv) {
       break;
     case AuthRequiredResponse::kIoPending:
       NOTREACHED();
-      break;
   }
 }
 

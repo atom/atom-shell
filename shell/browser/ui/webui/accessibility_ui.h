@@ -31,7 +31,14 @@ class ElectronAccessibilityUIMessageHandler
 
   void RegisterMessages() final;
 
+  static void RegisterPrefs(user_prefs::PrefRegistrySyncable* registry);
+
  private:
+  void GetRequestTypeAndFilters(const base::Value::Dict& data,
+                                std::string& request_type,
+                                std::string& allow,
+                                std::string& allow_empty,
+                                std::string& deny);
   void RequestNativeUITree(const base::Value::List& args);
 };
 

@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: "targos@protonmail.com" <targos@protonmail.com>
+Date: Thu, 9 May 2024 12:00:39 +0200
+Subject: test: update v8-stats test for V8 12.6
+
+Refs: https://github.com/v8/v8/commit/e30e228ee6e034de49a40af0173113198a19b497
+
+diff --git a/test/parallel/test-v8-stats.js b/test/parallel/test-v8-stats.js
+index 2366cbf716c11851bb3a759dce5db47d616516dc..9d2971ba9411bb98107f6a9acc8a07ec438b76e5 100644
+--- a/test/parallel/test-v8-stats.js
++++ b/test/parallel/test-v8-stats.js
+@@ -48,6 +48,8 @@ const expectedHeapSpaces = [
+   'read_only_space',
+   'shared_large_object_space',
+   'shared_space',
++  'shared_trusted_large_object_space',
++  'shared_trusted_space',
+   'trusted_large_object_space',
+   'trusted_space'
+ ];

@@ -110,10 +110,12 @@ void Screen::OnDisplayAdded(const display::Display& new_display) {
                                 "display-added", new_display));
 }
 
-void Screen::OnDisplayRemoved(const display::Display& old_display) {
-  base::SingleThreadTaskRunner::GetCurrentDefault()->PostNonNestableTask(
-      FROM_HERE, base::BindOnce(&DelayEmit, base::Unretained(this),
-                                "display-removed", old_display));
+void Screen::OnDisplaysRemoved(const display::Displays& old_displays) {
+  for (const auto& old_display : old_displays) {
+    base::SingleThreadTaskRunner::GetCurrentDefault()->PostNonNestableTask(
+        FROM_HERE, base::BindOnce(&DelayEmit, base::Unretained(this),
+                                  "display-removed", old_display));
+  }
 }
 
 void Screen::OnDisplayMetricsChanged(const display::Display& display,

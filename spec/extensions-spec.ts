@@ -149,18 +149,6 @@ describe('chrome extensions', () => {
     );
   });
 
-  it('can open WebSQLDatabase in a background page', async () => {
-    const customSession = session.fromPartition(`persist:${require('uuid').v4()}`);
-    const w = new BrowserWindow({ show: false, webPreferences: { session: customSession, sandbox: true } });
-    await w.loadURL('about:blank');
-
-    const promise = once(app, 'web-contents-created') as Promise<[any, WebContents]>;
-    await customSession.loadExtension(path.join(fixtures, 'extensions', 'persistent-background-page'));
-    const args: any = await promise;
-    const wc: Electron.WebContents = args[1];
-    await expect(wc.executeJavaScript('(()=>{try{openDatabase("t", "1.0", "test", 2e5);return true;}catch(e){throw e}})()')).to.not.be.rejected();
-  });
-
   function fetch (contents: WebContents, url: string) {
     return contents.executeJavaScript(`fetch(${JSON.stringify(url)})`);
   }
@@ -1283,6 +1271,16 @@ describe('chrome extensions', () => {
           runAt: 'document_start',
           world: 'ISOLATED'
         });
+      });
+
+      it('globalParams', async () => {
+        await w.loadURL(url);
+
+        const message = { method: 'globalParams' };
+        w.webContents.executeJavaScript(`window.postMessage('${JSON.stringify(message)}', '*')`);
+        const [,, responseString] = await once(w.webContents, 'console-message');
+        const response = JSON.parse(responseString);
+        expect(response).to.deep.equal({ changed: true });
       });
 
       it('insertCSS', async () => {

@@ -56,10 +56,8 @@ ExtensionFunction::ResponseAction ResourcesPrivateGetStringsFunction::Run() {
       break;
     case api::resources_private::Component::kIdentity:
       NOTREACHED();
-      break;
     case api::resources_private::Component::kNone:
       NOTREACHED();
-      break;
   }
 
   const std::string& app_locale = g_browser_process->GetApplicationLocale();

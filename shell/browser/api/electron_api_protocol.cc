@@ -232,7 +232,7 @@ bool Protocol::UnregisterProtocol(const std::string& scheme,
 }
 
 bool Protocol::IsProtocolRegistered(const std::string& scheme) {
-  return protocol_registry_->IsProtocolRegistered(scheme);
+  return protocol_registry_->FindRegistered(scheme) != nullptr;
 }
 
 ProtocolError Protocol::InterceptProtocol(ProtocolType type,
@@ -251,7 +251,7 @@ bool Protocol::UninterceptProtocol(const std::string& scheme,
 }
 
 bool Protocol::IsProtocolIntercepted(const std::string& scheme) {
-  return protocol_registry_->IsProtocolIntercepted(scheme);
+  return protocol_registry_->FindIntercepted(scheme) != nullptr;
 }
 
 v8::Local<v8::Promise> Protocol::IsProtocolHandled(const std::string& scheme,

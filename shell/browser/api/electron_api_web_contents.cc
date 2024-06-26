@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/base64.h"
 #include "base/containers/contains.h"
 #include "base/containers/fixed_flat_map.h"
 #include "base/containers/id_map.h"
@@ -30,6 +31,7 @@
 #include "chrome/browser/ui/views/eye_dropper/eye_dropper.h"
 #include "chrome/common/pref_names.h"
 #include "components/embedder_support/user_agent_utils.h"
+#include "components/input/native_web_keyboard_event.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/security_state/content/content_utils.h"
@@ -58,7 +60,6 @@
 #include "content/public/browser/site_instance.h"
 #include "content/public/browser/storage_partition.h"
 #include "content/public/browser/web_contents.h"
-#include "content/public/common/input/native_web_keyboard_event.h"
 #include "content/public/common/referrer_type_converters.h"
 #include "content/public/common/result_codes.h"
 #include "content/public/common/webplugininfo.h"
@@ -76,7 +77,6 @@
 #include "mojo/public/cpp/system/platform_handle.h"
 #include "ppapi/buildflags/buildflags.h"
 #include "printing/buildflags/buildflags.h"
-#include "printing/print_job_constants.h"
 #include "services/resource_coordinator/public/cpp/memory_instrumentation/memory_instrumentation.h"
 #include "services/service_manager/public/cpp/interface_provider.h"
 #include "shell/browser/api/electron_api_browser_window.h"
@@ -173,10 +173,10 @@
 #include "components/printing/browser/print_manager_utils.h"
 #include "components/printing/browser/print_to_pdf/pdf_print_result.h"
 #include "components/printing/browser/print_to_pdf/pdf_print_utils.h"
-#include "printing/backend/print_backend.h"  // nogncheck
-#include "printing/mojom/print.mojom.h"      // nogncheck
+#include "printing/mojom/print.mojom.h"  // nogncheck
 #include "printing/page_range.h"
 #include "shell/browser/printing/print_view_manager_electron.h"
+#include "shell/browser/printing/printing_utils.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "printing/backend/win_helper.h"
@@ -352,6 +352,20 @@ struct Converter<scoped_refptr<content::DevToolsAgentHost>> {
   }
 };
 
+template <>
+struct Converter<content::NavigationEntry*> {
+  static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
+                                   content::NavigationEntry* entry) {
+    if (!entry) {
+      return v8::Null(isolate);
+    }
+    gin_helper::Dictionary dict(isolate, v8::Object::New(isolate));
+    dict.Set("url", entry->GetURL().spec());
+    dict.Set("title", entry->GetTitleForDisplay());
+    return dict.GetHandle();
+  }
+};
+
 }  // namespace gin
 
 namespace electron::api {
@@ -516,96 +530,6 @@ std::optional<base::TimeDelta> GetCursorBlinkInterval() {
   return std::nullopt;
 }
 
-#if BUILDFLAG(ENABLE_PRINTING)
-// This will return false if no printer with the provided device_name can be
-// found on the network. We need to check this because Chromium does not do
-// sanity checking of device_name validity and so will crash on invalid names.
-bool IsDeviceNameValid(const std::u16string& device_name) {
-#if BUILDFLAG(IS_MAC)
-  base::apple::ScopedCFTypeRef<CFStringRef> new_printer_id(
-      base::SysUTF16ToCFStringRef(device_name));
-  PMPrinter new_printer = PMPrinterCreateFromPrinterID(new_printer_id.get());
-  bool printer_exists = new_printer != nullptr;
-  PMRelease(new_printer);
-  return printer_exists;
-#else
-  scoped_refptr<printing::PrintBackend> print_backend =
-      printing::PrintBackend::CreateInstance(
-          g_browser_process->GetApplicationLocale());
-  return print_backend->IsValidPrinter(base::UTF16ToUTF8(device_name));
-#endif
-}
-
-// This function returns a validated device name.
-// If the user passed one to webContents.print(), we check that it's valid and
-// return it or fail if the network doesn't recognize it. If the user didn't
-// pass a device name, we first try to return the system default printer. If one
-// isn't set, then pull all the printers and use the first one or fail if none
-// exist.
-std::pair<std::string, std::u16string> GetDeviceNameToUse(
-    const std::u16string& device_name) {
-#if BUILDFLAG(IS_WIN)
-  // Blocking is needed here because Windows printer drivers are oftentimes
-  // not thread-safe and have to be accessed on the UI thread.
-  ScopedAllowBlockingForElectron allow_blocking;
-#endif
-
-  if (!device_name.empty()) {
-    if (!IsDeviceNameValid(device_name))
-      return std::make_pair("Invalid deviceName provided", std::u16string());
-    return std::make_pair(std::string(), device_name);
-  }
-
-  scoped_refptr<printing::PrintBackend> print_backend =
-      printing::PrintBackend::CreateInstance(
-          g_browser_process->GetApplicationLocale());
-  std::string printer_name;
-  printing::mojom::ResultCode code =
-      print_backend->GetDefaultPrinterName(printer_name);
-
-  // We don't want to return if this fails since some devices won't have a
-  // default printer.
-  if (code != printing::mojom::ResultCode::kSuccess)
-    LOG(ERROR) << "Failed to get default printer name";
-
-  if (printer_name.empty()) {
-    printing::PrinterList printers;
-    if (print_backend->EnumeratePrinters(printers) !=
-        printing::mojom::ResultCode::kSuccess)
-      return std::make_pair("Failed to enumerate printers", std::u16string());
-    if (printers.empty())
-      return std::make_pair("No printers available on the network",
-                            std::u16string());
-
-    printer_name = printers.front().printer_name;
-  }
-
-  return std::make_pair(std::string(), base::UTF8ToUTF16(printer_name));
-}
-
-// Copied from
-// chrome/browser/ui/webui/print_preview/local_printer_handler_default.cc:L36-L54
-scoped_refptr<base::TaskRunner> CreatePrinterHandlerTaskRunner() {
-  // USER_VISIBLE because the result is displayed in the print preview dialog.
-#if !BUILDFLAG(IS_WIN)
-  static constexpr base::TaskTraits kTraits = {
-      base::MayBlock(), base::TaskPriority::USER_VISIBLE};
-#endif
-
-#if defined(USE_CUPS)
-  // CUPS is thread safe.
-  return base::ThreadPool::CreateTaskRunner(kTraits);
-#elif BUILDFLAG(IS_WIN)
-  // Windows drivers are likely not thread-safe and need to be accessed on the
-  // UI thread.
-  return content::GetUIThreadTaskRunner({base::TaskPriority::USER_VISIBLE});
-#else
-  // Be conservative on unsupported platforms.
-  return base::ThreadPool::CreateSingleThreadTaskRunner(kTraits);
-#endif
-}
-#endif
-
 struct UserDataLink : public base::SupportsUserData::Data {
   explicit UserDataLink(base::WeakPtr<WebContents> contents)
       : web_contents(contents) {}
@@ -677,12 +601,25 @@ base::Value::Dict CreateFileSystemValue(const FileSystem& file_system) {
   return value;
 }
 
-void WriteToFile(const base::FilePath& path, const std::string& content) {
+void WriteToFile(const base::FilePath& path,
+                 const std::string& content,
+                 bool is_base64) {
   base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
                                                 base::BlockingType::WILL_BLOCK);
   DCHECK(!path.empty());
 
-  base::WriteFile(path, content.data(), content.size());
+  if (!is_base64) {
+    base::WriteFile(path, content);
+    return;
+  }
+
+  const std::optional<std::vector<uint8_t>> decoded_content =
+      base::Base64Decode(content);
+  if (decoded_content) {
+    base::WriteFile(path, decoded_content.value());
+  } else {
+    LOG(ERROR) << "Invalid base64. Not writing " << path;
+  }
 }
 
 void AppendToFile(const base::FilePath& path, const std::string& content) {
@@ -1240,7 +1177,9 @@ void WebContents::AddNewContents(
 
 content::WebContents* WebContents::OpenURLFromTab(
     content::WebContents* source,
-    const content::OpenURLParams& params) {
+    const content::OpenURLParams& params,
+    base::OnceCallback<void(content::NavigationHandle&)>
+        navigation_handle_callback) {
   auto weak_this = GetWeakPtr();
   if (params.disposition != WindowOpenDisposition::CURRENT_TAB) {
     Emit("-new-window", params.url, "", params.disposition, "", params.referrer,
@@ -1319,7 +1258,7 @@ void WebContents::UpdateTargetURL(content::WebContents* source,
 
 bool WebContents::HandleKeyboardEvent(
     content::WebContents* source,
-    const content::NativeWebKeyboardEvent& event) {
+    const input::NativeWebKeyboardEvent& event) {
   if (type_ == Type::kWebView && embedder_) {
     // Send the unhandled keyboard events back to the embedder.
     return embedder_->HandleKeyboardEvent(source, event);
@@ -1334,7 +1273,7 @@ bool WebContents::HandleKeyboardEvent(
 // code.
 bool WebContents::PlatformHandleKeyboardEvent(
     content::WebContents* source,
-    const content::NativeWebKeyboardEvent& event) {
+    const input::NativeWebKeyboardEvent& event) {
   // Check if the webContents has preferences and to ignore shortcuts
   auto* web_preferences = WebContentsPreferences::From(source);
   if (web_preferences && web_preferences->ShouldIgnoreMenuShortcuts())
@@ -1352,7 +1291,7 @@ bool WebContents::PlatformHandleKeyboardEvent(
 
 content::KeyboardEventProcessingResult WebContents::PreHandleKeyboardEvent(
     content::WebContents* source,
-    const content::NativeWebKeyboardEvent& event) {
+    const input::NativeWebKeyboardEvent& event) {
   if (exclusive_access_manager_.HandleUserKeyEvent(event))
     return content::KeyboardEventProcessingResult::HANDLED;
 
@@ -1360,7 +1299,7 @@ content::KeyboardEventProcessingResult WebContents::PreHandleKeyboardEvent(
       event.GetType() == blink::WebInputEvent::Type::kKeyUp) {
     // For backwards compatibility, pretend that `kRawKeyDown` events are
     // actually `kKeyDown`.
-    content::NativeWebKeyboardEvent tweaked_event(event);
+    input::NativeWebKeyboardEvent tweaked_event(event);
     if (event.GetType() == blink::WebInputEvent::Type::kRawKeyDown)
       tweaked_event.SetType(blink::WebInputEvent::Type::kKeyDown);
     bool prevent_default = Emit("before-input-event", tweaked_event);
@@ -1393,12 +1332,9 @@ void WebContents::EnterFullscreen(const GURL& url,
 
 void WebContents::ExitFullscreen() {}
 
-void WebContents::UpdateExclusiveAccessExitBubbleContent(
-    const GURL& url,
-    ExclusiveAccessBubbleType bubble_type,
-    ExclusiveAccessBubbleHideCallback bubble_first_hide_callback,
-    bool notify_download,
-    bool force_update) {}
+void WebContents::UpdateExclusiveAccessBubble(
+    const ExclusiveAccessBubbleParams& params,
+    ExclusiveAccessBubbleHideCallback bubble_first_hide_callback) {}
 
 void WebContents::OnExclusiveAccessUserInput() {}
 
@@ -1537,7 +1473,8 @@ void WebContents::RequestPointerLock(content::WebContents* web_contents,
 }
 
 void WebContents::LostPointerLock() {
-  exclusive_access_manager_.pointer_lock_controller()->LostPointerLock();
+  exclusive_access_manager_.pointer_lock_controller()
+      ->ExitExclusiveAccessToPreviousState();
 }
 
 void WebContents::OnRequestKeyboardLock(content::WebContents* web_contents,
@@ -1956,6 +1893,8 @@ void WebContents::OnFirstNonEmptyLayout(
   }
 }
 
+namespace {
+
 // This object wraps the InvokeCallback so that if it gets GC'd by V8, we can
 // still call the callback and send an error. Not doing so causes a Mojo DCHECK,
 // since Mojo requires callbacks to be called before they are destroyed.
@@ -2011,6 +1950,8 @@ class ReplyChannel : public gin::Wrappable<ReplyChannel> {
 };
 
 gin::WrapperInfo ReplyChannel::kWrapperInfo = {gin::kEmbedderNativeGin};
+
+}  // namespace
 
 gin::Handle<gin_helper::internal::Event> WebContents::MakeEventWithSender(
     v8::Isolate* isolate,
@@ -2076,10 +2017,12 @@ void WebContents::MessageHost(const std::string& channel,
                  std::move(arguments));
 }
 
-void WebContents::UpdateDraggableRegions(
-    std::vector<mojom::DraggableRegionPtr> regions) {
-  if (owner_window() && owner_window()->has_frame())
+void WebContents::DraggableRegionsChanged(
+    const std::vector<blink::mojom::DraggableRegionPtr>& regions,
+    content::WebContents* contents) {
+  if (owner_window() && owner_window()->has_frame()) {
     return;
+  }
 
   draggable_region_ = DraggableRegionsToSkRegion(regions);
 }
@@ -2559,6 +2502,11 @@ int WebContents::GetActiveIndex() const {
   return web_contents()->GetController().GetCurrentEntryIndex();
 }
 
+content::NavigationEntry* WebContents::GetNavigationEntryAtIndex(
+    int index) const {
+  return web_contents()->GetController().GetEntryAtIndex(index);
+}
+
 void WebContents::ClearHistory() {
   // In some rare cases (normally while there is no real history) we are in a
   // state where we can't prune navigation entries
@@ -2932,7 +2880,6 @@ bool WebContents::IsCurrentlyAudible() {
 void WebContents::OnGetDeviceNameToUse(
     base::Value::Dict print_settings,
     printing::CompletionCallback print_callback,
-    bool silent,
     // <error, device_name>
     std::pair<std::string, std::u16string> info) {
   // The content::WebContents might be already deleted at this point, and the
@@ -2952,6 +2899,12 @@ void WebContents::OnGetDeviceNameToUse(
   // If the user has passed a deviceName use it, otherwise use default printer.
   print_settings.Set(printing::kSettingDeviceName, info.second);
 
+  if (!print_settings.FindInt(printing::kSettingDpiHorizontal)) {
+    gfx::Size dpi = GetDefaultPrinterDPI(info.second);
+    print_settings.Set(printing::kSettingDpiHorizontal, dpi.width());
+    print_settings.Set(printing::kSettingDpiVertical, dpi.height());
+  }
+
   auto* print_view_manager =
       PrintViewManagerElectron::FromWebContents(web_contents());
   if (!print_view_manager)
@@ -2962,7 +2915,7 @@ void WebContents::OnGetDeviceNameToUse(
                   ? focused_frame
                   : web_contents()->GetPrimaryMainFrame();
 
-  print_view_manager->PrintNow(rfh, silent, std::move(print_settings),
+  print_view_manager->PrintNow(rfh, std::move(print_settings),
                                std::move(print_callback));
 }
 
@@ -2983,9 +2936,10 @@ void WebContents::Print(gin::Arguments* args) {
     return;
   }
 
-  // Set optional silent printing
+  // Set optional silent printing.
   bool silent = false;
   options.Get("silent", &silent);
+  settings.Set("silent", silent);
 
   bool print_background = false;
   options.Get("printBackground", &print_background);
@@ -3113,7 +3067,6 @@ void WebContents::Print(gin::Arguments* args) {
 
   // Set custom dots per inch (dpi)
   gin_helper::Dictionary dpi_settings;
-  int dpi = 72;
   if (options.Get("dpi", &dpi_settings)) {
     int horizontal = 72;
     dpi_settings.Get("horizontal", &horizontal);
@@ -3121,16 +3074,13 @@ void WebContents::Print(gin::Arguments* args) {
     int vertical = 72;
     dpi_settings.Get("vertical", &vertical);
     settings.Set(printing::kSettingDpiVertical, vertical);
-  } else {
-    settings.Set(printing::kSettingDpiHorizontal, dpi);
-    settings.Set(printing::kSettingDpiVertical, dpi);
   }
 
   print_task_runner_->PostTaskAndReplyWithResult(
       FROM_HERE, base::BindOnce(&GetDeviceNameToUse, device_name),
       base::BindOnce(&WebContents::OnGetDeviceNameToUse,
                      weak_factory_.GetWeakPtr(), std::move(settings),
-                     std::move(callback), silent));
+                     std::move(callback)));
 }
 
 // Partially duplicated and modified from
@@ -3398,7 +3348,7 @@ void WebContents::SendInputEvent(v8::Isolate* isolate,
       return;
     }
   } else if (blink::WebInputEvent::IsKeyboardEventType(type)) {
-    content::NativeWebKeyboardEvent keyboard_event(
+    input::NativeWebKeyboardEvent keyboard_event(
         blink::WebKeyboardEvent::Type::kRawKeyDown,
         blink::WebInputEvent::Modifiers::kNoModifiers, ui::EventTimeForNow());
     if (gin::ConvertFromV8(isolate, input_event, &keyboard_event)) {
@@ -3990,7 +3940,8 @@ void WebContents::ExitPictureInPicture() {
 
 void WebContents::DevToolsSaveToFile(const std::string& url,
                                      const std::string& content,
-                                     bool save_as) {
+                                     bool save_as,
+                                     bool is_base64) {
   base::FilePath path;
   auto it = saved_files_.find(url);
   if (it != saved_files_.end() && !save_as) {
@@ -4013,8 +3964,8 @@ void WebContents::DevToolsSaveToFile(const std::string& url,
   inspectable_web_contents_->CallClientFunction(
       "DevToolsAPI", "savedURL", base::Value(url),
       base::Value(path.AsUTF8Unsafe()));
-  file_task_runner_->PostTask(FROM_HERE,
-                              base::BindOnce(&WriteToFile, path, content));
+  file_task_runner_->PostTask(
+      FROM_HERE, base::BindOnce(&WriteToFile, path, content, is_base64));
 }
 
 void WebContents::DevToolsAppendToFile(const std::string& url,
@@ -4153,6 +4104,10 @@ void WebContents::DevToolsStopIndexing(int request_id) {
 
 void WebContents::DevToolsOpenInNewTab(const std::string& url) {
   Emit("devtools-open-url", url);
+}
+
+void WebContents::DevToolsOpenSearchResultsInNewTab(const std::string& query) {
+  Emit("devtools-search-query", query);
 }
 
 void WebContents::DevToolsSearchInPath(int request_id,
@@ -4343,17 +4298,19 @@ void WebContents::FillObjectTemplate(v8::Isolate* isolate,
       .SetMethod("isLoadingMainFrame", &WebContents::IsLoadingMainFrame)
       .SetMethod("isWaitingForResponse", &WebContents::IsWaitingForResponse)
       .SetMethod("stop", &WebContents::Stop)
-      .SetMethod("canGoBack", &WebContents::CanGoBack)
-      .SetMethod("goBack", &WebContents::GoBack)
-      .SetMethod("canGoForward", &WebContents::CanGoForward)
-      .SetMethod("goForward", &WebContents::GoForward)
-      .SetMethod("canGoToOffset", &WebContents::CanGoToOffset)
-      .SetMethod("goToOffset", &WebContents::GoToOffset)
+      .SetMethod("_canGoBack", &WebContents::CanGoBack)
+      .SetMethod("_goBack", &WebContents::GoBack)
+      .SetMethod("_canGoForward", &WebContents::CanGoForward)
+      .SetMethod("_goForward", &WebContents::GoForward)
+      .SetMethod("_canGoToOffset", &WebContents::CanGoToOffset)
+      .SetMethod("_goToOffset", &WebContents::GoToOffset)
       .SetMethod("canGoToIndex", &WebContents::CanGoToIndex)
-      .SetMethod("goToIndex", &WebContents::GoToIndex)
-      .SetMethod("getActiveIndex", &WebContents::GetActiveIndex)
-      .SetMethod("clearHistory", &WebContents::ClearHistory)
-      .SetMethod("length", &WebContents::GetHistoryLength)
+      .SetMethod("_goToIndex", &WebContents::GoToIndex)
+      .SetMethod("_getActiveIndex", &WebContents::GetActiveIndex)
+      .SetMethod("_getNavigationEntryAtIndex",
+                 &WebContents::GetNavigationEntryAtIndex)
+      .SetMethod("_historyLength", &WebContents::GetHistoryLength)
+      .SetMethod("_clearHistory", &WebContents::ClearHistory)
       .SetMethod("isCrashed", &WebContents::IsCrashed)
       .SetMethod("forcefullyCrashRenderer",
                  &WebContents::ForcefullyCrashRenderer)

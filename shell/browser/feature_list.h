@@ -5,9 +5,12 @@
 #ifndef ELECTRON_SHELL_BROWSER_FEATURE_LIST_H_
 #define ELECTRON_SHELL_BROWSER_FEATURE_LIST_H_
 
+#include <string>
+
 namespace electron {
 void InitializeFeatureList();
 void InitializeFieldTrials();
+std::string EnablePlatformSpecificFeatures();
 }  // namespace electron
 
 #endif  // ELECTRON_SHELL_BROWSER_FEATURE_LIST_H_

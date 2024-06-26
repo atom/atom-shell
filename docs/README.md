@@ -98,7 +98,6 @@ These individual tutorials expand on topics discussed in the guide above.
 
 ### Custom DOM Elements:
 
-* [`File` Object](api/file-object.md)
 * [`<webview>` Tag](api/webview-tag.md)
 * [`window.open` Function](api/window-open.md)
 

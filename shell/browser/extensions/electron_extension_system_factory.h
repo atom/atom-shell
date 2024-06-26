@@ -5,8 +5,12 @@
 #ifndef ELECTRON_SHELL_BROWSER_EXTENSIONS_ELECTRON_EXTENSION_SYSTEM_FACTORY_H_
 #define ELECTRON_SHELL_BROWSER_EXTENSIONS_ELECTRON_EXTENSION_SYSTEM_FACTORY_H_
 
-#include "base/memory/singleton.h"
 #include "extensions/browser/extension_system_provider.h"
+
+namespace base {
+template <typename T>
+class NoDestructor;
+}  // namespace base
 
 namespace extensions {
 
@@ -26,7 +30,7 @@ class ElectronExtensionSystemFactory : public ExtensionSystemProvider {
       const ElectronExtensionSystemFactory&) = delete;
 
  private:
-  friend struct base::DefaultSingletonTraits<ElectronExtensionSystemFactory>;
+  friend base::NoDestructor<ElectronExtensionSystemFactory>;
 
   ElectronExtensionSystemFactory();
   ~ElectronExtensionSystemFactory() override;

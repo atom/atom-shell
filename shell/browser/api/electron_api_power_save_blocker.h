@@ -19,10 +19,10 @@ class PowerSaveBlocker : public gin::Wrappable<PowerSaveBlocker> {
   static gin::Handle<PowerSaveBlocker> Create(v8::Isolate* isolate);
 
   // gin::Wrappable
+  static gin::WrapperInfo kWrapperInfo;
   gin::ObjectTemplateBuilder GetObjectTemplateBuilder(
       v8::Isolate* isolate) override;
-
-  static gin::WrapperInfo kWrapperInfo;
+  const char* GetTypeName() override;
 
   // disable copy
   PowerSaveBlocker(const PowerSaveBlocker&) = delete;

@@ -30,6 +30,7 @@ class AutofillDriver : public mojom::ElectronAutofillDriver {
       mojo::PendingAssociatedReceiver<mojom::ElectronAutofillDriver>
           pending_receiver);
 
+  // mojom::ElectronAutofillDriver
   void ShowAutofillPopup(const gfx::RectF& bounds,
                          const std::vector<std::u16string>& values,
                          const std::vector<std::u16string>& labels) override;

@@ -1,0 +1,77 @@
+name: Electron Lint
+
+on:
+  workflow_call:
+    inputs:
+      container:
+        required: true
+        description: 'Container to run lint in'
+        type: string
+
+concurrency:
+  group: electron-lint-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !endsWith(github.ref, '-x-y') }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: aks-linux-medium
+    timeout-minutes: 20
+    container: ${{ fromJSON(inputs.container) }}
+    steps:
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Install Dependencies
+      run: |
+        cd src/electron
+        node script/yarn install --frozen-lockfile
+    - name: Setup third_party Depot Tools
+      shell: bash
+      run: |
+        # "depot_tools" has to be checkout into "//third_party/depot_tools" so pylint.py can a "pylintrc" file.
+        git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git src/third_party/depot_tools
+        echo "$(pwd)/src/third_party/depot_tools" >> $GITHUB_PATH
+    - name: Download GN Binary
+      shell: bash
+      run: |
+        chromium_revision="$(grep -A1 chromium_version src/electron/DEPS | tr -d '\n' | cut -d\' -f4)"
+        gn_version="$(curl -sL "https://chromium.googlesource.com/chromium/src/+/${chromium_revision}/DEPS?format=TEXT" | base64 -d | grep gn_version | head -n1 | cut -d\' -f4)"
+
+        cipd ensure -ensure-file - -root . <<-CIPD
+        \$ServiceURL https://chrome-infra-packages.appspot.com/
+        @Subdir src/buildtools/linux64
+        gn/gn/linux-amd64 $gn_version
+        CIPD
+
+        buildtools_path="$(pwd)/src/buildtools"
+        echo "CHROMIUM_BUILDTOOLS_PATH=$buildtools_path" >> $GITHUB_ENV
+    - name: Download clang-format Binary
+      shell: bash
+      run: |
+        chromium_revision="$(grep -A1 chromium_version src/electron/DEPS | tr -d '\n' | cut -d\' -f4)"
+
+        mkdir -p src/buildtools
+        curl -sL "https://chromium.googlesource.com/chromium/src/+/${chromium_revision}/buildtools/DEPS?format=TEXT" | base64 -d > src/buildtools/DEPS
+
+        gclient runhooks --spec="solutions=[{'name':'src/buildtools','url':None,'deps_file':'DEPS','custom_vars':{'process_deps':True},'managed':False}]"
+    - name: Run Lint
+      shell: bash
+      run: |
+        # gn.py tries to find a gclient root folder starting from the current dir.
+        # When it fails and returns "None" path, the whole script fails. Let's "fix" it.
+        touch .gclient
+        # Another option would be to checkout "buildtools" inside the Electron checkout,
+        # but then we would lint its contents (at least gn format), and it doesn't pass it.
+
+        cd src/electron
+        node script/yarn install --frozen-lockfile
+        node script/yarn lint
+    - name: Run Script Typechecker
+      shell: bash
+      run: |
+        cd src/electron
+        node script/yarn tsc -p tsconfig.script.json
+    

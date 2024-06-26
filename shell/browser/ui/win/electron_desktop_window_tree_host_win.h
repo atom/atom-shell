@@ -29,6 +29,7 @@ class ElectronDesktopWindowTreeHostWin : public views::DesktopWindowTreeHostWin,
       const ElectronDesktopWindowTreeHostWin&) = delete;
 
  protected:
+  // views::DesktopWindowTreeHostWin:
   bool PreHandleMSG(UINT message,
                     WPARAM w_param,
                     LPARAM l_param,

@@ -129,7 +129,7 @@ class Dictionary : public gin::Dictionary {
     auto context = isolate()->GetCurrentContext();
 
     return GetHandle()
-        ->SetAccessor(
+        ->SetNativeDataProperty(
             context, gin::StringToV8(isolate(), key),
             [](v8::Local<v8::Name> property_name,
                const v8::PropertyCallbackInfo<v8::Value>& info) {
@@ -143,7 +143,7 @@ class Dictionary : public gin::Dictionary {
               if (gin::TryConvertToV8(info.GetIsolate(), val, &v8_value))
                 info.GetReturnValue().Set(v8_value);
             },
-            nullptr, v8_value_accessor, v8::DEFAULT, attribute)
+            nullptr, v8_value_accessor, attribute)
         .ToChecked();
   }
 

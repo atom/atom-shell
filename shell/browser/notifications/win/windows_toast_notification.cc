@@ -14,6 +14,7 @@
 #include <wrl\wrappers\corewrappers.h>
 
 #include "base/environment.h"
+#include "base/hash/hash.h"
 #include "base/logging.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_number_conversions.h"
@@ -69,6 +70,10 @@ constexpr wchar_t kGroup[] = L"Notifications";
 void DebugLog(std::string_view log_msg) {
   if (base::Environment::Create()->HasVar("ELECTRON_DEBUG_NOTIFICATIONS"))
     LOG(INFO) << log_msg;
+}
+
+std::wstring GetTag(const std::string& notification_id) {
+  return base::NumberToWString(base::Hash(notification_id));
 }
 
 }  // namespace
@@ -146,7 +151,7 @@ void WindowsToastNotification::Remove() {
     return;
 
   ScopedHString group(kGroup);
-  ScopedHString tag(base::as_wcstr(base::UTF8ToUTF16(notification_id())));
+  ScopedHString tag(GetTag(notification_id()));
   notification_history->RemoveGroupedTagWithId(tag, group, app_id);
 }
 
@@ -199,7 +204,7 @@ HRESULT WindowsToastNotification::ShowInternal(
   REPORT_AND_RETURN_IF_FAILED(toast2->put_Group(group),
                               "WinAPI: Setting group failed");
 
-  ScopedHString tag(base::as_wcstr(base::UTF8ToUTF16(notification_id())));
+  ScopedHString tag(GetTag(notification_id()));
   REPORT_AND_RETURN_IF_FAILED(toast2->put_Tag(tag),
                               "WinAPI: Setting tag failed");
 
@@ -540,7 +545,7 @@ HRESULT WindowsToastNotification::SetXmlImage(IXmlDocument* doc,
   ComPtr<IXmlNode> src_attr;
   RETURN_IF_FAILED(attrs->GetNamedItem(src, &src_attr));
 
-  ScopedHString img_path(icon_path.c_str());
+  const ScopedHString img_path{icon_path};
   if (!img_path.success())
     return E_FAIL;
 

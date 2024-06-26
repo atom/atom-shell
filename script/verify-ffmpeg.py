@@ -24,10 +24,10 @@ def main():
     electron = os.path.join(app_path, 'Contents', 'MacOS', PRODUCT_NAME)
     ffmpeg_name = 'libffmpeg.dylib'
     ffmpeg_app_path = os.path.join(app_path, 'Contents', 'Frameworks',
-                    '{0} Framework.framework'.format(PRODUCT_NAME),
+                    f'{PRODUCT_NAME} Framework.framework',
                     'Libraries')
   elif sys.platform == 'win32':
-    electron = os.path.join(app_path, '{0}.exe'.format(PROJECT_NAME))
+    electron = os.path.join(app_path, f'{PROJECT_NAME}.exe')
     ffmpeg_app_path = app_path
     ffmpeg_name = 'ffmpeg.dll'
   else:
@@ -69,7 +69,7 @@ def create_app_copy(initial_app_path):
                           + '-no-proprietary-codecs')
 
   if sys.platform == 'darwin':
-    app_name = '{0}.app'.format(PRODUCT_NAME)
+    app_name = f'{PRODUCT_NAME}.app'
     initial_app_path = os.path.join(initial_app_path, app_name)
     app_path = os.path.join(app_path, app_name)
 

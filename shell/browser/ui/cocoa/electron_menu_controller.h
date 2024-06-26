@@ -26,8 +26,6 @@ class ElectronMenuModel;
  @protected
   base::WeakPtr<electron::ElectronMenuModel> model_;
   NSMenu* __strong menu_;
-  NSMenuItem* __strong recentDocumentsMenuItem_;
-  NSMenu* __strong recentDocumentsMenuSwap_;
   BOOL isMenuOpen_;
   BOOL useDefaultAccelerator_;
   base::OnceClosure closeCallback;

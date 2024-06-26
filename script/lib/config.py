@@ -43,7 +43,7 @@ def get_zip_name(name, version, suffix=''):
   arch = get_target_arch()
   if arch == 'arm':
     arch += 'v7l'
-  zip_name = '{0}-{1}-{2}-{3}'.format(name, version, get_platform_key(), arch)
+  zip_name = f'{name}-{version}-{get_platform_key()}-{arch}'
   if suffix:
     zip_name += '-' + suffix
   return zip_name + '.zip'

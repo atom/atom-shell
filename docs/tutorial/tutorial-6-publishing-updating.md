@@ -152,7 +152,7 @@ command that can handle the version bumping and tagging for you.
 #### Bonus: Publishing in GitHub Actions
 
 Publishing locally can be painful, especially because you can only create distributables
-for your host operating system (i.e. you can't publish a Window `.exe` file from macOS).
+for your host operating system (i.e. you can't publish a Windows `.exe` file from macOS).
 
 A solution for this would be to publish your app via automation workflows
 such as [GitHub Actions][], which can run tasks in the

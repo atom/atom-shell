@@ -12,7 +12,7 @@ should be removed as soon as those have been updated. Patching because
 every instance is a FTBFS that prevents testing any one instance's fix.
 
 diff --git a/base/functional/callback_helpers.h b/base/functional/callback_helpers.h
-index f7af4f832fc342f8a9a052049dc1bd5cfefb16ee..e3f6495d4c43abd5d16ec14d8ec732fa3f6bc599 100644
+index d7444427588f85d27399442d8d6e4acee581392d..c8cc6c186a27078f26f4f8a417a7f2fe0c0303c4 100644
 --- a/base/functional/callback_helpers.h
 +++ b/base/functional/callback_helpers.h
 @@ -100,6 +100,22 @@ RepeatingCallback<void(Args...)> ForwardRepeatingCallbacks(

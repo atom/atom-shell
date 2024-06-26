@@ -19,6 +19,11 @@ const map = {
     chrome.runtime.sendMessage({ method: 'insertCSS' }, response => {
       console.log(JSON.stringify(response));
     });
+  },
+  globalParams () {
+    chrome.runtime.sendMessage({ method: 'globalParams' }, response => {
+      console.log(JSON.stringify(response));
+    });
   }
 };
 

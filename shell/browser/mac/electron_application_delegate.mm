@@ -84,6 +84,14 @@ static NSDictionary* UNNotificationResponseToNSDictionary(
     }
   }
 
+  NSAppleEventDescriptor* event =
+      NSAppleEventManager.sharedAppleEventManager.currentAppleEvent;
+  BOOL launched_as_login_item =
+      (event.eventID == kAEOpenApplication &&
+       [event paramDescriptorForKeyword:keyAEPropData].enumCodeValue ==
+           keyAELaunchedAsLogInItem);
+  electron::Browser::Get()->SetLaunchedAtLogin(launched_as_login_item);
+
   electron::Browser::Get()->DidFinishLaunching(
       electron::NSDictionaryToValue(notification_info));
 }

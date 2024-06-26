@@ -1,0 +1,69 @@
+name: Publish MacOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-image-sha:
+        type: string
+        description: 'SHA for electron/build image'
+        default: 'cf814a4d2501e8e843caea071a6b70a48e78b855'
+        required: true
+      upload-to-storage:
+        description: 'Uploads to Azure storage'
+        required: false
+        default: '1'
+        type: string
+      run-macos-publish:
+        description: 'Run the publish jobs vs just the build jobs'
+        type: boolean
+        default: false
+
+jobs:
+  checkout-macos:
+    runs-on: aks-linux-large
+    container:
+      image: ghcr.io/electron/build:${{ inputs.build-image-sha }}
+      options: --user root
+      volumes:
+        - /mnt/cross-instance-cache:/mnt/cross-instance-cache
+        - /var/run/sas:/var/run/sas
+    env:
+      GCLIENT_EXTRA_ARGS: '--custom-var=checkout_mac=True --custom-var=host_os=mac'
+    steps:
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Checkout & Sync & Save
+      uses: ./src/electron/.github/actions/checkout
+      with:
+        generate-sas-token: 'true'
+
+  publish-x64:
+    uses: ./.github/workflows/pipeline-segment-electron-build.yml
+    needs: checkout-macos
+    with:
+      environment: production-release
+      build-runs-on: macos-14-xlarge
+      target-platform: macos
+      target-arch: x64
+      is-release: true
+      gn-build-type: release
+      generate-symbols: true
+      upload-to-storage: ${{ inputs.upload-to-storage }}
+    secrets: inherit
+
+  publish-arm64:
+    uses: ./.github/workflows/pipeline-segment-electron-build.yml
+    needs: checkout-macos
+    with:
+      environment: production-release
+      build-runs-on: macos-14-xlarge
+      target-platform: macos
+      target-arch: arm64
+      is-release: true
+      gn-build-type: release
+      generate-symbols: true
+      upload-to-storage: ${{ inputs.upload-to-storage }}
+    secrets: inherit

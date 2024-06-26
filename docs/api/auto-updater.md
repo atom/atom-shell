@@ -20,8 +20,9 @@ In addition, there are some subtle differences on each platform:
 
 On macOS, the `autoUpdater` module is built upon [Squirrel.Mac][squirrel-mac],
 meaning you don't need any special setup to make it work. For server-side
-requirements, you can read [Server Support][server-support]. Note that [App
-Transport Security](https://developer.apple.com/library/content/documentation/General/Reference/InfoPlistKeyReference/Articles/CocoaKeys.html#//apple_ref/doc/uid/TP40009251-SW35) (ATS) applies to all requests made as part of the
+requirements, you can read [Server Support][server-support]. Note that
+[App Transport Security](https://developer.apple.com/library/content/documentation/General/Reference/InfoPlistKeyReference/Articles/CocoaKeys.html#//apple_ref/doc/uid/TP40009251-SW35)
+(ATS) applies to all requests made as part of the
 update process. Apps that need to disable ATS can add the
 `NSAllowsArbitraryLoads` key to their app's plist.
 
@@ -103,7 +104,7 @@ The `autoUpdater` object has the following methods:
 
 * `options` Object
   * `url` string
-  * `headers` Record<string, string> (optional) _macOS_ - HTTP request headers.
+  * `headers` Record\<string, string\> (optional) _macOS_ - HTTP request headers.
   * `serverType` string (optional) _macOS_ - Can be `json` or `default`, see the [Squirrel.Mac][squirrel-mac]
     README for more information.
 

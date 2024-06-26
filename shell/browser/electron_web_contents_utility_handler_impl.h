@@ -21,7 +21,7 @@ class RenderFrameHost;
 namespace electron {
 class ElectronWebContentsUtilityHandlerImpl
     : public mojom::ElectronWebContentsUtility,
-      public content::WebContentsObserver {
+      private content::WebContentsObserver {
  public:
   explicit ElectronWebContentsUtilityHandlerImpl(
       content::RenderFrameHost* render_frame_host,
@@ -41,8 +41,6 @@ class ElectronWebContentsUtilityHandlerImpl
 
   // mojom::ElectronWebContentsUtility:
   void OnFirstNonEmptyLayout() override;
-  void UpdateDraggableRegions(
-      std::vector<mojom::DraggableRegionPtr> regions) override;
   void SetTemporaryZoomLevel(double level) override;
   void DoGetZoomLevel(DoGetZoomLevelCallback callback) override;
 

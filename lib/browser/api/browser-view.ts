@@ -34,13 +34,17 @@ export default class BrowserView {
   }
 
   setAutoResize (options: AutoResizeOptions) {
-    if (options == null || typeof options !== 'object') { throw new Error('Invalid auto resize options'); }
+    if (options == null || typeof options !== 'object') {
+      throw new Error('Invalid auto resize options');
+    }
+
     this.#autoResizeFlags = {
       width: !!options.width,
       height: !!options.height,
       horizontal: !!options.horizontal,
       vertical: !!options.vertical
     };
+
     this.#autoHorizontalProportion = null;
     this.#autoVerticalProportion = null;
   }
@@ -71,7 +75,10 @@ export default class BrowserView {
   #autoHorizontalProportion: {width: number, left: number} | null = null;
   #autoVerticalProportion: {height: number, top: number} | null = null;
   #autoResize () {
-    if (!this.ownerWindow) throw new Error('Electron bug: #autoResize called without owner window');
+    if (!this.ownerWindow) {
+      throw new Error('Electron bug: #autoResize called without owner window');
+    };
+
     if (this.#autoResizeFlags.horizontal && this.#autoHorizontalProportion == null) {
       const viewBounds = this.#webContentsView.getBounds();
       this.#autoHorizontalProportion = {
@@ -79,6 +86,7 @@ export default class BrowserView {
         left: this.#lastWindowSize.width / viewBounds.x
       };
     }
+
     if (this.#autoResizeFlags.vertical && this.#autoVerticalProportion == null) {
       const viewBounds = this.#webContentsView.getBounds();
       this.#autoVerticalProportion = {
@@ -86,6 +94,7 @@ export default class BrowserView {
         top: this.#lastWindowSize.height / viewBounds.y
       };
     }
+
     const newBounds = this.ownerWindow.getBounds();
     let widthDelta = newBounds.width - this.#lastWindowSize.width;
     let heightDelta = newBounds.height - this.#lastWindowSize.height;
@@ -105,10 +114,12 @@ export default class BrowserView {
       newViewBounds.width = newBounds.width / this.#autoHorizontalProportion.width;
       newViewBounds.x = newBounds.width / this.#autoHorizontalProportion.left;
     }
+
     if (this.#autoVerticalProportion) {
       newViewBounds.height = newBounds.height / this.#autoVerticalProportion.height;
       newViewBounds.y = newBounds.y / this.#autoVerticalProportion.top;
     }
+
     if (this.#autoHorizontalProportion || this.#autoVerticalProportion) {
       this.#webContentsView.setBounds(newViewBounds);
     }

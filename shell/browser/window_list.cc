@@ -59,8 +59,7 @@ void WindowList::AddWindow(NativeWindow* window) {
 // static
 void WindowList::RemoveWindow(NativeWindow* window) {
   WindowVector& windows = GetInstance()->windows_;
-  windows.erase(std::remove(windows.begin(), windows.end(), window),
-                windows.end());
+  std::erase(windows, window);
 
   for (WindowListObserver& observer : GetObservers())
     observer.OnWindowRemoved(window);

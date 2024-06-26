@@ -17,10 +17,13 @@
 
 namespace content {
 struct ContextMenuParams;
-struct NativeWebKeyboardEvent;
 class RenderFrameHost;
 class WebContents;
 }  // namespace content
+
+namespace input {
+struct NativeWebKeyboardEvent;
+}
 
 using ContextMenuParamsWithRenderFrameHost =
     std::pair<content::ContextMenuParams, content::RenderFrameHost*>;
@@ -88,12 +91,12 @@ struct Converter<content::Referrer> {
 };
 
 template <>
-struct Converter<content::NativeWebKeyboardEvent> {
+struct Converter<input::NativeWebKeyboardEvent> {
   static bool FromV8(v8::Isolate* isolate,
                      v8::Local<v8::Value> val,
-                     content::NativeWebKeyboardEvent* out);
+                     input::NativeWebKeyboardEvent* out);
   static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
-                                   const content::NativeWebKeyboardEvent& in);
+                                   const input::NativeWebKeyboardEvent& in);
 };
 
 }  // namespace gin

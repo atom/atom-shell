@@ -50,9 +50,9 @@ namespace api {
 class App : public ElectronBrowserClient::Delegate,
             public gin::Wrappable<App>,
             public gin_helper::EventEmitterMixin<App>,
-            public BrowserObserver,
-            public content::GpuDataManagerObserver,
-            public content::BrowserChildProcessObserver {
+            private BrowserObserver,
+            private content::GpuDataManagerObserver,
+            private content::BrowserChildProcessObserver {
  public:
   using FileIconCallback =
       base::RepeatingCallback<void(v8::Local<v8::Value>, const gfx::Image&)>;
@@ -194,9 +194,9 @@ class App : public ElectronBrowserClient::Delegate,
   std::string GetLocale();
   std::string GetLocaleCountryCode();
   std::string GetSystemLocale(gin_helper::ErrorThrower thrower) const;
-  void OnSecondInstance(const base::CommandLine& cmd,
+  void OnSecondInstance(base::CommandLine cmd,
                         const base::FilePath& cwd,
-                        const std::vector<const uint8_t> additional_data);
+                        const std::vector<uint8_t> additional_data);
   bool HasSingleInstanceLock() const;
   bool RequestSingleInstanceLock(gin::Arguments* args);
   void ReleaseSingleInstanceLock();
@@ -206,7 +206,7 @@ class App : public ElectronBrowserClient::Delegate,
   bool IsAccessibilitySupportEnabled();
   void SetAccessibilitySupportEnabled(gin_helper::ErrorThrower thrower,
                                       bool enabled);
-  Browser::LoginItemSettings GetLoginItemSettings(gin::Arguments* args);
+  v8::Local<v8::Value> GetLoginItemSettings(gin::Arguments* args);
 #if BUILDFLAG(USE_NSS_CERTS)
   void ImportCertificate(gin_helper::ErrorThrower thrower,
                          base::Value options,
@@ -222,6 +222,8 @@ class App : public ElectronBrowserClient::Delegate,
   void EnableSandbox(gin_helper::ErrorThrower thrower);
   void SetUserAgentFallback(const std::string& user_agent);
   std::string GetUserAgentFallback();
+  v8::Local<v8::Promise> SetProxy(gin::Arguments* args);
+  v8::Local<v8::Promise> ResolveProxy(gin::Arguments* args);
 
 #if BUILDFLAG(IS_MAC)
   void SetActivationPolicy(gin_helper::ErrorThrower thrower,

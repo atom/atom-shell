@@ -53,7 +53,7 @@ index 8d7c5631fd8f1499c67384286f0e3c4037673b32..99b2e2f63be8a46c5546dd53bc9b05e8
    kEmbedderFuchsia,
  };
 diff --git a/third_party/blink/renderer/platform/bindings/script_state.cc b/third_party/blink/renderer/platform/bindings/script_state.cc
-index 7ff8785cd64c1264a88f91f7bd3292c6943f58ea..bc14ad8cab9fa3ec45bcb9f670b198970ecbeb92 100644
+index e4a27a24c83dd1a478b2ada8b6c8220076790791..c76dc818f38a62fff63852dbecbc85e304ac731d 100644
 --- a/third_party/blink/renderer/platform/bindings/script_state.cc
 +++ b/third_party/blink/renderer/platform/bindings/script_state.cc
 @@ -13,6 +13,10 @@ namespace blink {
@@ -76,7 +76,7 @@ index 7ff8785cd64c1264a88f91f7bd3292c6943f58ea..bc14ad8cab9fa3ec45bcb9f670b19897
    RendererResourceCoordinator::Get()->OnScriptStateCreated(this,
                                                             execution_context);
  }
-@@ -78,6 +84,8 @@ void ScriptState::DissociateContext() {
+@@ -79,6 +85,8 @@ void ScriptState::DissociateContext() {
    // Cut the reference from V8 context to ScriptState.
    GetContext()->SetAlignedPointerInEmbedderData(kV8ContextPerContextDataIndex,
                                                  nullptr);
@@ -86,11 +86,11 @@ index 7ff8785cd64c1264a88f91f7bd3292c6943f58ea..bc14ad8cab9fa3ec45bcb9f670b19897
  
    // Cut the reference from ScriptState to V8 context.
 diff --git a/third_party/blink/renderer/platform/bindings/script_state.h b/third_party/blink/renderer/platform/bindings/script_state.h
-index 29ae73a8a3f4818f027e73b6e75e413c03750b5d..d49d2d094077d818bf25de96ec5f62319a5b411c 100644
+index e9b16a9c71b9631222d0745428fea06be2e74472..aba4d930a9a45fb43e0aaac26af7df4fa07fc447 100644
 --- a/third_party/blink/renderer/platform/bindings/script_state.h
 +++ b/third_party/blink/renderer/platform/bindings/script_state.h
-@@ -182,7 +182,12 @@ class PLATFORM_EXPORT ScriptState : public GarbageCollected<ScriptState> {
-   static ScriptState* MaybeFrom(v8::Local<v8::Context> context) {
+@@ -184,7 +184,12 @@ class PLATFORM_EXPORT ScriptState : public GarbageCollected<ScriptState> {
+                                 v8::Local<v8::Context> context) {
      DCHECK(!context.IsEmpty());
      if (context->GetNumberOfEmbedderDataFields() <=
 -        kV8ContextPerContextDataIndex) {

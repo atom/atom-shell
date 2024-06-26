@@ -4,6 +4,7 @@
 
 #include "shell/browser/usb/usb_chooser_context_factory.h"
 
+#include "base/no_destructor.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "shell/browser/electron_browser_context.h"
 #include "shell/browser/usb/usb_chooser_context.h"
@@ -26,7 +27,8 @@ KeyedService* UsbChooserContextFactory::BuildServiceInstanceFor(
 
 // static
 UsbChooserContextFactory* UsbChooserContextFactory::GetInstance() {
-  return base::Singleton<UsbChooserContextFactory>::get();
+  static base::NoDestructor<UsbChooserContextFactory> instance;
+  return instance.get();
 }
 
 // static

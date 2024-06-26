@@ -27,7 +27,7 @@
 
 class SkRegion;
 
-namespace content {
+namespace input {
 struct NativeWebKeyboardEvent;
 }
 
@@ -290,9 +290,9 @@ class NativeWindow : public base::SupportsUserData,
   virtual void SetWindowControlsOverlayRect(const gfx::Rect& overlay_rect);
 
   // Methods called by the WebContents.
-  virtual void HandleKeyboardEvent(
-      content::WebContents*,
-      const content::NativeWebKeyboardEvent& event) {}
+  virtual void HandleKeyboardEvent(content::WebContents*,
+                                   const input::NativeWebKeyboardEvent& event) {
+  }
 
   // Public API used by platform-dependent delegates and observers to send UI
   // related notifications.

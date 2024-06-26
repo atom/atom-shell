@@ -1,0 +1,438 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Keeley Hammond <khammond@slack-corp.com>
+Date: Tue, 7 May 2024 15:50:31 -0700
+Subject: Revert "[heap] Add checks for ensuring position info slow path is not
+ used in heap snapshot"
+
+These two CLs were causing several heap-related tests to fail, and
+the issue seems to be under construction in future Chrome rolls.
+This patch can be removed when the issue is fixed upstream.
+
+CR Bug: https://issues.chromium.org/issues/42204564
+
+This reverts commit ca51566b53be5507ff184704767c7a9220a68733 and commit
+6e70dc9e73af2a930074f4f000864fbc65515b74.
+
+diff --git a/src/common/assert-scope.cc b/src/common/assert-scope.cc
+index 0ea1a04fed062658fa36c239d323e70d0358b57d..1b996b14e490a6fe1b3636f9147728f07cca141f 100644
+--- a/src/common/assert-scope.cc
++++ b/src/common/assert-scope.cc
+@@ -108,8 +108,6 @@ template class PerThreadAssertScope<CODE_DEPENDENCY_CHANGE_ASSERT, true>;
+ template class PerThreadAssertScope<CODE_ALLOCATION_ASSERT, false>;
+ template class PerThreadAssertScope<CODE_ALLOCATION_ASSERT, true>;
+ template class PerThreadAssertScope<GC_MOLE, false>;
+-template class PerThreadAssertScope<POSITION_INFO_SLOW_ASSERT, false>;
+-template class PerThreadAssertScope<POSITION_INFO_SLOW_ASSERT, true>;
+ 
+ }  // namespace internal
+ }  // namespace v8
+diff --git a/src/common/assert-scope.h b/src/common/assert-scope.h
+index 27fbc04bc880f2ea68dc7a126b8091a3b5ab4025..42d9649c5250c06a4d39ba0306cbdea0b0e5a8c3 100644
+--- a/src/common/assert-scope.h
++++ b/src/common/assert-scope.h
+@@ -30,7 +30,6 @@ enum PerThreadAssertType {
+   CODE_ALLOCATION_ASSERT,
+   // Dummy type for disabling GC mole.
+   GC_MOLE,
+-  POSITION_INFO_SLOW_ASSERT,
+ };
+ 
+ template <PerThreadAssertType kType, bool kAllow>
+@@ -258,14 +257,6 @@ using DisallowGarbageCollection =
+ // work.
+ using DisableGCMole = PerThreadAssertScopeDebugOnly<GC_MOLE, false>;
+ 
+-// Scope to ensure slow path for obtaining position info is not called
+-using DisallowPositionInfoSlow =
+-    PerThreadAssertScopeDebugOnly<POSITION_INFO_SLOW_ASSERT, false>;
+-
+-// Scope to add an exception to disallowing position info slow path
+-using AllowPositionInfoSlow =
+-    PerThreadAssertScopeDebugOnly<POSITION_INFO_SLOW_ASSERT, true>;
+-
+ // The DISALLOW_GARBAGE_COLLECTION macro can be used to define a
+ // DisallowGarbageCollection field in classes that isn't present in release
+ // builds.
+@@ -337,8 +328,6 @@ extern template class PerThreadAssertScope<CODE_DEPENDENCY_CHANGE_ASSERT, true>;
+ extern template class PerThreadAssertScope<CODE_ALLOCATION_ASSERT, false>;
+ extern template class PerThreadAssertScope<CODE_ALLOCATION_ASSERT, true>;
+ extern template class PerThreadAssertScope<GC_MOLE, false>;
+-extern template class PerThreadAssertScope<POSITION_INFO_SLOW_ASSERT, false>;
+-extern template class PerThreadAssertScope<POSITION_INFO_SLOW_ASSERT, true>;
+ 
+ }  // namespace internal
+ }  // namespace v8
+diff --git a/src/objects/objects.cc b/src/objects/objects.cc
+index d83783a5560a355684a866e1aca2cc081835919b..f8622e1311838df9548bc1839cd40d17af02a7d2 100644
+--- a/src/objects/objects.cc
++++ b/src/objects/objects.cc
+@@ -4361,7 +4361,6 @@ namespace {
+ template <typename Char>
+ bool GetPositionInfoSlowImpl(base::Vector<Char> source, int position,
+                              Script::PositionInfo* info) {
+-  DCHECK(DisallowPositionInfoSlow::IsAllowed());
+   if (position < 0) {
+     position = 0;
+   }
+@@ -4408,11 +4407,25 @@ int GetLength(const String::LineEndsVector& vector) {
+ }
+ 
+ int GetLength(const Tagged<FixedArray>& array) { return array->length(); }
++}  // namespace
++
++void Script::AddPositionInfoOffset(PositionInfo* info,
++                                   OffsetFlag offset_flag) const {
++  // Add offsets if requested.
++  if (offset_flag == OffsetFlag::kWithOffset) {
++    if (info->line == 0) {
++      info->column += column_offset();
++    }
++    info->line += line_offset();
++  } else {
++    DCHECK_EQ(offset_flag, OffsetFlag::kNoOffset);
++  }
++}
+ 
+ template <typename LineEndsContainer>
+-bool GetLineEndsContainerPositionInfo(const LineEndsContainer& ends,
+-                                      int position, Script::PositionInfo* info,
+-                                      const DisallowGarbageCollection& no_gc) {
++bool Script::GetPositionInfoInternal(
++    const LineEndsContainer& ends, int position, Script::PositionInfo* info,
++    const DisallowGarbageCollection& no_gc) const {
+   const int ends_len = GetLength(ends);
+   if (ends_len == 0) return false;
+ 
+@@ -4451,31 +4464,6 @@ bool GetLineEndsContainerPositionInfo(const LineEndsContainer& ends,
+     info->column = position - info->line_start;
+   }
+ 
+-  return true;
+-}
+-
+-}  // namespace
+-
+-void Script::AddPositionInfoOffset(PositionInfo* info,
+-                                   OffsetFlag offset_flag) const {
+-  // Add offsets if requested.
+-  if (offset_flag == OffsetFlag::kWithOffset) {
+-    if (info->line == 0) {
+-      info->column += column_offset();
+-    }
+-    info->line += line_offset();
+-  } else {
+-    DCHECK_EQ(offset_flag, OffsetFlag::kNoOffset);
+-  }
+-}
+-
+-template <typename LineEndsContainer>
+-bool Script::GetPositionInfoInternal(
+-    const LineEndsContainer& ends, int position, Script::PositionInfo* info,
+-    const DisallowGarbageCollection& no_gc) const {
+-  if (!GetLineEndsContainerPositionInfo(ends, position, info, no_gc))
+-    return false;
+-
+   // Line end is position of the linebreak character.
+   info->line_end = GetLineEnd(ends, info->line);
+   if (info->line_end > 0) {
+@@ -4544,23 +4532,6 @@ bool Script::GetPositionInfoWithLineEnds(
+   return true;
+ }
+ 
+-bool Script::GetLineColumnWithLineEnds(
+-    int position, int& line, int& column,
+-    const String::LineEndsVector& line_ends) {
+-  DisallowGarbageCollection no_gc;
+-  PositionInfo info;
+-  if (!GetLineEndsContainerPositionInfo(line_ends, position, &info, no_gc)) {
+-    line = -1;
+-    column = -1;
+-    return false;
+-  }
+-
+-  line = info.line;
+-  column = info.column;
+-
+-  return true;
+-}
+-
+ int Script::GetColumnNumber(Handle<Script> script, int code_pos) {
+   PositionInfo info;
+   GetPositionInfo(script, code_pos, &info);
+diff --git a/src/objects/script.h b/src/objects/script.h
+index bfa0dc0e9b7625636c21620563ef0a19fcf20900..8b89639dd78a80cfae570a4746f391b1359d65a7 100644
+--- a/src/objects/script.h
++++ b/src/objects/script.h
+@@ -205,9 +205,6 @@ class Script : public TorqueGeneratedScript<Script, Struct> {
+   static bool GetPositionInfo(Handle<Script> script, int position,
+                               PositionInfo* info,
+                               OffsetFlag offset_flag = OffsetFlag::kWithOffset);
+-  static bool GetLineColumnWithLineEnds(
+-      int position, int& line, int& column,
+-      const String::LineEndsVector& line_ends);
+   V8_EXPORT_PRIVATE bool GetPositionInfo(
+       int position, PositionInfo* info,
+       OffsetFlag offset_flag = OffsetFlag::kWithOffset) const;
+diff --git a/src/profiler/allocation-tracker.cc b/src/profiler/allocation-tracker.cc
+index 4f9e3bb8a5d2b20bba2cc09770872b6ab2a546e8..eac8c082aee0a122282f70956816a25c1ee30112 100644
+--- a/src/profiler/allocation-tracker.cc
++++ b/src/profiler/allocation-tracker.cc
+@@ -96,7 +96,10 @@ AllocationTracker::FunctionInfo::FunctionInfo()
+       function_id(0),
+       script_name(""),
+       script_id(0),
+-      start_position(-1) {}
++      line(-1),
++      column(-1) {
++}
++
+ 
+ void AddressToTraceMap::AddRange(Address start, int size,
+                                  unsigned trace_node_id) {
+@@ -178,10 +181,23 @@ AllocationTracker::AllocationTracker(HeapObjectsMap* ids, StringsStorage* names)
+   function_info_list_.push_back(info);
+ }
+ 
++
+ AllocationTracker::~AllocationTracker() {
++  for (UnresolvedLocation* location : unresolved_locations_) delete location;
+   for (FunctionInfo* info : function_info_list_) delete info;
+ }
+ 
++
++void AllocationTracker::PrepareForSerialization() {
++  for (UnresolvedLocation* location : unresolved_locations_) {
++    location->Resolve();
++    delete location;
++  }
++  unresolved_locations_.clear();
++  unresolved_locations_.shrink_to_fit();
++}
++
++
+ void AllocationTracker::AllocationEvent(Address addr, int size) {
+   DisallowGarbageCollection no_gc;
+   Heap* heap = ids_->heap();
+@@ -235,7 +251,10 @@ unsigned AllocationTracker::AddFunctionInfo(Tagged<SharedFunctionInfo> shared,
+         info->script_name = names_->GetName(name);
+       }
+       info->script_id = script->id();
+-      info->start_position = shared->StartPosition();
++      // Converting start offset into line and column may cause heap
++      // allocations so we postpone them until snapshot serialization.
++      unresolved_locations_.push_back(
++          new UnresolvedLocation(script, shared->StartPosition(), info));
+     }
+     entry->value = reinterpret_cast<void*>(function_info_list_.size());
+     function_info_list_.push_back(info);
+@@ -255,5 +274,39 @@ unsigned AllocationTracker::functionInfoIndexForVMState(StateTag state) {
+   return info_index_for_other_state_;
+ }
+ 
++AllocationTracker::UnresolvedLocation::UnresolvedLocation(Tagged<Script> script,
++                                                          int start,
++                                                          FunctionInfo* info)
++    : start_position_(start), info_(info) {
++  script_ = script->GetIsolate()->global_handles()->Create(script);
++  GlobalHandles::MakeWeak(script_.location(), this, &HandleWeakScript,
++                          v8::WeakCallbackType::kParameter);
++}
++
++AllocationTracker::UnresolvedLocation::~UnresolvedLocation() {
++  if (!script_.is_null()) {
++    GlobalHandles::Destroy(script_.location());
++  }
++}
++
++
++void AllocationTracker::UnresolvedLocation::Resolve() {
++  if (script_.is_null()) return;
++  HandleScope scope(script_->GetIsolate());
++  Script::PositionInfo pos_info;
++  Script::GetPositionInfo(script_, start_position_, &pos_info);
++  info_->line = pos_info.line;
++  info_->column = pos_info.column;
++}
++
++void AllocationTracker::UnresolvedLocation::HandleWeakScript(
++    const v8::WeakCallbackInfo<void>& data) {
++  UnresolvedLocation* loc =
++      reinterpret_cast<UnresolvedLocation*>(data.GetParameter());
++  GlobalHandles::Destroy(loc->script_.location());
++  loc->script_ = Handle<Script>::null();
++}
++
++
+ }  // namespace internal
+ }  // namespace v8
+diff --git a/src/profiler/allocation-tracker.h b/src/profiler/allocation-tracker.h
+index d04bb9bf73b4b5725c99dade26510f4964ec0d4b..bb59c92a780160c4168349bfc5d523dffff5684f 100644
+--- a/src/profiler/allocation-tracker.h
++++ b/src/profiler/allocation-tracker.h
+@@ -104,7 +104,8 @@ class AllocationTracker {
+     SnapshotObjectId function_id;
+     const char* script_name;
+     int script_id;
+-    int start_position;
++    int line;
++    int column;
+   };
+ 
+   AllocationTracker(HeapObjectsMap* ids, StringsStorage* names);
+@@ -112,6 +113,7 @@ class AllocationTracker {
+   AllocationTracker(const AllocationTracker&) = delete;
+   AllocationTracker& operator=(const AllocationTracker&) = delete;
+ 
++  V8_EXPORT_PRIVATE void PrepareForSerialization();
+   void AllocationEvent(Address addr, int size);
+ 
+   AllocationTraceTree* trace_tree() { return &trace_tree_; }
+@@ -125,6 +127,20 @@ class AllocationTracker {
+                            SnapshotObjectId id);
+   unsigned functionInfoIndexForVMState(StateTag state);
+ 
++  class UnresolvedLocation {
++   public:
++    UnresolvedLocation(Tagged<Script> script, int start, FunctionInfo* info);
++    ~UnresolvedLocation();
++    void Resolve();
++
++   private:
++    static void HandleWeakScript(const v8::WeakCallbackInfo<void>& data);
++
++    Handle<Script> script_;
++    int start_position_;
++    FunctionInfo* info_;
++  };
++
+   static const int kMaxAllocationTraceLength = 64;
+   HeapObjectsMap* ids_;
+   StringsStorage* names_;
+@@ -132,6 +148,7 @@ class AllocationTracker {
+   unsigned allocation_trace_buffer_[kMaxAllocationTraceLength];
+   std::vector<FunctionInfo*> function_info_list_;
+   base::HashMap id_to_function_info_index_;
++  std::vector<UnresolvedLocation*> unresolved_locations_;
+   unsigned info_index_for_other_state_;
+   AddressToTraceMap address_to_trace_;
+ };
+diff --git a/src/profiler/heap-snapshot-generator.cc b/src/profiler/heap-snapshot-generator.cc
+index 1b7170bd84c29d9e6228e92a8e3ad46d50967a15..417a487bd6767b15bb177394f4273af21bd64883 100644
+--- a/src/profiler/heap-snapshot-generator.cc
++++ b/src/profiler/heap-snapshot-generator.cc
+@@ -2999,6 +2999,7 @@ bool HeapSnapshotGenerator::GenerateSnapshot() {
+   IsolateSafepointScope scope(heap_);
+ 
+   Isolate* isolate = heap_->isolate();
++  v8_heap_explorer_.PopulateLineEnds();
+   auto temporary_global_object_tags =
+       v8_heap_explorer_.CollectTemporaryGlobalObjectsTags();
+ 
+@@ -3010,7 +3011,6 @@ bool HeapSnapshotGenerator::GenerateSnapshot() {
+   // DisallowGarbageCollection scope as the HeapObjectIterator used during
+   // snapshot creation enters a safepoint as well. However, in practice we
+   // already enter a safepoint above so that should never trigger a GC.
+-  DisallowPositionInfoSlow no_position_info_slow;
+ 
+   NullContextForSnapshotScope null_context_scope(isolate);
+ 
+@@ -3021,7 +3021,6 @@ bool HeapSnapshotGenerator::GenerateSnapshot() {
+ 
+   snapshot_->AddSyntheticRootEntries();
+ 
+-  v8_heap_explorer_.PopulateLineEnds();
+   if (!FillReferences()) return false;
+ 
+   snapshot_->FillChildren();
+@@ -3092,9 +3091,12 @@ bool HeapSnapshotGenerator::FillReferences() {
+ const int HeapSnapshotJSONSerializer::kNodeFieldsCount = 7;
+ 
+ void HeapSnapshotJSONSerializer::Serialize(v8::OutputStream* stream) {
+-  DisallowHeapAllocation no_heap_allocation;
+   v8::base::ElapsedTimer timer;
+   timer.Start();
++  if (AllocationTracker* allocation_tracker =
++          snapshot_->profiler()->allocation_tracker()) {
++    allocation_tracker->PrepareForSerialization();
++  }
+   DCHECK_NULL(writer_);
+   writer_ = new OutputStreamWriter(stream);
+   SerializeImpl();
+@@ -3452,17 +3454,10 @@ void HeapSnapshotJSONSerializer::SerializeTraceNodeInfos() {
+     // The cast is safe because script id is a non-negative Smi.
+     buffer_pos =
+         utoa(static_cast<unsigned>(info->script_id), buffer, buffer_pos);
+-
+-    auto& line_ends = snapshot_->GetScriptLineEnds(info->script_id);
+-    int line = -1;
+-    int column = -1;
+-    Script::GetLineColumnWithLineEnds(info->start_position, line, column,
+-                                      line_ends);
+-
+     buffer[buffer_pos++] = ',';
+-    buffer_pos = SerializePosition(line, buffer, buffer_pos);
++    buffer_pos = SerializePosition(info->line, buffer, buffer_pos);
+     buffer[buffer_pos++] = ',';
+-    buffer_pos = SerializePosition(column, buffer, buffer_pos);
++    buffer_pos = SerializePosition(info->column, buffer, buffer_pos);
+     buffer[buffer_pos++] = '\n';
+     buffer[buffer_pos++] = '\0';
+     writer_->AddString(buffer.begin());
+diff --git a/test/cctest/test-heap-profiler.cc b/test/cctest/test-heap-profiler.cc
+index 4885cab74f95378a9ff884d58a8c089624985a8f..f1e869f28e00c0449e85b00f3f4626e0941e4c43 100644
+--- a/test/cctest/test-heap-profiler.cc
++++ b/test/cctest/test-heap-profiler.cc
+@@ -2841,6 +2841,8 @@ TEST(ArrayGrowLeftTrim) {
+   AllocationTracker* tracker =
+       reinterpret_cast<i::HeapProfiler*>(heap_profiler)->allocation_tracker();
+   CHECK(tracker);
++  // Resolve all function locations.
++  tracker->PrepareForSerialization();
+   // Print for better diagnostics in case of failure.
+   tracker->trace_tree()->Print(tracker);
+ 
+@@ -2863,6 +2865,8 @@ TEST(TrackHeapAllocationsWithInlining) {
+   AllocationTracker* tracker =
+       reinterpret_cast<i::HeapProfiler*>(heap_profiler)->allocation_tracker();
+   CHECK(tracker);
++  // Resolve all function locations.
++  tracker->PrepareForSerialization();
+   // Print for better diagnostics in case of failure.
+   tracker->trace_tree()->Print(tracker);
+ 
+@@ -2895,6 +2899,8 @@ TEST(TrackHeapAllocationsWithoutInlining) {
+   AllocationTracker* tracker =
+       reinterpret_cast<i::HeapProfiler*>(heap_profiler)->allocation_tracker();
+   CHECK(tracker);
++  // Resolve all function locations.
++  tracker->PrepareForSerialization();
+   // Print for better diagnostics in case of failure.
+   tracker->trace_tree()->Print(tracker);
+ 
+@@ -2943,6 +2949,8 @@ TEST(TrackBumpPointerAllocations) {
+     AllocationTracker* tracker =
+         reinterpret_cast<i::HeapProfiler*>(heap_profiler)->allocation_tracker();
+     CHECK(tracker);
++    // Resolve all function locations.
++    tracker->PrepareForSerialization();
+     // Print for better diagnostics in case of failure.
+     tracker->trace_tree()->Print(tracker);
+ 
+@@ -2967,6 +2975,8 @@ TEST(TrackBumpPointerAllocations) {
+     AllocationTracker* tracker =
+         reinterpret_cast<i::HeapProfiler*>(heap_profiler)->allocation_tracker();
+     CHECK(tracker);
++    // Resolve all function locations.
++    tracker->PrepareForSerialization();
+     // Print for better diagnostics in case of failure.
+     tracker->trace_tree()->Print(tracker);
+ 
+@@ -2994,6 +3004,8 @@ TEST(TrackV8ApiAllocation) {
+   AllocationTracker* tracker =
+       reinterpret_cast<i::HeapProfiler*>(heap_profiler)->allocation_tracker();
+   CHECK(tracker);
++  // Resolve all function locations.
++  tracker->PrepareForSerialization();
+   // Print for better diagnostics in case of failure.
+   tracker->trace_tree()->Print(tracker);
+ 

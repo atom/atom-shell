@@ -64,7 +64,7 @@ void PrintViewManagerElectron::DidPrintToPdf(
     PrintToPdfCallback callback,
     print_to_pdf::PdfPrintResult result,
     scoped_refptr<base::RefCountedMemory> memory) {
-  base::Erase(pdf_jobs_, cookie);
+  std::erase(pdf_jobs_, cookie);
   std::move(callback).Run(result, memory);
 }
 

@@ -7,14 +7,13 @@ Subject: feat: filter out non-shareable windows in the current application in
 This patch ensures that windows protected via win.setContentProtection(true) do not appear in full display captures via desktopCapturer.  This patch could be upstreamed but as the check is limited to in-process windows it doesn't make a lot of sense for Chromium itself.  This patch currently has a limitation that it only function for windows created / protected BEFORE the stream is started.  There is theoretical future work we can do via polling / observers to automatically update the SCContentFilter when new windows are made but for now this will solve 99+% of the problem and folks can re-order their logic a bit to get it working for their use cases.
 
 diff --git a/content/browser/media/capture/screen_capture_kit_device_mac.mm b/content/browser/media/capture/screen_capture_kit_device_mac.mm
-index 9ae935f2e729d0d7ad29aa00f62e6919ce71602c..4fb3e8eb5f34a7ee9e8b0f22a7c842129cdc31eb 100644
+index 2d05b1c438266f8e7bd6b39cf87fc297849f4b42..85f88adcf55b2d996976218d18dc94123cbb1214 100644
 --- a/content/browser/media/capture/screen_capture_kit_device_mac.mm
 +++ b/content/browser/media/capture/screen_capture_kit_device_mac.mm
-@@ -171,7 +171,15 @@ void OnShareableContentCreated(SCShareableContent* content) {
+@@ -171,8 +171,17 @@ void OnShareableContentCreated(SCShareableContent* content) {
        case DesktopMediaID::TYPE_SCREEN:
          for (SCDisplay* display in content.displays) {
            if (source_.id == display.displayID) {
--            NSArray<SCWindow*>* exclude_windows = nil;
 +            NSArray<NSWindow*>* exclude_ns_windows = [[[NSApplication sharedApplication] windows] filteredArrayUsingPredicate:[NSPredicate predicateWithBlock:^BOOL(NSWindow* win, NSDictionary *bindings) {
 +              return [win sharingType] == NSWindowSharingNone;
 +            }]];
@@ -25,5 +24,8 @@ index 9ae935f2e729d0d7ad29aa00f62e6919ce71602c..4fb3e8eb5f34a7ee9e8b0f22a7c84212
 +              return false;
 +            }]];
              filter = [[SCContentFilter alloc] initWithDisplay:display
-                                              excludingWindows:exclude_windows];
+-                                             excludingWindows:@[]];
++                                             excludingWindows:exclude_windows];
              stream_config_content_size_ =
+                 gfx::Size(display.width, display.height);
+             break;

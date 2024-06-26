@@ -120,12 +120,17 @@ class ToastEventHandler : public RuntimeClass<RuntimeClassFlags<ClassicCom>,
   ToastEventHandler(const ToastEventHandler&) = delete;
   ToastEventHandler& operator=(const ToastEventHandler&) = delete;
 
+  // DesktopToastActivatedEventHandler
   IFACEMETHODIMP Invoke(
       ABI::Windows::UI::Notifications::IToastNotification* sender,
       IInspectable* args) override;
+
+  // DesktopToastDismissedEventHandler
   IFACEMETHODIMP Invoke(
       ABI::Windows::UI::Notifications::IToastNotification* sender,
       ABI::Windows::UI::Notifications::IToastDismissedEventArgs* e) override;
+
+  // DesktopToastFailedEventHandler
   IFACEMETHODIMP Invoke(
       ABI::Windows::UI::Notifications::IToastNotification* sender,
       ABI::Windows::UI::Notifications::IToastFailedEventArgs* e) override;

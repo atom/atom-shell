@@ -38,18 +38,18 @@ See [`Menu`](menu.md) for examples.
     `Menu.buildFromTemplate`.
   * `id` string (optional) - Unique within a single menu. If defined then it can be used
     as a reference to this item by the position attribute.
-  * `before` string[] (optional) - Inserts this item before the item with the specified label. If
+  * `before` string[] (optional) - Inserts this item before the item with the specified id. If
     the referenced item doesn't exist the item will be inserted at the end of  the menu. Also implies
     that the menu item in question should be placed in the same “group” as the item.
-  * `after` string[] (optional) - Inserts this item after the item with the specified label. If the
+  * `after` string[] (optional) - Inserts this item after the item with the specified id. If the
     referenced item doesn't exist the item will be inserted at the end of
     the menu.
   * `beforeGroupContaining` string[] (optional) - Provides a means for a single context menu to declare
     the placement of their containing group before the containing group of the item
-    with the specified label.
+    with the specified id.
   * `afterGroupContaining` string[] (optional) - Provides a means for a single context menu to declare
     the placement of their containing group after the containing group of the item
-    with the specified label.
+    with the specified id.
 
 **Note:** `acceleratorWorksWhenHidden` is specified as being macOS-only because accelerators always work when items are hidden on Windows and Linux. The option is exposed to users to give them the option to turn it off, as this is possible in native macOS development.
 

@@ -8,7 +8,8 @@ NMV = None
 if len(sys.argv) > 3:
   NMV = sys.argv[3]
 
-with open(node_version_file, 'r') as in_file, open(out_file, 'w') as out_file:
+with open(node_version_file, 'r', encoding='utf-8') as in_file, \
+    open(out_file, 'w', encoding='utf-8') as out_file:
   changed = False
   contents = in_file.read()
   new_contents = re.sub(

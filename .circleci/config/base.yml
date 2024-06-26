@@ -56,7 +56,7 @@ executors:
         # 2xlarge should not be used directly, use the pipeline param instead
         enum: ["medium", "electronjs/aks-linux-medium", "xlarge", "electronjs/aks-linux-large", "2xlarge"]
     docker:
-      - image: ghcr.io/electron/build:e6bebd08a51a0d78ec23e5b3fd7e7c0846412328
+      - image: ghcr.io/electron/build:9a43c14f5c19be0359843299f79e736521373adc
     resource_class: << parameters.size >>
 
   macos:
@@ -75,10 +75,6 @@ executors:
     resource_class: << parameters.size >>
 
   # Electron Runners
-  apple-silicon:
-    resource_class: electronjs/macos-arm64
-    machine: true
-
   linux-arm:
     resource_class: electronjs/aks-linux-arm-test
     docker:
@@ -127,7 +123,7 @@ env-unittests: &env-unittests
   TESTS_CONFIG: src/electron/spec/configs/unittests.yml
 
 env-arm: &env-arm
-  GN_EXTRA_ARGS: 'target_cpu = "arm"'
+  GN_EXTRA_ARGS: 'target_cpu = "arm" build_tflite_with_xnnpack = false'
   MKSNAPSHOT_TOOLCHAIN: //build/toolchain/linux:clang_arm
   BUILD_NATIVE_MKSNAPSHOT: 1
   TARGET_ARCH: arm
@@ -264,9 +260,9 @@ step-depot-tools-get: &step-depot-tools-get
       index c305c248..e6e0fbdc 100755
       --- a/gclient.py
       +++ b/gclient.py
-      @@ -735,7 +735,8 @@ class Dependency(gclient_utils.WorkItem, DependencySettings):
- 
-                   if dep_type == 'cipd':
+      @@ -783,7 +783,8 @@ class Dependency(gclient_utils.WorkItem, DependencySettings):
+                               not condition or "non_git_source" not in condition):
+                           continue
                        cipd_root = self.GetCipdRoot()
       -                for package in dep_value.get('packages', []):
       +                packages = dep_value.get('packages', [])
@@ -353,10 +349,10 @@ step-setup-rbe-for-build: &step-setup-rbe-for-build
       mkdir third_party
       # Pull down credential helper and print status
       node -e "require('./src/utils/reclient.js').downloadAndPrepare({})"
-      HELPER=$(node -p "require('./src/utils/reclient.js').helperPath")
+      HELPER=$(node -p "require('./src/utils/reclient.js').helperPath({})")
       $HELPER login
       echo 'export RBE_service='`node -e "console.log(require('./src/utils/reclient.js').serviceAddress)"` >> $BASH_ENV
-      echo 'export RBE_experimental_credentials_helper='`node -e "console.log(require('./src/utils/reclient.js').helperPath)"` >> $BASH_ENV
+      echo 'export RBE_experimental_credentials_helper='`node -e "console.log(require('./src/utils/reclient.js').helperPath({}))"` >> $BASH_ENV
       echo 'export RBE_experimental_credentials_helper_args="print"' >> $BASH_ENV
 
 step-restore-brew-cache: &step-restore-brew-cache
@@ -1642,6 +1638,8 @@ commands:
             fi
       - store_test_results:
           path: src/junit
+      - store_artifacts:
+          path: src/electron/spec/artifacts
 
       - *step-verify-mksnapshot
       - *step-verify-chromedriver
@@ -2293,11 +2291,14 @@ jobs:
       <<: *env-stack-dumping
     parallelism: 2
     steps:
+      - run: nvm install lts/iron && nvm alias default lts/iron
       - electron-tests:
           artifact-key: darwin-x64
 
-  darwin-testing-arm64-tests:
-    executor: apple-silicon
+  darwin-testing-arm64-tests:    
+    executor:
+      name: macos
+      size: macos.m1.medium.gen1
     environment:
       <<: *env-mac-large
       <<: *env-stack-dumping
@@ -2317,11 +2318,14 @@ jobs:
       <<: *env-stack-dumping
     parallelism: 2
     steps:
+      - run: nvm install lts/iron && nvm alias default lts/iron
       - electron-tests:
           artifact-key: mas-x64
 
   mas-testing-arm64-tests:
-    executor: apple-silicon
+    executor:
+      name: macos
+      size: macos.m1.medium.gen1
     environment:
       <<: *env-mac-large
       <<: *env-stack-dumping

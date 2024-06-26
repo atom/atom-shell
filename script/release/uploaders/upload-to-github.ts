@@ -27,7 +27,9 @@ const getHeaders = (filePath: string, fileName: string) => {
   if (!extension) {
     throw new Error(`Failed to get headers for extensionless file: ${fileName}`);
   }
+  console.log(`About to get size of ${filePath}`);
   const size = fs.statSync(filePath).size;
+  console.log(`Got size of ${filePath}: ${size}`);
   const options: Record<string, string> = {
     json: 'text/json',
     zip: 'application/zip',
@@ -41,15 +43,22 @@ const getHeaders = (filePath: string, fileName: string) => {
   };
 };
 
-const targetRepo = releaseVersion.indexOf('nightly') > 0 ? 'nightlies' : 'electron';
+function getRepo () {
+  return releaseVersion.indexOf('nightly') > 0 ? 'nightlies' : 'electron';
+}
+
+const targetRepo = getRepo();
 const uploadUrl = `https://uploads.github.com/repos/electron/${targetRepo}/releases/${releaseId}/assets{?name,label}`;
 let retry = 0;
 
 function uploadToGitHub () {
+  console.log(`in uploadToGitHub for ${filePath}, ${fileName}`);
+  const fileData = fs.createReadStream(filePath);
+  console.log(`in uploadToGitHub, created readstream for ${filePath}`);
   octokit.repos.uploadReleaseAsset({
     url: uploadUrl,
     headers: getHeaders(filePath, fileName),
-    data: fs.createReadStream(filePath) as any,
+    data: fileData as any,
     name: fileName,
     owner: 'electron',
     repo: targetRepo,

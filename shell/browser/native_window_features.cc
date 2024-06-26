@@ -5,6 +5,7 @@
 #include "shell/browser/native_window_features.h"
 
 namespace features {
-const base::Feature kWaylandWindowDecorations{"WaylandWindowDecorations",
-                                              base::FEATURE_ENABLED_BY_DEFAULT};
+BASE_FEATURE(kWaylandWindowDecorations,
+             "WaylandWindowDecorations",
+             base::FEATURE_ENABLED_BY_DEFAULT);
 }

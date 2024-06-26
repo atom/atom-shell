@@ -28,7 +28,7 @@ namespace electron {
 
 class OffScreenWebContentsView : public content::WebContentsView,
                                  public content::RenderViewHostDelegateView,
-                                 public NativeWindowObserver {
+                                 private NativeWindowObserver {
  public:
   OffScreenWebContentsView(bool transparent, const OnPaintCallback& callback);
   ~OffScreenWebContentsView() override;

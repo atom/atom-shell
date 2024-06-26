@@ -42,6 +42,7 @@ void FrameSubscriber::AttachToHost(content::RenderWidgetHost* host) {
 
   // Create and configure the video capturer.
   gfx::Size size = GetRenderViewSize();
+  DCHECK(!size.IsEmpty());
   video_capturer_ = host_->GetView()->CreateVideoCapturer();
   video_capturer_->SetResolutionConstraints(size, size, true);
   video_capturer_->SetAutoThrottlingEnabled(false);
@@ -130,7 +131,7 @@ void FrameSubscriber::OnFrameCaptured(
       SkImageInfo::MakeN32(content_rect.width(), content_rect.height(),
                            kPremul_SkAlphaType),
       pixels,
-      media::VideoFrame::RowBytes(media::VideoFrame::kARGBPlane,
+      media::VideoFrame::RowBytes(media::VideoFrame::Plane::kARGB,
                                   info->pixel_format, info->coded_size.width()),
       [](void* addr, void* context) {
         delete static_cast<FramePinner*>(context);

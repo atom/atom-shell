@@ -9,7 +9,7 @@ capability to switch the microtask polciy of these per context microtask queue t
 Node.js integration in the renderer.
 
 diff --git a/include/v8-microtask-queue.h b/include/v8-microtask-queue.h
-index 85d227fa3fdce6fc29bc4927e30a0171987578ac..1a61190ed3a2aeb440aa774788a469079df13c79 100644
+index 135dfb06a3bdd11e5db21c1974a38a086a7ac9cb..f2708774bfac59703e8981d8816a97a8e61b177a 100644
 --- a/include/v8-microtask-queue.h
 +++ b/include/v8-microtask-queue.h
 @@ -97,6 +97,9 @@ class V8_EXPORT MicrotaskQueue {

@@ -36,8 +36,8 @@ class HidChooserContext;
 
 // HidChooserController provides data for the WebHID API permission prompt.
 class HidChooserController
-    : public content::WebContentsObserver,
-      public electron::HidChooserContext::DeviceObserver {
+    : private content::WebContentsObserver,
+      private electron::HidChooserContext::DeviceObserver {
  public:
   // Construct a chooser controller for Human Interface Devices (HID).
   // |render_frame_host| is used to initialize the chooser strings and to access

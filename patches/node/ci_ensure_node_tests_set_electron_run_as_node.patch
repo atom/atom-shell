@@ -20,22 +20,20 @@ index 88f40281e069b77ac071ac872c4491f749b64e21..0fa102da111fa370406ca74069316fa7
    await assertSnapshot(transform(`${stdout}${stderr}`), filename);
  }
 diff --git a/test/fixtures/test-runner/output/arbitrary-output-colored.js b/test/fixtures/test-runner/output/arbitrary-output-colored.js
-index b09eeeb9971cf6dfbdccc700757487fe2236e5a8..dd8296e63133eec6babac9b35e77da301a44b86f 100644
+index af23e674cb361ed81dafa22670d5633559cd1144..1dd59990cb7cdba8aecf4f499ee6b92e7cd41b30 100644
 --- a/test/fixtures/test-runner/output/arbitrary-output-colored.js
 +++ b/test/fixtures/test-runner/output/arbitrary-output-colored.js
-@@ -6,6 +6,6 @@ const fixtures = require('../../../common/fixtures');
- 
+@@ -7,6 +7,6 @@ const fixtures = require('../../../common/fixtures');
  (async function run() {
    const test = fixtures.path('test-runner/output/arbitrary-output-colored-1.js');
--  await once(spawn(process.execPath, ['--test', test], { stdio: 'inherit', env: { FORCE_COLOR: 1 } }), 'exit');
--  await once(spawn(process.execPath, ['--test', '--test-reporter', 'tap', test], { stdio: 'inherit', env: { FORCE_COLOR: 1 }  }), 'exit');
--})().then(common.mustCall());
-+  await once(spawn(process.execPath, ['--test', test], { stdio: 'inherit', env: { ELECTRON_RUN_AS_NODE: 1, FORCE_COLOR: 1 } }), 'exit');
-+  await once(spawn(process.execPath, ['--test', '--test-reporter', 'tap', test], { stdio: 'inherit', env: { ELECTRON_RUN_AS_NODE: 1, FORCE_COLOR: 1 }  }), 'exit');
-+})().then(common.mustCall());
-\ No newline at end of file
+   const reset = fixtures.path('test-runner/output/reset-color-depth.js');
+-  await once(spawn(process.execPath, ['-r', reset, '--test', test], { stdio: 'inherit' }), 'exit');
+-  await once(spawn(process.execPath, ['-r', reset, '--test', '--test-reporter', 'tap', test], { stdio: 'inherit'  }), 'exit');
++  await once(spawn(process.execPath, ['-r', reset, '--test', test], { stdio: 'inherit', env: { ELECTRON_RUN_AS_NODE: 1 }}), 'exit');
++  await once(spawn(process.execPath, ['-r', reset, '--test', '--test-reporter', 'tap', test], { stdio: 'inherit', env: { ELECTRON_RUN_AS_NODE: 1 }  }), 'exit');
+ })().then(common.mustCall());
 diff --git a/test/parallel/test-node-output-console.mjs b/test/parallel/test-node-output-console.mjs
-index 5a1b9feb6c8bedb50b89f5c4f3c5983455bb042d..efca7811dc0b6a590c5ee023c71801703a642882 100644
+index f995c170540ffaa80b1b5f8b95dbd8f52bbd5431..6455dbdd015477e16c414b6d2113139327fea4b3 100644
 --- a/test/parallel/test-node-output-console.mjs
 +++ b/test/parallel/test-node-output-console.mjs
 @@ -31,6 +31,7 @@ describe('console output', { concurrency: true }, () => {
@@ -43,9 +41,9 @@ index 5a1b9feb6c8bedb50b89f5c4f3c5983455bb042d..efca7811dc0b6a590c5ee023c7180170
    for (const { name, transform, env } of tests) {
      it(name, async () => {
 +      if (env) env.ELECTRON_RUN_AS_NODE = 1;
-       await snapshot.spawnAndAssert(fixtures.path(name), transform ?? defaultTransform, { env });
-     });
-   }
+       await snapshot.spawnAndAssert(
+         fixtures.path(name),
+         transform ?? defaultTransform,
 diff --git a/test/parallel/test-node-output-errors.mjs b/test/parallel/test-node-output-errors.mjs
 index c0acee2bfc8c124e9d9b254041589a49c8301b8f..0e266899ffc0918b2f94e8f636043a6ec5f0870f 100644
 --- a/test/parallel/test-node-output-errors.mjs

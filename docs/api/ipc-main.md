@@ -72,7 +72,7 @@ Removes listeners of the specified `channel`.
 ### `ipcMain.handle(channel, listener)`
 
 * `channel` string
-* `listener` Function<Promise\<any&#62; | any&#62;
+* `listener` Function\<Promise\<any\> | any\>
   * `event` [IpcMainInvokeEvent][ipc-main-invoke-event]
   * `...args` any[]
 
@@ -109,7 +109,7 @@ provided to the renderer process. Please refer to
 ### `ipcMain.handleOnce(channel, listener)`
 
 * `channel` string
-* `listener` Function<Promise\<any&#62; | any&#62;
+* `listener` Function\<Promise\<any\> | any\>
   * `event` [IpcMainInvokeEvent][ipc-main-invoke-event]
   * `...args` any[]
 

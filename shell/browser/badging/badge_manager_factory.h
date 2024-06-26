@@ -9,7 +9,7 @@
 
 namespace base {
 template <typename T>
-struct DefaultSingletonTraits;
+class NoDestructor;
 }
 
 namespace badging {
@@ -30,7 +30,7 @@ class BadgeManagerFactory : public BrowserContextKeyedServiceFactory {
   BadgeManagerFactory& operator=(const BadgeManagerFactory&) = delete;
 
  private:
-  friend struct base::DefaultSingletonTraits<BadgeManagerFactory>;
+  friend base::NoDestructor<BadgeManagerFactory>;
 
   BadgeManagerFactory();
   ~BadgeManagerFactory() override;

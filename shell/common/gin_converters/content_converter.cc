@@ -8,9 +8,9 @@
 #include <string_view>
 
 #include "base/containers/fixed_flat_map.h"
+#include "components/input/native_web_keyboard_event.h"
 #include "content/public/browser/context_menu_params.h"
 #include "content/public/browser/web_contents.h"
-#include "content/public/common/input/native_web_keyboard_event.h"
 #include "shell/browser/api/electron_api_web_contents.h"
 #include "shell/browser/web_contents_permission_helper.h"
 #include "shell/common/gin_converters/blink_converter.h"
@@ -22,51 +22,6 @@
 #include "third_party/blink/public/common/context_menu_data/untrustworthy_context_menu_params.h"
 #include "ui/events/keycodes/dom/keycode_converter.h"
 #include "ui/events/keycodes/keyboard_code_conversion.h"
-
-namespace {
-
-[[nodiscard]] constexpr std::string_view FormControlToInputFieldTypeString(
-    const std::optional<blink::mojom::FormControlType> form_control_type) {
-  if (!form_control_type)
-    return "none";
-
-  switch (*form_control_type) {
-    case blink::mojom::FormControlType::kInputPassword:
-      return "password";
-
-    case blink::mojom::FormControlType::kInputText:
-      return "plainText";
-
-    // other input types:
-    case blink::mojom::FormControlType::kInputButton:
-    case blink::mojom::FormControlType::kInputCheckbox:
-    case blink::mojom::FormControlType::kInputColor:
-    case blink::mojom::FormControlType::kInputDate:
-    case blink::mojom::FormControlType::kInputDatetimeLocal:
-    case blink::mojom::FormControlType::kInputEmail:
-    case blink::mojom::FormControlType::kInputFile:
-    case blink::mojom::FormControlType::kInputHidden:
-    case blink::mojom::FormControlType::kInputImage:
-    case blink::mojom::FormControlType::kInputMonth:
-    case blink::mojom::FormControlType::kInputNumber:
-    case blink::mojom::FormControlType::kInputRadio:
-    case blink::mojom::FormControlType::kInputRange:
-    case blink::mojom::FormControlType::kInputReset:
-    case blink::mojom::FormControlType::kInputSearch:
-    case blink::mojom::FormControlType::kInputSubmit:
-    case blink::mojom::FormControlType::kInputTelephone:
-    case blink::mojom::FormControlType::kInputTime:
-    case blink::mojom::FormControlType::kInputUrl:
-    case blink::mojom::FormControlType::kInputWeek:
-      return "other";
-
-    // not an input type
-    default:
-      return "none";
-  }
-}
-
-}  // namespace
 
 namespace gin {
 
@@ -162,12 +117,6 @@ v8::Local<v8::Value> Converter<ContextMenuParamsWithRenderFrameHost>::ToV8(
   dict.Set("frameCharset", params.frame_charset);
   dict.Set("referrerPolicy", params.referrer_policy);
   dict.Set("formControlType", params.form_control_type);
-
-  // NB: inputFieldType is deprecated because the upstream
-  // field was removed; we are emulating it now until removal
-  dict.Set("inputFieldType",
-           FormControlToInputFieldTypeString(params.form_control_type));
-
   dict.Set("menuSourceType", params.source_type);
 
   return gin::ConvertToV8(isolate, dict);
@@ -259,15 +208,17 @@ v8::Local<v8::Value> Converter<blink::PermissionType>::ToV8(
       return StringToV8(isolate, "smart-card");
     case blink::PermissionType::WEB_PRINTING:
       return StringToV8(isolate, "web-printing");
+    case blink::PermissionType::SPEAKER_SELECTION:
+      return StringToV8(isolate, "speaker-selection");
+    case blink::PermissionType::POINTER_LOCK:
+      return StringToV8(isolate, "pointerLock");
+    case blink::PermissionType::KEYBOARD_LOCK:
+      return StringToV8(isolate, "keyboardLock");
     case blink::PermissionType::NUM:
       break;
   }
 
   switch (static_cast<PermissionType>(val)) {
-    case PermissionType::POINTER_LOCK:
-      return StringToV8(isolate, "pointerLock");
-    case PermissionType::KEYBOARD_LOCK:
-      return StringToV8(isolate, "keyboardLock");
     case PermissionType::FULLSCREEN:
       return StringToV8(isolate, "fullscreen");
     case PermissionType::OPEN_EXTERNAL:
@@ -278,6 +229,8 @@ v8::Local<v8::Value> Converter<blink::PermissionType>::ToV8(
       return StringToV8(isolate, "hid");
     case PermissionType::USB:
       return StringToV8(isolate, "usb");
+    case PermissionType::FILE_SYSTEM:
+      return StringToV8(isolate, "fileSystem");
     default:
       return StringToV8(isolate, "unknown");
   }
@@ -351,10 +304,10 @@ bool Converter<content::Referrer>::FromV8(v8::Isolate* isolate,
 }
 
 // static
-bool Converter<content::NativeWebKeyboardEvent>::FromV8(
+bool Converter<input::NativeWebKeyboardEvent>::FromV8(
     v8::Isolate* isolate,
     v8::Local<v8::Value> val,
-    content::NativeWebKeyboardEvent* out) {
+    input::NativeWebKeyboardEvent* out) {
   gin_helper::Dictionary dict;
   if (!ConvertFromV8(isolate, val, &dict))
     return false;
@@ -365,9 +318,9 @@ bool Converter<content::NativeWebKeyboardEvent>::FromV8(
 }
 
 // static
-v8::Local<v8::Value> Converter<content::NativeWebKeyboardEvent>::ToV8(
+v8::Local<v8::Value> Converter<input::NativeWebKeyboardEvent>::ToV8(
     v8::Isolate* isolate,
-    const content::NativeWebKeyboardEvent& in) {
+    const input::NativeWebKeyboardEvent& in) {
   return ConvertToV8(isolate, static_cast<blink::WebKeyboardEvent>(in));
 }
 

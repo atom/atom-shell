@@ -10,10 +10,10 @@ already been called.
 This should be upstreamed.
 
 diff --git a/src/node.cc b/src/node.cc
-index 524f80ee69ee5248e045a2b61faf5610c9ba4285..971668792eabe5be299849b5a3fd8a2790a2210a 100644
+index 3e4f1b5d730865fae61f8bfbc58c14c6a59fb33a..7478ef81eb9b275eb5f45b528582e5bbd30e60ec 100644
 --- a/src/node.cc
 +++ b/src/node.cc
-@@ -605,6 +605,7 @@ static void PlatformInit(ProcessInitializationFlags::Flags flags) {
+@@ -650,6 +650,7 @@ static void PlatformInit(ProcessInitializationFlags::Flags flags) {
  #endif
      }
  #endif  // defined(_WIN32)
@@ -22,10 +22,10 @@ index 524f80ee69ee5248e045a2b61faf5610c9ba4285..971668792eabe5be299849b5a3fd8a27
  #endif  // NODE_USE_V8_WASM_TRAP_HANDLER
    }
 diff --git a/src/node.h b/src/node.h
-index a512d2228e0afcfff765c3fe845e1f22073047d0..36da93a7b41ea450a5f288ec17b61adae46ae178 100644
+index e55256996f2c85b0ae3854cbd1b83ca88a3e22cb..76e2459eceed127e69c686f26fd5bd369b81f1af 100644
 --- a/src/node.h
 +++ b/src/node.h
-@@ -274,6 +274,10 @@ enum Flags : uint32_t {
+@@ -275,6 +275,10 @@ enum Flags : uint32_t {
    kNoInitializeCppgc = 1 << 13,
    // Initialize the process for predictable snapshot generation.
    kGeneratePredictableSnapshot = 1 << 14,

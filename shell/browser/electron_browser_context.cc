@@ -5,6 +5,7 @@
 #include "shell/browser/electron_browser_context.h"
 
 #include <memory>
+#include <optional>
 
 #include <utility>
 
@@ -45,10 +46,12 @@
 #include "shell/browser/electron_browser_main_parts.h"
 #include "shell/browser/electron_download_manager_delegate.h"
 #include "shell/browser/electron_permission_manager.h"
+#include "shell/browser/file_system_access/file_system_access_permission_context_factory.h"
 #include "shell/browser/net/resolve_proxy_helper.h"
 #include "shell/browser/protocol_registry.h"
 #include "shell/browser/special_storage_policy.h"
 #include "shell/browser/ui/inspectable_web_contents.h"
+#include "shell/browser/ui/webui/accessibility_ui.h"
 #include "shell/browser/web_contents_permission_helper.h"
 #include "shell/browser/web_view_manager.h"
 #include "shell/browser/zoom_level_delegate.h"
@@ -154,21 +157,21 @@ media::mojom::CaptureHandlePtr CreateCaptureHandle(
 }
 
 // Copied from chrome/browser/media/webrtc/desktop_capture_devices_util.cc.
-absl::optional<int> GetZoomLevel(content::WebContents* capturer,
-                                 const url::Origin& capturer_origin,
-                                 const content::DesktopMediaID& captured_id) {
+std::optional<int> GetZoomLevel(content::WebContents* capturer,
+                                const url::Origin& capturer_origin,
+                                const content::DesktopMediaID& captured_id) {
   content::RenderFrameHost* const captured_rfh =
       content::RenderFrameHost::FromID(
           captured_id.web_contents_id.render_process_id,
           captured_id.web_contents_id.main_render_frame_id);
   if (!captured_rfh || !captured_rfh->IsActive()) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   content::WebContents* const captured_wc =
       content::WebContents::FromRenderFrameHost(captured_rfh);
   if (!captured_wc) {
-    return absl::nullopt;
+    return std::nullopt;
   }
 
   double zoom_level = blink::PageZoomLevelToZoomFactor(
@@ -226,6 +229,79 @@ DesktopMediaIDToDisplayMediaInformation(
 // Convert string to lower case and escape it.
 std::string MakePartitionName(const std::string& input) {
   return base::EscapePath(base::ToLowerASCII(input));
+}
+
+[[nodiscard]] content::DesktopMediaID GetAudioDesktopMediaId(
+    const std::vector<std::string>& audio_device_ids) {
+  // content::MediaStreamRequest provides a vector of ids
+  // to allow user preference to influence which stream is
+  // returned. This is a WIP upstream, so for now just use
+  // the first device in the list.
+  // Xref: https://chromium-review.googlesource.com/c/chromium/src/+/5132210
+  if (!audio_device_ids.empty())
+    return content::DesktopMediaID::Parse(audio_device_ids.front());
+  return {};
+}
+
+bool DoesDeviceMatch(const base::Value& device,
+                     const base::Value& device_to_compare,
+                     const blink::PermissionType permission_type) {
+  if (permission_type ==
+          static_cast<blink::PermissionType>(
+              WebContentsPermissionHelper::PermissionType::HID) ||
+      permission_type ==
+          static_cast<blink::PermissionType>(
+              WebContentsPermissionHelper::PermissionType::USB)) {
+    if (device.GetDict().FindInt(kDeviceVendorIdKey) !=
+            device_to_compare.GetDict().FindInt(kDeviceVendorIdKey) ||
+        device.GetDict().FindInt(kDeviceProductIdKey) !=
+            device_to_compare.GetDict().FindInt(kDeviceProductIdKey)) {
+      return false;
+    }
+
+    const auto* serial_number =
+        device_to_compare.GetDict().FindString(kDeviceSerialNumberKey);
+    const auto* device_serial_number =
+        device.GetDict().FindString(kDeviceSerialNumberKey);
+
+    if (serial_number && device_serial_number &&
+        *device_serial_number == *serial_number)
+      return true;
+  } else if (permission_type ==
+             static_cast<blink::PermissionType>(
+                 WebContentsPermissionHelper::PermissionType::SERIAL)) {
+#if BUILDFLAG(IS_WIN)
+    const auto* instance_id = device.GetDict().FindString(kDeviceInstanceIdKey);
+    const auto* port_instance_id =
+        device_to_compare.GetDict().FindString(kDeviceInstanceIdKey);
+    if (instance_id && port_instance_id && *instance_id == *port_instance_id)
+      return true;
+#else
+    const auto* serial_number = device.GetDict().FindString(kSerialNumberKey);
+    const auto* port_serial_number =
+        device_to_compare.GetDict().FindString(kSerialNumberKey);
+    if (device.GetDict().FindInt(kVendorIdKey) !=
+            device_to_compare.GetDict().FindInt(kVendorIdKey) ||
+        device.GetDict().FindInt(kProductIdKey) !=
+            device_to_compare.GetDict().FindInt(kProductIdKey) ||
+        (serial_number && port_serial_number &&
+         *port_serial_number != *serial_number)) {
+      return false;
+    }
+
+#if BUILDFLAG(IS_MAC)
+    const auto* usb_driver_key = device.GetDict().FindString(kUsbDriverKey);
+    const auto* port_usb_driver_key =
+        device_to_compare.GetDict().FindString(kUsbDriverKey);
+    if (usb_driver_key && port_usb_driver_key &&
+        *usb_driver_key != *port_usb_driver_key) {
+      return false;
+    }
+#endif  // BUILDFLAG(IS_MAC)
+    return true;
+#endif  // BUILDFLAG(IS_WIN)
+  }
+  return false;
 }
 
 }  // namespace
@@ -339,6 +415,7 @@ void ElectronBrowserContext::InitPrefs() {
   MediaDeviceIDSalt::RegisterPrefs(registry.get());
   ZoomLevelDelegate::RegisterPrefs(registry.get());
   PrefProxyConfigTrackerImpl::RegisterPrefs(registry.get());
+  ElectronAccessibilityUIMessageHandler::RegisterPrefs(registry.get());
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   if (!in_memory_)
     extensions::ExtensionPrefs::RegisterProfilePrefs(registry.get());
@@ -459,15 +536,16 @@ ElectronBrowserContext::GetURLLoaderFactory() {
       ->WillCreateURLLoaderFactory(
           this, nullptr, -1,
           content::ContentBrowserClient::URLLoaderFactoryType::kNavigation,
-          url::Origin(), std::nullopt, ukm::kInvalidSourceIdObj,
-          factory_builder, &header_client, nullptr, nullptr, nullptr, nullptr);
+          url::Origin(), net::IsolationInfo(), std::nullopt,
+          ukm::kInvalidSourceIdObj, factory_builder, &header_client, nullptr,
+          nullptr, nullptr, nullptr);
 
   network::mojom::URLLoaderFactoryParamsPtr params =
       network::mojom::URLLoaderFactoryParams::New();
   params->header_client = std::move(header_client);
   params->process_id = network::mojom::kBrowserProcessId;
   params->is_trusted = true;
-  params->is_corb_enabled = false;
+  params->is_orb_enabled = false;
   // The tests of net module would fail if this setting is true, it seems that
   // the non-NetworkService implementation always has web security enabled.
   params->disable_web_security = false;
@@ -521,9 +599,15 @@ ElectronBrowserContext::GetReduceAcceptLanguageControllerDelegate() {
   return nullptr;
 }
 
+content::FileSystemAccessPermissionContext*
+ElectronBrowserContext::GetFileSystemAccessPermissionContext() {
+  return FileSystemAccessPermissionContextFactory::GetForBrowserContext(this);
+}
+
 ResolveProxyHelper* ElectronBrowserContext::GetResolveProxyHelper() {
   if (!resolve_proxy_helper_) {
-    resolve_proxy_helper_ = base::MakeRefCounted<ResolveProxyHelper>(this);
+    resolve_proxy_helper_ = base::MakeRefCounted<ResolveProxyHelper>(
+        GetDefaultStoragePartition()->GetNetworkContext());
   }
   return resolve_proxy_helper_.get();
 }
@@ -629,7 +713,7 @@ void ElectronBrowserContext::DisplayMediaDeviceChosen(
       blink::MediaStreamDevice audio_device(request.audio_type, id, name);
       audio_device.display_media_info = DesktopMediaIDToDisplayMediaInformation(
           nullptr, url::Origin::Create(request.security_origin),
-          content::DesktopMediaID::Parse(request.requested_audio_device_id));
+          GetAudioDesktopMediaId(request.requested_audio_device_ids));
       devices.audio_device = audio_device;
     } else if (result_dict.Get("audio", &rfh)) {
       bool enable_local_echo = false;
@@ -645,14 +729,14 @@ void ElectronBrowserContext::DisplayMediaDeviceChosen(
           "Tab audio");
       audio_device.display_media_info = DesktopMediaIDToDisplayMediaInformation(
           web_contents, url::Origin::Create(request.security_origin),
-          content::DesktopMediaID::Parse(request.requested_audio_device_id));
+          GetAudioDesktopMediaId(request.requested_audio_device_ids));
       devices.audio_device = audio_device;
     } else if (result_dict.Get("audio", &id)) {
       blink::MediaStreamDevice audio_device(request.audio_type, id,
                                             "System audio");
       audio_device.display_media_info = DesktopMediaIDToDisplayMediaInformation(
           nullptr, url::Origin::Create(request.security_origin),
-          content::DesktopMediaID::Parse(request.requested_audio_device_id));
+          GetAudioDesktopMediaId(request.requested_audio_device_ids));
       devices.audio_device = audio_device;
     } else {
       gin_helper::ErrorThrower(args->isolate())
@@ -702,7 +786,7 @@ void ElectronBrowserContext::GrantDevicePermission(
 void ElectronBrowserContext::RevokeDevicePermission(
     const url::Origin& origin,
     const base::Value& device,
-    blink::PermissionType permission_type) {
+    const blink::PermissionType permission_type) {
   const auto& current_devices_it = granted_devices_.find(permission_type);
   if (current_devices_it == granted_devices_.end())
     return;
@@ -711,76 +795,10 @@ void ElectronBrowserContext::RevokeDevicePermission(
   if (origin_devices_it == current_devices_it->second.end())
     return;
 
-  for (auto it = origin_devices_it->second.begin();
-       it != origin_devices_it->second.end();) {
-    if (DoesDeviceMatch(device, it->get(), permission_type)) {
-      it = origin_devices_it->second.erase(it);
-    } else {
-      ++it;
-    }
-  }
-}
-
-bool ElectronBrowserContext::DoesDeviceMatch(
-    const base::Value& device,
-    const base::Value* device_to_compare,
-    blink::PermissionType permission_type) {
-  if (permission_type ==
-          static_cast<blink::PermissionType>(
-              WebContentsPermissionHelper::PermissionType::HID) ||
-      permission_type ==
-          static_cast<blink::PermissionType>(
-              WebContentsPermissionHelper::PermissionType::USB)) {
-    if (device.GetDict().FindInt(kDeviceVendorIdKey) !=
-            device_to_compare->GetDict().FindInt(kDeviceVendorIdKey) ||
-        device.GetDict().FindInt(kDeviceProductIdKey) !=
-            device_to_compare->GetDict().FindInt(kDeviceProductIdKey)) {
-      return false;
-    }
-
-    const auto* serial_number =
-        device_to_compare->GetDict().FindString(kDeviceSerialNumberKey);
-    const auto* device_serial_number =
-        device.GetDict().FindString(kDeviceSerialNumberKey);
-
-    if (serial_number && device_serial_number &&
-        *device_serial_number == *serial_number)
-      return true;
-  } else if (permission_type ==
-             static_cast<blink::PermissionType>(
-                 WebContentsPermissionHelper::PermissionType::SERIAL)) {
-#if BUILDFLAG(IS_WIN)
-    const auto* instance_id = device.GetDict().FindString(kDeviceInstanceIdKey);
-    const auto* port_instance_id =
-        device_to_compare->GetDict().FindString(kDeviceInstanceIdKey);
-    if (instance_id && port_instance_id && *instance_id == *port_instance_id)
-      return true;
-#else
-    const auto* serial_number = device.GetDict().FindString(kSerialNumberKey);
-    const auto* port_serial_number =
-        device_to_compare->GetDict().FindString(kSerialNumberKey);
-    if (device.GetDict().FindInt(kVendorIdKey) !=
-            device_to_compare->GetDict().FindInt(kVendorIdKey) ||
-        device.GetDict().FindInt(kProductIdKey) !=
-            device_to_compare->GetDict().FindInt(kProductIdKey) ||
-        (serial_number && port_serial_number &&
-         *port_serial_number != *serial_number)) {
-      return false;
-    }
-
-#if BUILDFLAG(IS_MAC)
-    const auto* usb_driver_key = device.GetDict().FindString(kUsbDriverKey);
-    const auto* port_usb_driver_key =
-        device_to_compare->GetDict().FindString(kUsbDriverKey);
-    if (usb_driver_key && port_usb_driver_key &&
-        *usb_driver_key != *port_usb_driver_key) {
-      return false;
-    }
-#endif  // BUILDFLAG(IS_MAC)
-    return true;
-#endif  // BUILDFLAG(IS_WIN)
-  }
-  return false;
+  std::erase_if(origin_devices_it->second,
+                [&device, &permission_type](auto const& val) {
+                  return DoesDeviceMatch(device, *val, permission_type);
+                });
 }
 
 bool ElectronBrowserContext::CheckDevicePermission(
@@ -796,7 +814,7 @@ bool ElectronBrowserContext::CheckDevicePermission(
     return false;
 
   for (const auto& device_to_compare : origin_devices_it->second) {
-    if (DoesDeviceMatch(device, device_to_compare.get(), permission_type))
+    if (DoesDeviceMatch(device, *device_to_compare, permission_type))
       return true;
   }
 

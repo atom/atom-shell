@@ -51,7 +51,7 @@ void OnOpenFinished(gin_helper::Promise<void> promise,
   if (error.empty())
     promise.Resolve();
   else
-    promise.RejectWithErrorMessage(error.c_str());
+    promise.RejectWithErrorMessage(error);
 }
 
 v8::Local<v8::Promise> OpenExternal(const GURL& url, gin::Arguments* args) {

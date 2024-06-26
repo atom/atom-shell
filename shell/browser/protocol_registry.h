@@ -29,20 +29,26 @@ class ProtocolRegistry {
       content::ContentBrowserClient::NonNetworkURLLoaderFactoryMap* factories,
       bool allow_file_access);
 
+  mojo::PendingRemote<network::mojom::URLLoaderFactory>
+  CreateNonNetworkNavigationURLLoaderFactory(const std::string& scheme);
+
   const HandlersMap& intercept_handlers() const { return intercept_handlers_; }
-  const HandlersMap& handlers() const { return handlers_; }
 
   bool RegisterProtocol(ProtocolType type,
                         const std::string& scheme,
                         const ProtocolHandler& handler);
   bool UnregisterProtocol(const std::string& scheme);
-  bool IsProtocolRegistered(const std::string& scheme);
+
+  [[nodiscard]] const HandlersMap::mapped_type* FindRegistered(
+      const std::string& scheme) const;
 
   bool InterceptProtocol(ProtocolType type,
                          const std::string& scheme,
                          const ProtocolHandler& handler);
   bool UninterceptProtocol(const std::string& scheme);
-  bool IsProtocolIntercepted(const std::string& scheme);
+
+  [[nodiscard]] const HandlersMap::mapped_type* FindIntercepted(
+      const std::string& scheme) const;
 
  private:
   friend class ElectronBrowserContext;

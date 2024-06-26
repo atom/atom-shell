@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App token
-        uses: electron/github-app-auth-action@cc6751b3b5e4edc5b9a4ad0a021ac455653b6dc8 # v1.0.0
+        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae # v1.1.1
         id: generate-token
         with:
           creds: ${{ secrets.ISSUE_TRIAGE_GH_APP_CREDS }}
-      - uses: actions/stale@5ebf00ea0e4c1561e9b43a292ed34424fb1d4578 # tag: v6.0.1
+      - uses: actions/stale@28ca1036281a5e5922ead5184a1bbf96e5fc984e # tag: v9.0.0
         with:
           repo-token: ${{ steps.generate-token.outputs.token }}
           days-before-stale: 90
@@ -35,11 +35,11 @@ jobs:
     needs: stale
     steps:
       - name: Generate GitHub App token
-        uses: electron/github-app-auth-action@cc6751b3b5e4edc5b9a4ad0a021ac455653b6dc8 # v1.0.0
+        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae # v1.1.1
         id: generate-token
         with:
           creds: ${{ secrets.ISSUE_TRIAGE_GH_APP_CREDS }}
-      - uses: actions/stale@5ebf00ea0e4c1561e9b43a292ed34424fb1d4578 # tag: v6.0.1
+      - uses: actions/stale@28ca1036281a5e5922ead5184a1bbf96e5fc984e # tag: v9.0.0
         with:
           repo-token: ${{ steps.generate-token.outputs.token }}
           days-before-stale: -1

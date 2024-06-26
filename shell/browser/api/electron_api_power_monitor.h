@@ -20,9 +20,9 @@ namespace electron::api {
 class PowerMonitor : public gin::Wrappable<PowerMonitor>,
                      public gin_helper::EventEmitterMixin<PowerMonitor>,
                      public gin_helper::Pinnable<PowerMonitor>,
-                     public base::PowerStateObserver,
-                     public base::PowerSuspendObserver,
-                     public base::PowerThermalObserver {
+                     private base::PowerStateObserver,
+                     private base::PowerSuspendObserver,
+                     private base::PowerThermalObserver {
  public:
   static v8::Local<v8::Value> Create(v8::Isolate* isolate);
 

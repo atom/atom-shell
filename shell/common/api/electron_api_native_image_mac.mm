@@ -14,6 +14,7 @@
 
 #include "base/apple/foundation_util.h"
 #include "base/strings/sys_string_conversions.h"
+#include "base/task/bind_post_task.h"
 #include "gin/arguments.h"
 #include "shell/common/gin_converters/image_converter.h"
 #include "shell/common/gin_helper/promise.h"
@@ -36,6 +37,23 @@ double safeShift(double in, double def) {
   if (in >= 0 || in <= 1 || in == def)
     return in;
   return def;
+}
+
+void ReceivedThumbnailResult(CGSize size,
+                             gin_helper::Promise<gfx::Image> p,
+                             QLThumbnailRepresentation* thumbnail,
+                             NSError* error) {
+  if (error || !thumbnail) {
+    std::string err_msg([error.localizedDescription UTF8String]);
+    p.RejectWithErrorMessage("unable to retrieve thumbnail preview "
+                             "image for the given path: " +
+                             err_msg);
+  } else {
+    NSImage* result = [[NSImage alloc] initWithCGImage:[thumbnail CGImage]
+                                                  size:size];
+    gfx::Image image(result);
+    p.Resolve(image);
+  }
 }
 
 // static
@@ -70,31 +88,15 @@ v8::Local<v8::Promise> NativeImage::CreateThumbnailFromPath(
                      size:cg_size
                     scale:[screen backingScaleFactor]
       representationTypes:QLThumbnailGenerationRequestRepresentationTypeAll]);
-  __block gin_helper::Promise<gfx::Image> p = std::move(promise);
+  __block auto block_callback = base::BindPostTaskToCurrentDefault(
+      base::BindOnce(&ReceivedThumbnailResult, cg_size, std::move(promise)));
+  auto completionHandler =
+      ^(QLThumbnailRepresentation* thumbnail, NSError* error) {
+        std::move(block_callback).Run(thumbnail, error);
+      };
   [[QLThumbnailGenerator sharedGenerator]
       generateBestRepresentationForRequest:request
-                         completionHandler:^(
-                             QLThumbnailRepresentation* thumbnail,
-                             NSError* error) {
-                           if (error || !thumbnail) {
-                             std::string err_msg(
-                                 [error.localizedDescription UTF8String]);
-                             dispatch_async(dispatch_get_main_queue(), ^{
-                               p.RejectWithErrorMessage(
-                                   "unable to retrieve thumbnail preview "
-                                   "image for the given path: " +
-                                   err_msg);
-                             });
-                           } else {
-                             NSImage* result = [[NSImage alloc]
-                                 initWithCGImage:[thumbnail CGImage]
-                                            size:cg_size];
-                             gfx::Image image(result);
-                             dispatch_async(dispatch_get_main_queue(), ^{
-                               p.Resolve(image);
-                             });
-                           }
-                         }];
+                         completionHandler:completionHandler];
 
   return handle;
 }

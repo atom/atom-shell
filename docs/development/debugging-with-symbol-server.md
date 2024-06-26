@@ -15,7 +15,7 @@ calls, and other compiler optimizations. The only workaround is to build an
 unoptimized local build.
 
 The official symbol server URL for Electron is
-<https://symbols.electronjs.org>.
+[https://symbols.electronjs.org](https://symbols.electronjs.org).
 You cannot visit this URL directly, you must add it to the symbol path of your
 debugging tool. In the examples below, a local cache directory is used to avoid
 repeatedly fetching the PDB from the server. Replace `c:\code\symbols` with an

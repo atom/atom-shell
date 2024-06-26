@@ -32,7 +32,6 @@
         systemMemoryInfo: invoke(() => process.getSystemMemoryInfo()),
         systemVersion: invoke(() => process.getSystemVersion()),
         cpuUsage: invoke(() => process.getCPUUsage()),
-        ioCounters: invoke(() => process.getIOCounters()),
         uptime: invoke(() => process.uptime()),
         // eslint-disable-next-line unicorn/prefer-node-protocol
         nodeEvents: invoke(() => require('events') === require('node:events')),

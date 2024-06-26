@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Hello World!</title>
+</head>
+
+<body>
+  <script>
+    const { ipcRenderer } = require('electron')
+
+    let fileHandle = null;
+    let sent = false;
+    window.document.onpaste = async (event) => {
+      const fileItem = event.clipboardData.items[0];
+      fileHandle = await fileItem.getAsFileSystemHandle();
+      if (!sent) {
+        ipcRenderer.send('did-create-file-handle');
+        sent = true;
+      }
+    };
+  </script>
+</body>
+
+</html>

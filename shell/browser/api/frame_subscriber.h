@@ -27,8 +27,8 @@ namespace electron::api {
 
 class WebContents;
 
-class FrameSubscriber : public content::WebContentsObserver,
-                        public viz::mojom::FrameSinkVideoConsumer {
+class FrameSubscriber : private content::WebContentsObserver,
+                        private viz::mojom::FrameSinkVideoConsumer {
  public:
   using FrameCaptureCallback =
       base::RepeatingCallback<void(const gfx::Image&, const gfx::Rect&)>;
@@ -46,11 +46,12 @@ class FrameSubscriber : public content::WebContentsObserver,
   void AttachToHost(content::RenderWidgetHost* host);
   void DetachFromHost();
 
+  // content::WebContentsObserver
   void RenderFrameCreated(content::RenderFrameHost* render_frame_host) override;
   void PrimaryPageChanged(content::Page& page) override;
   void RenderViewDeleted(content::RenderViewHost* host) override;
 
-  // viz::mojom::FrameSinkVideoConsumer implementation.
+  // viz::mojom::FrameSinkVideoConsumer
   void OnFrameCaptured(
       ::media::mojom::VideoBufferHandlePtr data,
       ::media::mojom::VideoFrameInfoPtr info,

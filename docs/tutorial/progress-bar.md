@@ -112,4 +112,5 @@ For macOS, the progress bar will also be indicated for your application
 when using [Mission Control](https://support.apple.com/en-us/HT204100):
 
 ![Mission Control Progress Bar](../images/mission-control-progress-bar.png)
+
 [setprogressbar]: ../api/browser-window.md#winsetprogressbarprogress-options

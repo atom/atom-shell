@@ -1,0 +1,61 @@
+name: 'Fix Sync macOS'
+description: 'Checks out Electron and stores it in the AKS Cache'
+runs:
+  using: "composite"
+  steps:
+    - name: Fix Sync
+      shell: bash
+      # This step is required to correct for differences between "gclient sync"
+      # on Linux and the expected state on macOS. This requires:
+      # 1. Fixing Clang Install (wrong binary)
+      # 2. Fixing esbuild (wrong binary)
+      # 3. Fixing rustc (wrong binary)
+      # 4. Fixing gn (wrong binary)
+      # 5. Fix reclient (wrong binary)
+      # 6. Fixing dsymutil (wrong binary)
+      # 7. Ensuring we are using the correct ninja and adding it to PATH
+      # 8. Fixing angle (wrong remote)
+      run : |
+        SEDOPTION="-i ''"
+        rm -rf src/third_party/llvm-build
+        python3 src/tools/clang/scripts/update.py
+
+        echo 'infra/3pp/tools/esbuild/${platform}' `gclient getdep --deps-file=src/third_party/devtools-frontend/src/DEPS -r 'third_party/esbuild:infra/3pp/tools/esbuild/${platform}'` > esbuild_ensure_file
+        # Remove extra output from calling gclient getdep which always calls update_depot_tools
+        sed -i '' "s/Updating depot_tools... //g" esbuild_ensure_file
+        cipd ensure --root src/third_party/devtools-frontend/src/third_party/esbuild -ensure-file esbuild_ensure_file
+
+        rm -rf src/third_party/rust-toolchain
+        python3 src/tools/rust/update_rust.py
+        
+        # Prevent calling gclient getdep which always calls update_depot_tools
+        echo 'gn/gn/mac-${arch}' `gclient getdep --deps-file=src/DEPS -r 'src/buildtools/mac:gn/gn/mac-${arch}'` > gn_ensure_file
+        sed -i '' "s/Updating depot_tools... //g" gn_ensure_file
+        cipd ensure --root src/buildtools/mac -ensure-file gn_ensure_file
+
+        # Prevent calling gclient getdep which always calls update_depot_tools
+        echo 'infra/rbe/client/${platform}' `gclient getdep --deps-file=src/DEPS -r 'src/buildtools/reclient:infra/rbe/client/${platform}'` > gn_ensure_file
+        sed -i '' "s/Updating depot_tools... //g" gn_ensure_file
+        cipd ensure --root src/buildtools/reclient -ensure-file gn_ensure_file
+        python3 src/buildtools/reclient_cfgs/configure_reclient_cfgs.py --rbe_instance "projects/rbe-chrome-untrusted/instances/default_instance" --reproxy_cfg_template reproxy.cfg.template --rewrapper_cfg_project "" --skip_remoteexec_cfg_fetch
+
+        if  [ "${{ env.TARGET_ARCH }}" == "arm64" ]; then
+          DSYM_SHA_FILE=src/tools/clang/dsymutil/bin/dsymutil.arm64.sha1
+        else
+          DSYM_SHA_FILE=src/tools/clang/dsymutil/bin/dsymutil.x64.sha1
+        fi
+        python3 src/third_party/depot_tools/download_from_google_storage.py --no_resume --no_auth --bucket chromium-browser-clang -s $DSYM_SHA_FILE -o src/tools/clang/dsymutil/bin/dsymutil
+
+        echo 'infra/3pp/tools/ninja/${platform}' `gclient getdep --deps-file=src/DEPS -r 'src/third_party/ninja:infra/3pp/tools/ninja/${platform}'` > ninja_ensure_file
+        sed $SEDOPTION "s/Updating depot_tools... //g" ninja_ensure_file
+        cipd ensure --root src/third_party/ninja -ensure-file ninja_ensure_file
+
+        echo "$(pwd)/src/third_party/ninja" >> $GITHUB_PATH
+
+        cd src/third_party/angle
+        rm -f .git/objects/info/alternates
+        git remote set-url origin https://chromium.googlesource.com/angle/angle.git
+        cp .git/config .git/config.backup
+        git remote remove origin
+        mv .git/config.backup .git/config
+        git fetch

@@ -1,0 +1,143 @@
+name: Pipeline Segment - Electron GN Check
+
+on:
+  workflow_call:
+    inputs:
+      target-platform:
+        type: string
+        description: 'Platform to run on, can be macos or linux'
+        required: true
+      target-arch:
+        type: string
+        description: 'Arch to build for, can be x64, arm64 or arm'
+        required: true
+      check-runs-on:
+        type: string
+        description: 'What host to run the tests on'
+        required: true
+      check-container:
+        type: string
+        description: 'JSON container information for aks runs-on'
+        required: false
+        default: '{"image":null}'
+      gn-build-type:
+        description: 'The gn build type - testing or release'
+        required: true
+        type: string
+        default: testing
+      is-asan: 
+        description: 'Building the Address Sanitizer (ASan) Linux build'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: electron-gn-check-${{ inputs.target-platform }}-${{ inputs.target-arch }}-${{ inputs.is-asan }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AZURE_AKS_CACHE_STORAGE_ACCOUNT: ${{ secrets.AZURE_AKS_CACHE_STORAGE_ACCOUNT }}
+  AZURE_AKS_CACHE_SHARE_NAME: ${{ secrets.AZURE_AKS_CACHE_SHARE_NAME }}
+  ELECTRON_RBE_JWT: ${{ secrets.ELECTRON_RBE_JWT }}
+  GCLIENT_EXTRA_ARGS: ${{ inputs.target-platform == 'macos' && '--custom-var=checkout_mac=True --custom-var=host_os=mac' || '--custom-var=checkout_arm=True --custom-var=checkout_arm64=True' }}
+  ELECTRON_OUT_DIR: Default
+  TARGET_ARCH: ${{ inputs.target-arch }}
+
+jobs:
+  gn-check:
+    # TODO(codebytere): Change this to medium VM
+    runs-on: ${{ inputs.check-runs-on }}
+    container: ${{ fromJSON(inputs.check-container) }}
+    env:
+      TARGET_ARCH: ${{ inputs.target-arch }}
+    steps:
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Install Build Tools
+      uses: ./src/electron/.github/actions/install-build-tools
+    - name: Init Build Tools
+      run: |
+        e init -f --root=$(pwd) --out=Default ${{ inputs.gn-build-type }} --import ${{ inputs.gn-build-type }} --target-cpu ${{ inputs.target-arch }} --only-sdk
+    - name: Get Depot Tools
+      timeout-minutes: 5
+      run: |
+        git clone --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+        SEDOPTION="-i"
+        if [ "`uname`" = "Darwin" ]; then
+          SEDOPTION="-i ''"
+        fi
+
+        # remove ninjalog_uploader_wrapper.py from autoninja since we don't use it and it causes problems
+        sed $SEDOPTION '/ninjalog_uploader_wrapper.py/d' ./depot_tools/autoninja
+
+        # Ensure depot_tools does not update.
+        test -d depot_tools && cd depot_tools
+        if [ "`uname`" = "Linux" ]; then
+          git apply --3way ../src/electron/.github/workflows/config/gclient.diff
+        fi
+        touch .disable_auto_update
+    - name: Add Depot Tools to PATH
+      run: echo "$(pwd)/depot_tools" >> $GITHUB_PATH
+    - name: Set GN_EXTRA_ARGS for Linux
+      if: ${{ inputs.target-platform == 'linux' }}
+      run: |
+        if [ "${{ inputs.target-arch  }}" = "arm" ]; then
+          GN_EXTRA_ARGS='build_tflite_with_xnnpack=false'
+        elif [ "${{ inputs.target-arch }}" = "arm64" ]; then
+          GN_EXTRA_ARGS='fatal_linker_warnings=false enable_linux_installer=false'
+        fi
+        echo "GN_EXTRA_ARGS=$GN_EXTRA_ARGS" >> $GITHUB_ENV
+    - name: Generate DEPS Hash
+      run: |
+        node src/electron/script/generate-deps-hash.js && cat src/electron/.depshash-target
+        DEPSHASH=v1-src-cache-$(shasum src/electron/.depshash | cut -f1 -d' ')
+        echo "DEPSHASH=$DEPSHASH" >> $GITHUB_ENV
+        echo "CACHE_PATH=$DEPSHASH.tar" >> $GITHUB_ENV
+    - name: Restore src cache via AZCopy
+      if: ${{ inputs.target-platform == 'macos' }}
+      uses: ./src/electron/.github/actions/restore-cache-azcopy
+    - name: Restore src cache via AKS
+      if: ${{ inputs.target-platform == 'linux' }}
+      uses: ./src/electron/.github/actions/restore-cache-aks
+    - name: Run Electron Only Hooks
+      run: |
+        gclient runhooks --spec="solutions=[{'name':'src/electron','url':None,'deps_file':'DEPS','custom_vars':{'process_deps':False},'managed':False}]"
+    - name: Regenerate DEPS Hash
+      run: |
+        (cd src/electron && git checkout .) && node src/electron/script/generate-deps-hash.js && cat src/electron/.depshash-target
+        echo "DEPSHASH=$(shasum src/electron/.depshash | cut -f1 -d' ')" >> $GITHUB_ENV
+    - name: Add CHROMIUM_BUILDTOOLS_PATH to env
+      run: echo "CHROMIUM_BUILDTOOLS_PATH=$(pwd)/src/buildtools" >> $GITHUB_ENV
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Default GN gen
+      run: |
+        cd src/electron
+        git pack-refs
+        cd ..
+
+        e build --only-gen
+    - name: Run GN Check
+      run: |
+        cd src
+        gn check out/Default //electron:electron_lib
+        gn check out/Default //electron:electron_app
+        gn check out/Default //electron/shell/common/api:mojo
+
+        # Check the hunspell filenames
+        node electron/script/gen-hunspell-filenames.js --check
+        node electron/script/gen-libc++-filenames.js --check
+    - name: Wait for active SSH sessions
+      if: always() && !cancelled()
+      run: |
+        while [ -f /var/.ssh-lock ]
+        do
+          sleep 60
+        done

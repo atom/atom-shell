@@ -28,6 +28,7 @@
 #include "net/socket/stream_socket.h"
 #include "net/socket/tcp_server_socket.h"
 #include "shell/browser/browser.h"
+#include "shell/browser/electron_browser_context.h"
 #include "shell/common/electron_paths.h"
 #include "third_party/inspector_protocol/crdtp/dispatch.h"
 #include "ui/base/resource/resource_bundle.h"
@@ -137,6 +138,10 @@ std::string DevToolsManagerDelegate::GetDiscoveryPageHTML() {
 
 bool DevToolsManagerDelegate::HasBundledFrontendResources() {
   return true;
+}
+
+content::BrowserContext* DevToolsManagerDelegate::GetDefaultBrowserContext() {
+  return ElectronBrowserContext::From("", false);
 }
 
 }  // namespace electron

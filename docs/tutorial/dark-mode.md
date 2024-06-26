@@ -75,7 +75,6 @@ Starting with the `index.html` file:
     <button id="reset-to-system">Reset to System Theme</button>
 
     <script src="renderer.js"></script>
-  </body>
 </body>
 </html>
 ```

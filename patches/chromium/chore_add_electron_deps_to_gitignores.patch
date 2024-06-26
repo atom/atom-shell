@@ -6,10 +6,10 @@ Subject: chore: add electron deps to gitignores
 Makes things like "git status" quicker when developing electron locally
 
 diff --git a/.gitignore b/.gitignore
-index 0db7bb39ad611d3f9e4735d075c30a11d2958391..24e588e65a09b7a1d602c3c92040dacba7fac870 100644
+index 50992a3f4502d46a1bc2713c25bec6095c541ffa..121a09d7fa00162fe64ce901cae96d8f1c9d885e 100644
 --- a/.gitignore
 +++ b/.gitignore
-@@ -209,6 +209,7 @@ vs-chromium-project.txt
+@@ -213,6 +213,7 @@ vs-chromium-project.txt
  /data
  /delegate_execute
  /device/serial/device_serial_mojo.xml
@@ -18,18 +18,20 @@ index 0db7bb39ad611d3f9e4735d075c30a11d2958391..24e588e65a09b7a1d602c3c92040dacb
  /googleurl
  /gpu/gles2_conform_test
 diff --git a/third_party/.gitignore b/third_party/.gitignore
-index d95428476a53594bc40da191f425fcb642ba2fd2..bf06a53ac0d6b83ed75d9dcd502b6c690a08dd9a 100644
+index 4f4e8f03bb876e5745ea6bcf07c2f8ba8b12bffb..de05f778dfc2ee1dabb70242b9a6201b7eea90e3 100644
 --- a/third_party/.gitignore
 +++ b/third_party/.gitignore
-@@ -50,6 +50,7 @@
- /custom_tabs_client/src
+@@ -51,7 +51,9 @@
  /cygwin
+ /devserver
  /directxsdk
 +/electron_node
  /elfutils/src
++/engflow-reclient-configs/
  /espresso/lib/
  /eyesfree/src
-@@ -103,6 +104,7 @@
+ /fuchsia-sdk/images
+@@ -106,6 +108,7 @@
  /mocha
  /mockito/src
  /nacl_sdk_binaries/
@@ -37,11 +39,11 @@ index d95428476a53594bc40da191f425fcb642ba2fd2..bf06a53ac0d6b83ed75d9dcd502b6c69
  /ninja/ninja*
  /node/*.tar.gz
  /node/linux/
-@@ -147,6 +149,7 @@
- /soda-win64
- /speex
+@@ -155,6 +158,7 @@
+ /spirv-headers/src
+ /spirv-tools/src
  /sqlite4java/lib/
 +/squirrel.mac
- /subresource-filter-ruleset/data/UnindexedRules
+ /subresource-filter-ruleset/data/*
  /swift-format
  /swift-toolchain

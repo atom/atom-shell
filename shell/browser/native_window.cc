@@ -757,6 +757,11 @@ int NativeWindow::NonClientHitTest(const gfx::Point& point) {
   }
 #endif
 
+  // This is to disable dragging in HTML5 full screen mode.
+  // Details: https://github.com/electron/electron/issues/41002
+  if (GetWidget()->IsFullscreen())
+    return HTNOWHERE;
+
   for (auto* provider : draggable_region_providers_) {
     int hit = provider->NonClientHitTest(point);
     if (hit != HTNOWHERE)

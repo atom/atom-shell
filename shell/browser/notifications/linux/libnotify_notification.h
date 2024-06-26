@@ -33,6 +33,7 @@ class LibnotifyNotification : public Notification {
   RAW_PTR_EXCLUSION NotifyNotification* notification_ = nullptr;
 
   ScopedGSignal signal_;
+  bool on_dismissing_ = false;
 };
 
 }  // namespace electron

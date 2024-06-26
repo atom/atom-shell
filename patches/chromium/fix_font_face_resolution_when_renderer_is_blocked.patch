@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Shelley Vohr <shelley.vohr@gmail.com>
+Date: Tue, 4 Jun 2024 15:29:10 +0200
+Subject: Fix font face resolution when renderer is blocked
+
+Backports https://chromium-review.googlesource.com/c/chromium/src/+/5584820
+
+As a result of https://chromium-review.googlesource.com/c/chromium/src/+/5290838,
+the FontFaceSet promise in e.g. contentWindow.document.fonts.ready will never resolve
+while the renderer is blocked. This Cl takes an approach similar to that taken in
+MediaQueryList in order to enable the promise to be resolved.
+
+diff --git a/third_party/blink/renderer/core/css/font_face_set_document.cc b/third_party/blink/renderer/core/css/font_face_set_document.cc
+index 01b075079fd7a75fb8cb5d876f6db927678c60db..436d04c3c739a7273c44130f6ed86486568f413c 100644
+--- a/third_party/blink/renderer/core/css/font_face_set_document.cc
++++ b/third_party/blink/renderer/core/css/font_face_set_document.cc
+@@ -27,6 +27,7 @@
+ 
+ #include "base/metrics/histogram_functions.h"
+ #include "third_party/blink/public/common/features.h"
++#include "third_party/blink/public/common/metrics/document_update_reason.h"
+ #include "third_party/blink/renderer/bindings/core/v8/dictionary.h"
+ #include "third_party/blink/renderer/core/css/css_font_face.h"
+ #include "third_party/blink/renderer/core/css/css_font_selector.h"
+@@ -150,21 +151,27 @@ FontFaceSetDocument::CSSConnectedFontFaceList() const {
+ }
+ 
+ void FontFaceSetDocument::FireDoneEventIfPossible() {
+-  if (should_fire_loading_event_) {
++  Document* d = GetDocument();
++  if (!d || !d->View()) {
+     return;
+   }
++
+   if (!ShouldSignalReady()) {
+     return;
+   }
+-  Document* d = GetDocument();
+-  if (!d) {
++
++  // FireDoneEventIfPossible gets scheduled via PostTask at the end of a
++  // successful style+layout update. An invalidation may have occurred in
++  // the interim, so update style and layout synchronously here.
++  d->UpdateStyleAndLayout(DocumentUpdateReason::kUnknown);
++
++  // These values can change during style+layout update, so check them
++  // *after* the call to UpdateStyleAndLayout.
++  if (should_fire_loading_event_) {
+     return;
+   }
+ 
+-  // If the layout was invalidated in between when we thought layout
+-  // was updated and when we're ready to fire the event, just wait
+-  // until after the next layout before firing events.
+-  if (!d->View() || d->View()->NeedsLayout()) {
++  if (!ShouldSignalReady()) {
+     return;
+   }
+ 

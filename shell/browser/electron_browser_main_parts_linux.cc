@@ -18,6 +18,10 @@
 #include "shell/common/thread_restrictions.h"
 #endif
 
+namespace electron {
+
+namespace {
+
 constexpr std::string_view kElectronOzonePlatformHint{
     "ELECTRON_OZONE_PLATFORM_HINT"};
 
@@ -54,10 +58,6 @@ bool HasWaylandDisplay(base::Environment* env) {
 #if BUILDFLAG(IS_OZONE_X11)
 constexpr char kPlatformX11[] = "x11";
 #endif
-
-namespace electron {
-
-namespace {
 
 // Evaluates the environment and returns the effective platform name for the
 // given |ozone_platform_hint|.

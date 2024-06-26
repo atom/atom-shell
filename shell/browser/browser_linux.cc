@@ -11,9 +11,11 @@
 #include "base/environment.h"
 #include "base/process/launch.h"
 #include "electron/electron_version.h"
+#include "shell/browser/javascript_environment.h"
 #include "shell/browser/native_window.h"
 #include "shell/browser/window_list.h"
 #include "shell/common/application_info.h"
+#include "shell/common/gin_converters/login_item_settings_converter.h"
 #include "shell/common/thread_restrictions.h"
 
 #if BUILDFLAG(IS_LINUX)
@@ -22,6 +24,8 @@
 #endif
 
 namespace electron {
+
+namespace {
 
 const char kXdgSettings[] = "xdg-settings";
 const char kXdgSettingsDefaultSchemeHandler[] = "default-url-scheme-handler";
@@ -82,6 +86,8 @@ bool SetDefaultWebClient(const std::string& protocol) {
   return ran_ok && exit_code == EXIT_SUCCESS;
 }
 
+}  // namespace
+
 void Browser::AddRecentDocument(const base::FilePath& path) {}
 
 void Browser::ClearRecentDocuments() {}
@@ -104,12 +110,9 @@ bool Browser::IsDefaultProtocolClient(const std::string& protocol,
   const std::vector<std::string> argv = {kXdgSettings, "check",
                                          kXdgSettingsDefaultSchemeHandler,
                                          protocol, desktop_name};
-  const auto output = GetXdgAppOutput(argv);
-  if (!output)
-    return false;
-
   // Allow any reply that starts with "yes".
-  return base::StartsWith(output.value(), "yes", base::CompareCase::SENSITIVE);
+  const std::optional<std::string> output = GetXdgAppOutput(argv);
+  return output && output->starts_with("yes");
 }
 
 // Todo implement
@@ -138,9 +141,10 @@ bool Browser::SetBadgeCount(std::optional<int> count) {
 
 void Browser::SetLoginItemSettings(LoginItemSettings settings) {}
 
-Browser::LoginItemSettings Browser::GetLoginItemSettings(
+v8::Local<v8::Value> Browser::GetLoginItemSettings(
     const LoginItemSettings& options) {
-  return LoginItemSettings();
+  LoginItemSettings settings;
+  return gin::ConvertToV8(JavascriptEnvironment::GetIsolate(), settings);
 }
 
 std::string Browser::GetExecutableFileVersion() const {

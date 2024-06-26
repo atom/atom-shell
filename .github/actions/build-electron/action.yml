@@ -1,0 +1,209 @@
+name: 'Build Electron'
+description: 'Builds Electron & Friends'
+inputs:
+  target-arch:
+    description: 'Target arch'
+    required: true
+  target-platform:
+    description: 'Target platform'
+    required: true
+  artifact-platform:
+    description: 'Artifact platform, should be linux, darwin or mas'
+    required: true
+  step-suffix:
+    description: 'Suffix for build steps'
+    required: false
+    default: ''
+  is-release:
+    description: 'Is release build'
+    required: true
+  generate-symbols:
+    description: 'Generate symbols'
+    required: true
+  upload-to-storage:
+    description: 'Upload to storage'
+    required: true
+  is-asan:
+    description: 'The ASan Linux build'
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Set GN_EXTRA_ARGS for MacOS x64 Builds
+      shell: bash
+      if: ${{ inputs.target-arch == 'x64' && inputs.target-platform == 'macos' }}
+      run: |
+        GN_APPENDED_ARGS="$GN_EXTRA_ARGS v8_snapshot_toolchain=\"//build/toolchain/mac:clang_x64\""
+        echo "GN_EXTRA_ARGS=$GN_APPENDED_ARGS" >> $GITHUB_ENV
+    - name: Build Electron ${{ inputs.step-suffix }}
+      shell: bash
+      run: |
+        rm -rf "src/out/Default/Electron Framework.framework"
+        rm -rf src/out/Default/Electron*.app
+
+        cd src/electron
+        # TODO(codebytere): remove this once we figure out why .git/packed-refs is initially missing
+        git pack-refs
+        cd ..
+
+        if [ "`uname`" = "Darwin" ]; then
+          ulimit -n 10000
+          sudo launchctl limit maxfiles 65536 200000
+        fi
+
+        NINJA_SUMMARIZE_BUILD=1 e build -j $NUMBER_OF_NINJA_PROCESSES
+        cp out/Default/.ninja_log out/electron_ninja_log
+        node electron/script/check-symlinks.js
+    - name: Build Electron dist.zip ${{ inputs.step-suffix }}
+      shell: bash
+      run: |
+        cd src
+        e build electron:electron_dist_zip -j $NUMBER_OF_NINJA_PROCESSES
+        if [ "${{ inputs.is-asan }}" != "true" ]; then
+          target_os=${{ inputs.target-platform == 'linux' && 'linux' || 'mac'}}
+          if [ "${{ inputs.artifact-platform }}" = "mas" ]; then
+            target_os="${target_os}_mas"
+          fi
+          electron/script/zip_manifests/check-zip-manifest.py out/Default/dist.zip electron/script/zip_manifests/dist_zip.$target_os.${{ inputs.target-arch }}.manifest
+        fi
+    - name: Build Mksnapshot ${{ inputs.step-suffix }}
+      shell: bash
+      run: |
+        cd src
+        e build electron:electron_mksnapshot -j $NUMBER_OF_NINJA_PROCESSES
+        gn desc out/Default v8:run_mksnapshot_default args > out/Default/mksnapshot_args
+        # Remove unused args from mksnapshot_args
+        SEDOPTION="-i"
+        if [ "`uname`" = "Darwin" ]; then
+          SEDOPTION="-i ''"
+        fi
+        sed $SEDOPTION '/.*builtins-pgo/d' out/Default/mksnapshot_args
+        sed $SEDOPTION '/--turbo-profiling-input/d' out/Default/mksnapshot_args
+        sed $SEDOPTION '/The gn arg use_goma=true .*/d' out/Default/mksnapshot_args
+
+        if [ "`uname`" = "Linux" ]; then
+          if [ "${{ inputs.target-arch }}" = "arm" ]; then
+            electron/script/strip-binaries.py --file $PWD/out/Default/clang_x86_v8_arm/mksnapshot
+            electron/script/strip-binaries.py --file $PWD/out/Default/clang_x86_v8_arm/v8_context_snapshot_generator
+          elif [ "${{ inputs.target-arch }}" = "arm64" ]; then
+            electron/script/strip-binaries.py --file $PWD/out/Default/clang_x64_v8_arm64/mksnapshot
+            electron/script/strip-binaries.py --file $PWD/out/Default/clang_x64_v8_arm64/v8_context_snapshot_generator
+          else
+            electron/script/strip-binaries.py --file $PWD/out/Default/mksnapshot
+            electron/script/strip-binaries.py --file $PWD/out/Default/v8_context_snapshot_generator
+          fi
+        fi
+
+        e build electron:electron_mksnapshot_zip -j $NUMBER_OF_NINJA_PROCESSES
+        (cd out/Default; zip mksnapshot.zip mksnapshot_args gen/v8/embedded.S)
+    - name: Generate Cross-Arch Snapshot (arm/arm64)  ${{ inputs.step-suffix }}
+      shell: bash
+      if: ${{ (inputs.target-arch == 'arm' || inputs.target-arch == 'arm64') && inputs.target-platform == 'linux' }}
+      run: |
+        cd src
+        if [ "${{ inputs.target-arch }}" = "arm" ]; then
+          MKSNAPSHOT_PATH="clang_x86_v8_arm"
+        elif [ "${{ inputs.target-arch }}" = "arm64" ]; then
+          MKSNAPSHOT_PATH="clang_x64_v8_arm64"
+        fi
+
+        cp "out/Default/$MKSNAPSHOT_PATH/mksnapshot" out/Default
+        cp "out/Default/$MKSNAPSHOT_PATH/v8_context_snapshot_generator" out/Default
+        cp "out/Default/$MKSNAPSHOT_PATH/libffmpeg.so" out/Default
+
+        python3 electron/script/verify-mksnapshot.py --source-root "$PWD" --build-dir out/Default --create-snapshot-only
+        mkdir cross-arch-snapshots
+        cp out/Default-mksnapshot-test/*.bin cross-arch-snapshots
+        # Clean up so that ninja does not get confused
+        rm -f out/Default/libffmpeg.so
+    - name: Build Chromedriver ${{ inputs.step-suffix }}
+      shell: bash
+      run: |
+        cd src
+        e build electron:electron_chromedriver -j $NUMBER_OF_NINJA_PROCESSES
+        e build electron:electron_chromedriver_zip
+    - name: Build Node.js headers ${{ inputs.step-suffix }}
+      shell: bash
+      run: |
+        cd src
+        e build electron:node_headers
+    - name: Generate & Zip Symbols ${{ inputs.step-suffix }}
+      shell: bash
+      run: |
+        # Generate breakpad symbols on release builds
+        if [ "${{ inputs.generate-symbols }}" = "true" ]; then
+          e build electron:electron_symbols
+        fi
+        cd src
+        export BUILD_PATH="$(pwd)/out/Default"
+        e build electron:licenses
+        e build electron:electron_version_file
+        if [ "${{ inputs.is-release }}" = "true" ]; then
+          DELETE_DSYMS_AFTER_ZIP=1 electron/script/zip-symbols.py -b $BUILD_PATH
+        else
+          electron/script/zip-symbols.py -b $BUILD_PATH
+        fi
+    - name: Generate FFMpeg ${{ inputs.step-suffix }}
+      shell: bash
+      if: ${{ inputs.is-release == 'true' }}
+      run: |
+        cd src
+        gn gen out/ffmpeg --args="import(\"//electron/build/args/ffmpeg.gn\") use_remoteexec=true $GN_EXTRA_ARGS"
+        autoninja -C out/ffmpeg electron:electron_ffmpeg_zip -j $NUMBER_OF_NINJA_PROCESSES
+    - name: Generate Hunspell Dictionaries ${{ inputs.step-suffix }}
+      shell: bash
+      if: ${{ inputs.is-release == 'true' && inputs.target-platform == 'linux' }}
+      run: |
+        cd src
+        autoninja -C out/Default electron:hunspell_dictionaries_zip -j $NUMBER_OF_NINJA_PROCESSES
+    - name: Generate Libcxx ${{ inputs.step-suffix }}
+      shell: bash
+      if: ${{ inputs.is-release == 'true' && inputs.target-platform == 'linux' }}
+      run: |
+        cd src
+        autoninja -C out/Default electron:libcxx_headers_zip -j $NUMBER_OF_NINJA_PROCESSES
+        autoninja -C out/Default electron:libcxxabi_headers_zip -j $NUMBER_OF_NINJA_PROCESSES
+        autoninja -C out/Default electron:libcxx_objects_zip -j $NUMBER_OF_NINJA_PROCESSES
+    - name: Generate TypeScript Definitions ${{ inputs.step-suffix }}
+      if: ${{ inputs.is-release == 'true' }}
+      shell: bash
+      run: |
+        cd src/electron
+        node script/yarn create-typescript-definitions
+    - name: Publish Electron Dist ${{ inputs.step-suffix }}
+      if: ${{ inputs.is-release == 'true' }}
+      shell: bash
+      run: |
+        rm -rf src/out/Default/obj
+        cd src/electron
+        if [ "${{ inputs.upload-to-storage }}" = "1" ]; then
+          echo 'Uploading Electron release distribution to Azure'
+          script/release/uploaders/upload.py --verbose --upload_to_storage
+        else
+          echo 'Uploading Electron release distribution to GitHub releases'
+          script/release/uploaders/upload.py --verbose
+        fi
+    - name: Generate Artifact Key
+      shell: bash
+      run: |
+        if [ "${{ inputs.is-asan }}" = "true" ]; then 
+          ARTIFACT_KEY=${{ inputs.artifact-platform }}_${{ env.TARGET_ARCH }}_asan
+        else
+          ARTIFACT_KEY=${{ inputs.artifact-platform }}_${{ env.TARGET_ARCH }}
+        fi
+        echo "ARTIFACT_KEY=$ARTIFACT_KEY" >> $GITHUB_ENV
+    # The current generated_artifacts_<< artifact.key >> name was taken from CircleCI
+    # to ensure we don't break anything, but we may be able to improve that.
+    - name: Move all Generated Artifacts to Upload Folder ${{ inputs.step-suffix }}
+      shell: bash
+      run: ./src/electron/script/actions/move-artifacts.sh
+    - name: Upload Generated Artifacts ${{ inputs.step-suffix }}
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      with:
+        name: generated_artifacts_${{ env.ARTIFACT_KEY }}
+        path: ./generated_artifacts_${{ inputs.artifact-platform }}_${{ env.TARGET_ARCH }}
+    - name: Upload Src Artifacts ${{ inputs.step-suffix }}
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      with:
+        name: src_artifacts_${{ env.ARTIFACT_KEY }}
+        path: ./src_artifacts_${{ inputs.artifact-platform }}_${{ env.TARGET_ARCH }}

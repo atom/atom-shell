@@ -28,6 +28,7 @@
 #include "components/os_crypt/sync/key_storage_config_linux.h"
 #include "components/os_crypt/sync/key_storage_util_linux.h"
 #include "components/os_crypt/sync/os_crypt.h"
+#include "components/password_manager/core/browser/password_manager_switches.h"  // nogncheck
 #include "content/browser/browser_main_loop.h"  // nogncheck
 #include "content/public/browser/browser_child_process_host_delegate.h"
 #include "content/public/browser/browser_child_process_host_iterator.h"
@@ -134,6 +135,8 @@ class LinuxUiGetterImpl : public ui::LinuxUiGetter {
  public:
   LinuxUiGetterImpl() = default;
   ~LinuxUiGetterImpl() override = default;
+
+  // ui::LinuxUiGetter
   ui::LinuxUiTheme* GetForWindow(aura::Window* window) override {
     return GetForProfile(nullptr);
   }
@@ -313,7 +316,7 @@ int ElectronBrowserMainParts::PreCreateThreads() {
     std::string str;
     if (env->GetVar("LC_ALL", &str))
       lc_all.emplace(std::move(str));
-    env->SetVar("LC_ALL", locale.c_str());
+    env->SetVar("LC_ALL", locale);
   }
 #endif
 
@@ -397,12 +400,6 @@ void ElectronBrowserMainParts::ToolkitInitialized() {
   auto* linux_ui = ui::GetDefaultLinuxUi();
   CHECK(linux_ui);
   linux_ui_getter_ = std::make_unique<LinuxUiGetterImpl>();
-
-  // Try loading gtk symbols used by Electron.
-  electron::InitializeElectron_gtk(gtk::GetLibGtk());
-  if (!electron::IsElectron_gtkInitialized()) {
-    electron::UninitializeElectron_gtk();
-  }
 
   electron::InitializeElectron_gdk_pixbuf(gtk::GetLibGdkPixbuf());
   CHECK(electron::IsElectron_gdk_pixbufInitialized())
@@ -521,13 +518,14 @@ void ElectronBrowserMainParts::PostCreateMainMessageLoop() {
   std::unique_ptr<os_crypt::Config> config =
       std::make_unique<os_crypt::Config>();
   // Forward to os_crypt the flag to use a specific password store.
-  config->store = command_line.GetSwitchValueASCII(::switches::kPasswordStore);
+  config->store =
+      command_line.GetSwitchValueASCII(password_manager::kPasswordStore);
   config->product_name = app_name;
   config->application_name = app_name;
   // c.f.
   // https://source.chromium.org/chromium/chromium/src/+/main:chrome/common/chrome_switches.cc;l=689;drc=9d82515060b9b75fa941986f5db7390299669ef1
   config->should_use_preference =
-      command_line.HasSwitch(::switches::kEnableEncryptionSelection);
+      command_line.HasSwitch(password_manager::kEnableEncryptionSelection);
   base::PathService::Get(DIR_SESSION_DATA, &config->user_data_path);
 
   bool use_backend = !config->should_use_preference ||

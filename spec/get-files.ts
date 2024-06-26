@@ -1,14 +1,11 @@
-import { once } from 'node:events';
-import * as walkdir from 'walkdir';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
-export async function getFiles (directoryPath: string, { filter = null }: {filter?: ((file: string) => boolean) | null} = {}) {
-  const files: string[] = [];
-  const walker = walkdir(directoryPath, {
-    no_recurse: true
-  });
-  walker.on('file', (file) => {
-    if (!filter || filter(file)) { files.push(file); }
-  });
-  await once(walker, 'end');
-  return files;
+export async function getFiles (
+  dir: string,
+  test: ((file: string) => boolean) = (_: string) => true // eslint-disable-line @typescript-eslint/no-unused-vars
+): Promise<string[]> {
+  return fs.promises.readdir(dir)
+    .then(files => files.map(file => path.join(dir, file)))
+    .then(files => files.filter(file => test(file)));
 }

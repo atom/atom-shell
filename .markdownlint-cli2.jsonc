@@ -1,0 +1,28 @@
+{
+  "config": {
+    "extends": "@electron/lint-roller/configs/markdownlint.json",
+    "link-image-style": {
+      "autolink": false,
+      "shortcut": false
+    },
+    "no-angle-brackets": true,
+    "no-curly-braces": true,
+    "no-inline-html": {
+      "allowed_elements": [
+        "br",
+        "details",
+        "img",
+        "li",
+        "summary",
+        "ul",
+        "unknown",
+        "Tabs",
+        "TabItem"
+      ]
+    },
+    "no-newline-in-links": true
+  },
+  "customRules": [
+    "@electron/lint-roller/markdownlint-rules/"
+  ]
+}

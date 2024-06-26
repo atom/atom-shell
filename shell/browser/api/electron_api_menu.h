@@ -24,7 +24,7 @@ class Menu : public gin::Wrappable<Menu>,
              public gin_helper::Constructible<Menu>,
              public gin_helper::Pinnable<Menu>,
              public ElectronMenuModel::Delegate,
-             public ElectronMenuModel::Observer {
+             private ElectronMenuModel::Observer {
  public:
   // gin_helper::Constructible
   static gin::Handle<Menu> New(gin::Arguments* args);

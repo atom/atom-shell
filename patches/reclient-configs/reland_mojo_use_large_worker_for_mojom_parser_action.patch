@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Kleinschmidt <jkleinsc@electronjs.org>
+Date: Thu, 14 Mar 2024 11:11:36 -0400
+Subject: Reland "[mojo] Use large worker for mojom_parser action"
+
+https://chromium-review.googlesource.com/c/chromium/src/+/5368769
+requires a "large" worker
+
+https://chromium-review.googlesource.com/c/chromium/src/+/5364000
+adds a copy of buildtools/reclient_cfgs/linux_chroot/python/rewrapper_linux_cfg
+so we will use that approach as we do not have differently sized workers
+
+diff --git a/configure_reclient.py b/configure_reclient.py
+index a157ceeb155987f6ab9b11d3cef8c2c9894e0436..34136aab6cbb46c265b9f8298e9411349b1526c2 100755
+--- a/configure_reclient.py
++++ b/configure_reclient.py
+@@ -297,6 +297,11 @@ class ReclientConfigurator:
+             f'{Paths.reclient_cfgs_dir}/{tool}/rewrapper_{host_os}.cfg',
+             rewrapper_cfg, source_cfg_paths)
+ 
++        # Write "large" configs to the expected location.
++        ReclientCfg.write_to_file(
++            f'{Paths.reclient_cfgs_dir}/{tool}/rewrapper_{host_os}_large.cfg',
++            rewrapper_cfg, source_cfg_paths)
++
+ 
+ class Paths:
+     script_dir = ''

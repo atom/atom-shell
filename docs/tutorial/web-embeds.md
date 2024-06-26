@@ -4,7 +4,7 @@
 
 If you want to embed (third-party) web content in an Electron `BrowserWindow`,
 there are three options available to you: `<iframe>` tags, `<webview>` tags,
-and `BrowserViews`. Each one offers slightly different functionality and is
+and `WebContentsView`. Each one offers slightly different functionality and is
 useful in different situations. To help you choose between these, this guide
 explains the differences and capabilities of each option.
 
@@ -23,8 +23,8 @@ and only allow the capabilities you want to support.
 [we do not recommend you to use WebViews](../api/webview-tag.md#warning),
 as this tag undergoes dramatic architectural changes that may affect stability
 of your application. Consider switching to alternatives, like `iframe` and
-Electron's `BrowserView`, or an architecture that avoids embedded content
-by design.
+Electron's [`WebContentsView`](../api/web-contents-view.md), or an architecture
+that avoids embedded content by design.
 
 [WebViews](../api/webview-tag.md) are based on Chromium's WebViews and are not
 explicitly supported by Electron. We do not guarantee that the WebView API will

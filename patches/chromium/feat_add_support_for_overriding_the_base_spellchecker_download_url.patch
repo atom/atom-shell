@@ -9,10 +9,10 @@ production use cases.  This is unlikely to be upstreamed as the change
 is entirely in //chrome.
 
 diff --git a/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc b/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
-index 48b7a20c212578ba9055b781b5c05b312fa7e974..d7d92f326ba94be7a3960d527bc2b6d8d15890fa 100644
+index 6ac76182e6a5b51ed164b1068aadb28029c4f6d4..81a637fce1e1863e1f5723a87be5593625b9d008 100644
 --- a/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
 +++ b/chrome/browser/spellchecker/spellcheck_hunspell_dictionary.cc
-@@ -13,6 +13,7 @@
+@@ -14,6 +14,7 @@
  #include "base/functional/bind.h"
  #include "base/lazy_instance.h"
  #include "base/location.h"
@@ -20,7 +20,7 @@ index 48b7a20c212578ba9055b781b5c05b312fa7e974..d7d92f326ba94be7a3960d527bc2b6d8
  #include "base/notreached.h"
  #include "base/observer_list.h"
  #include "base/path_service.h"
-@@ -49,6 +50,8 @@ namespace {
+@@ -50,6 +51,8 @@ namespace {
  base::LazyInstance<GURL>::Leaky g_download_url_for_testing =
      LAZY_INSTANCE_INITIALIZER;
  
@@ -29,7 +29,7 @@ index 48b7a20c212578ba9055b781b5c05b312fa7e974..d7d92f326ba94be7a3960d527bc2b6d8
  // Close the file.
  void CloseDictionary(base::File file) {
    base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
-@@ -265,6 +268,10 @@ void SpellcheckHunspellDictionary::SetDownloadURLForTesting(const GURL url) {
+@@ -266,6 +269,10 @@ void SpellcheckHunspellDictionary::SetDownloadURLForTesting(const GURL url) {
    g_download_url_for_testing.Get() = url;
  }
  
@@ -40,7 +40,7 @@ index 48b7a20c212578ba9055b781b5c05b312fa7e974..d7d92f326ba94be7a3960d527bc2b6d8
  GURL SpellcheckHunspellDictionary::GetDictionaryURL() {
    if (g_download_url_for_testing.Get() != GURL())
      return g_download_url_for_testing.Get();
-@@ -272,6 +279,9 @@ GURL SpellcheckHunspellDictionary::GetDictionaryURL() {
+@@ -273,6 +280,9 @@ GURL SpellcheckHunspellDictionary::GetDictionaryURL() {
    std::string bdict_file = dictionary_file_.path.BaseName().MaybeAsASCII();
    DCHECK(!bdict_file.empty());
  

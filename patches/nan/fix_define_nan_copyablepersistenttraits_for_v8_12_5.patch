@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: deepak1556 <hop2deep@gmail.com>
+Date: Fri, 12 Apr 2024 22:16:58 +0900
+Subject: fix: define Nan::CopyablePersistentTraits for v8 >= 12.5
+
+Refs https://chromium-review.googlesource.com/c/v8/v8/+/5403708
+Should be upstreamed.
+
+diff --git a/nan.h b/nan.h
+index 2be1b4f573948024f5777fc6801126b3e799ef11..64f857c93818712ea3557f53ab4f3cad6813c43c 100644
+--- a/nan.h
++++ b/nan.h
+@@ -204,9 +204,11 @@ typedef v8::String::ExternalOneByteStringResource
+ template<typename T>
+ class NonCopyablePersistentTraits :
+     public v8::NonCopyablePersistentTraits<T> {};
++#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION <= 12 && V8_MINOR_VERSION < 5)
+ template<typename T>
+ class CopyablePersistentTraits :
+     public v8::CopyablePersistentTraits<T> {};
++#endif
+ 
+ template<typename T>
+ class PersistentBase :
+diff --git a/nan_persistent_12_inl.h b/nan_persistent_12_inl.h
+index d9649e867606c6356e393e9964b5607a08ea4e3a..09a8d6d722b8e8af367f71a2b0685bbb7a6fa40e 100644
+--- a/nan_persistent_12_inl.h
++++ b/nan_persistent_12_inl.h
+@@ -129,4 +129,15 @@ class Global : public v8::UniquePersistent<T> {
+ };
+ #endif
+ 
++#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION >= 12 && V8_MINOR_VERSION >= 5)
++template<typename T>
++struct CopyablePersistentTraits {
++  typedef v8::Persistent<T, CopyablePersistentTraits<T> > CopyablePersistent;
++  static const bool kResetInDestructor = true;
++  template<typename S, typename M>
++  static inline void Copy(const v8::Persistent<S, M> &source,
++                          CopyablePersistent *dest) {}
++};
++#endif
++
+ #endif  // NAN_PERSISTENT_12_INL_H_

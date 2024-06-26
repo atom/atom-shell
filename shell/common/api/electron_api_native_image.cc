@@ -279,13 +279,6 @@ v8::Local<v8::Value> NativeImage::ToJPEG(v8::Isolate* isolate, int quality) {
 std::string NativeImage::ToDataURL(gin::Arguments* args) {
   float scale_factor = GetScaleFactorFromOptions(args);
 
-  if (scale_factor == 1.0f) {
-    // Use raw 1x PNG bytes when available
-    scoped_refptr<base::RefCountedMemory> png = image_.As1xPNGBytes();
-    if (png->size() > 0)
-      return webui::GetPngDataUrl(png->front(), png->size());
-  }
-
   return webui::GetBitmapDataUrl(
       image_.AsImageSkia().GetRepresentation(scale_factor).GetBitmap());
 }

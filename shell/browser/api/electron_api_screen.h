@@ -24,7 +24,7 @@ namespace electron::api {
 
 class Screen : public gin::Wrappable<Screen>,
                public gin_helper::EventEmitterMixin<Screen>,
-               public display::DisplayObserver {
+               private display::DisplayObserver {
  public:
   static v8::Local<v8::Value> Create(gin_helper::ErrorThrower error_thrower);
 
@@ -57,7 +57,7 @@ class Screen : public gin::Wrappable<Screen>,
 
   // display::DisplayObserver:
   void OnDisplayAdded(const display::Display& new_display) override;
-  void OnDisplayRemoved(const display::Display& old_display) override;
+  void OnDisplaysRemoved(const display::Displays& removed_displays) override;
   void OnDisplayMetricsChanged(const display::Display& display,
                                uint32_t changed_metrics) override;
 

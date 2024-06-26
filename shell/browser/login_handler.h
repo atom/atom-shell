@@ -22,7 +22,7 @@ namespace electron {
 
 // Handles HTTP basic auth.
 class LoginHandler : public content::LoginDelegate,
-                     public content::WebContentsObserver {
+                     private content::WebContentsObserver {
  public:
   LoginHandler(const net::AuthChallengeInfo& auth_info,
                content::WebContents* web_contents,

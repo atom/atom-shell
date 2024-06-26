@@ -17,7 +17,8 @@
 
 namespace electron::api {
 
-class View : public gin_helper::EventEmitter<View>, public views::ViewObserver {
+class View : public gin_helper::EventEmitter<View>,
+             private views::ViewObserver {
  public:
   static gin_helper::WrappableBase* New(gin::Arguments* args);
   static gin::Handle<View> Create(v8::Isolate* isolate);
@@ -57,6 +58,8 @@ class View : public gin_helper::EventEmitter<View>, public views::ViewObserver {
   void set_delete_view(bool should) { delete_view_ = should; }
 
  private:
+  void ReorderChildView(gin::Handle<View> child, size_t index);
+
   std::vector<v8::Global<v8::Object>> child_views_;
 
   bool delete_view_ = true;

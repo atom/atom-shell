@@ -15,6 +15,7 @@ class NodeBindingsMac : public NodeBindings {
   explicit NodeBindingsMac(BrowserEnvironment browser_env);
 
  private:
+  // NodeBindings
   void PollEvents() override;
 };
 

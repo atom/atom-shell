@@ -19,8 +19,8 @@ class ElectronNavigationThrottle : public content::NavigationThrottle {
   ElectronNavigationThrottle& operator=(const ElectronNavigationThrottle&) =
       delete;
 
+  // content::NavigationThrottle
   ElectronNavigationThrottle::ThrottleCheckResult WillStartRequest() override;
-
   ElectronNavigationThrottle::ThrottleCheckResult WillRedirectRequest()
       override;
 

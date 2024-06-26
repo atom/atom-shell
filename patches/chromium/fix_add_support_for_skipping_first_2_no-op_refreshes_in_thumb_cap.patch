@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samuel Attard <marshallofsound@electronjs.org>
+Date: Tue, 13 Feb 2024 17:40:15 -0800
+Subject: fix: add support for skipping first 2 no-op refreshes in thumb cap
+
+Fixes a bug in the SCK thumbnail capturer, will be reported upstream for a hopefully
+less hacky fix.
+
+The first refresh is "no windows yet, no thumbnails".
+The second refresh is "we have windows, we queued the thumbnail requests"
+The third refresh (the one we want) is "we have windows, and have thumbnail requests"
+
+This really isn't ideal at all, we need to refactor desktopCapturer (read completely re-implement it)
+to use StartUpdating and handle the events instead of using the "get the list once" method.
+
+diff --git a/chrome/browser/media/webrtc/desktop_media_list.h b/chrome/browser/media/webrtc/desktop_media_list.h
+index 7a879b2f5332f98927c5e3858dd31c5de169e5ce..75191362088d2d875330fb2044a4682b8a20e342 100644
+--- a/chrome/browser/media/webrtc/desktop_media_list.h
++++ b/chrome/browser/media/webrtc/desktop_media_list.h
+@@ -143,6 +143,8 @@ class DesktopMediaList {
+   // important when IsSourceDelegated() returns true, as it helps to notify the
+   // delegated source list when it should be hidden.
+   virtual void HideList() = 0;
++
++  int skip_next_refresh_ = 0;
+ };
+ 
+ #endif  // CHROME_BROWSER_MEDIA_WEBRTC_DESKTOP_MEDIA_LIST_H_
+diff --git a/chrome/browser/media/webrtc/desktop_media_list_base.cc b/chrome/browser/media/webrtc/desktop_media_list_base.cc
+index d9943ec17ccec0220d4601ea8242ec3a9d8ba5be..5d9029538c690c3d904bd6b39949387931997fdc 100644
+--- a/chrome/browser/media/webrtc/desktop_media_list_base.cc
++++ b/chrome/browser/media/webrtc/desktop_media_list_base.cc
+@@ -230,7 +230,11 @@ uint32_t DesktopMediaListBase::GetImageHash(const gfx::Image& image) {
+ void DesktopMediaListBase::OnRefreshComplete() {
+   DCHECK_CURRENTLY_ON(BrowserThread::UI);
+   DCHECK(refresh_callback_);
+-  std::move(refresh_callback_).Run();
++  if (skip_next_refresh_ > 0) {
++    skip_next_refresh_--;
++  } else {
++    std::move(refresh_callback_).Run();
++  }
+ }
+ 
+ void DesktopMediaListBase::ScheduleNextRefresh() {

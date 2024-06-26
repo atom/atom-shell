@@ -1,0 +1,103 @@
+name: Electron Build & Test (+ Node + NaN) Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      target-platform:
+        type: string
+        description: 'Platform to run on, can be macos or linux'
+        required: true
+      target-arch:
+        type: string
+        description: 'Arch to build for, can be x64, arm64 or arm'
+        required: true
+      build-runs-on:
+        type: string
+        description: 'What host to run the build'
+        required: true
+      test-runs-on:
+        type: string
+        description: 'What host to run the tests on'
+        required: true
+      build-container:
+        type: string
+        description: 'JSON container information for aks runs-on'
+        required: false
+        default: '{"image":null}'
+      test-container:
+        type: string
+        description: 'JSON container information for testing'
+        required: false
+        default: '{"image":null}'
+      is-release:
+        description: 'Whether this build job is a release job'
+        required: true
+        type: boolean
+        default: false
+      gn-build-type:
+        description: 'The gn build type - testing or release'
+        required: true
+        type: string
+        default: testing
+      generate-symbols: 
+        description: 'Whether or not to generate symbols'
+        required: true
+        type: boolean
+        default: false
+      upload-to-storage: 
+        description: 'Whether or not to upload build artifacts to external storage'
+        required: true
+        type: string
+        default: '0'
+      is-asan: 
+        description: 'Building the Address Sanitizer (ASan) Linux build'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: electron-build-and-test-and-nan-${{ inputs.target-platform }}-${{ inputs.target-arch }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !endsWith(github.ref, '-x-y') }}
+
+jobs:
+  build:
+    uses: ./.github/workflows/pipeline-segment-electron-build.yml
+    with:
+      build-runs-on: ${{ inputs.build-runs-on }}
+      build-container: ${{ inputs.build-container }}
+      target-platform: ${{ inputs.target-platform }}
+      target-arch: ${{ inputs.target-arch }}
+      is-release: ${{ inputs.is-release }}
+      gn-build-type: ${{ inputs.gn-build-type }}
+      generate-symbols: ${{ inputs.generate-symbols }}
+      upload-to-storage: ${{ inputs.upload-to-storage }}
+    secrets: inherit
+  gn-check:
+    uses: ./.github/workflows/pipeline-segment-electron-gn-check.yml
+    with:
+      target-platform: ${{ inputs.target-platform }}
+      target-arch: ${{ inputs.target-arch }}
+      check-runs-on: ${{ inputs.build-runs-on }}
+      check-container: ${{ inputs.build-container }}
+      gn-build-type: ${{ inputs.gn-build-type }}
+      is-asan: ${{ inputs.is-asan }}
+    secrets: inherit
+  test:
+    uses: ./.github/workflows/pipeline-segment-electron-test.yml
+    needs: build
+    with:
+      target-arch: ${{ inputs.target-arch }}
+      target-platform: ${{ inputs.target-platform }}
+      test-runs-on: ${{ inputs.test-runs-on }}
+      test-container: ${{ inputs.test-container }}
+    secrets: inherit
+  nn-test:
+    uses: ./.github/workflows/pipeline-segment-node-nan-test.yml
+    needs: build
+    with:
+      target-arch: ${{ inputs.target-arch }}
+      target-platform: ${{ inputs.target-platform }}
+      test-runs-on: ${{ inputs.test-runs-on }}
+      test-container: ${{ inputs.test-container }}
+      gn-build-type: ${{ inputs.gn-build-type }}
+    secrets: inherit

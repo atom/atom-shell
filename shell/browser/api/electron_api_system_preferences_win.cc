@@ -159,6 +159,8 @@ std::string SystemPreferences::GetMediaAccessStatus(
 }
 
 void SystemPreferences::InitializeWindow() {
+  if (electron::IsUtilityProcess())
+    return;
   // Wait until app is ready before creating sys color listener
   // Creating this listener before the app is ready causes global shortcuts
   // to not fire

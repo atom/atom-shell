@@ -10,6 +10,8 @@
     "@electron-ci/echo": "file:./fixtures/native-addon/echo",
     "@electron-ci/is-valid-window": "file:./is-valid-window",
     "@electron-ci/uv-dlopen": "file:./fixtures/native-addon/uv-dlopen/",
+    "@electron/fuses": "^1.8.0",
+    "@electron/packager": "^18.3.2",
     "@marshallofsound/mocha-appveyor-reporter": "^0.4.3",
     "@types/sinon": "^9.0.4",
     "@types/ws": "^7.2.0",
@@ -33,17 +35,14 @@
     "split": "^1.0.1",
     "temp": "^0.9.0",
     "uuid": "^3.3.3",
-    "walkdir": "^0.3.2",
-    "winreg": "^1.2.4",
+    "winreg": "1.2.4",
     "ws": "^7.4.6",
     "yargs": "^16.0.3"
-  },
-  "optionalDependencies": {
-    "@nut-tree/nut-js": "^3.1.2"
   },
   "resolutions": {
     "nan": "file:../../third_party/nan",
     "dbus-native/optimist/minimist": "1.2.7",
-    "dbus-native/xml2js": "0.5.0"
+    "dbus-native/xml2js": "0.5.0",
+    "abstract-socket": "github:deepak1556/node-abstractsocket#928cc591decd12aff7dad96449da8afc29832c19"
   }
 }

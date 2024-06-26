@@ -19,7 +19,7 @@ namespace electron::api {
 
 class DesktopCapturer : public gin::Wrappable<DesktopCapturer>,
                         public gin_helper::Pinnable<DesktopCapturer>,
-                        public DesktopMediaListObserver {
+                        private DesktopMediaListObserver {
  public:
   struct Source {
     DesktopMediaList::Source media_list_source;
@@ -51,6 +51,7 @@ class DesktopCapturer : public gin::Wrappable<DesktopCapturer>,
   explicit DesktopCapturer(v8::Isolate* isolate);
   ~DesktopCapturer() override;
 
+ private:
   // DesktopMediaListObserver:
   void OnSourceAdded(int index) override {}
   void OnSourceRemoved(int index) override {}
@@ -61,7 +62,6 @@ class DesktopCapturer : public gin::Wrappable<DesktopCapturer>,
   void OnDelegatedSourceListSelection() override {}
   void OnDelegatedSourceListDismissed() override {}
 
- private:
   using OnceCallback = base::OnceClosure;
 
   class DesktopListListener : public DesktopMediaListObserver {

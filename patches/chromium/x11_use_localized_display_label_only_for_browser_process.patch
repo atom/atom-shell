@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: deepak1556 <hop2deep@gmail.com>
+Date: Mon, 17 Jun 2024 18:05:47 +0000
+Subject: Use localized display label only for browser process
+
+With https://crrev.com/c/5098130, GetPrimaryDisplayRefreshIntervalFromXrandr uses BuildDisplaysFromXRandRInfo
+to calculate the primary display frequency. In software compositing mode --disable-gpu-compositing,
+this code path will be called from the gpu process via SoftwareOutputSurface::SwapBuffers and
+can trigger a crash when attempting to set localized string. This is because on linux,
+gpu process does not have access to the resource bundle.
+
+Bug: none
+Change-Id: I9d66b98c07a1a8671369546d4fc685213904a84f
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/5631219
+Auto-Submit: Deepak Mohan (Robo) <hop2deep@gmail.com>
+Reviewed-by: Thomas Anderson <thomasanderson@chromium.org>
+Reviewed-by: Scott Violet <sky@chromium.org>
+Commit-Queue: Scott Violet <sky@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1315980}
+
+diff --git a/ui/base/x/x11_display_util.cc b/ui/base/x/x11_display_util.cc
+index ffaea4fef9931050f1c1888674bf2f7498c578da..faf59929eb7e291502c449631e54f3841582bd9e 100644
+--- a/ui/base/x/x11_display_util.cc
++++ b/ui/base/x/x11_display_util.cc
+@@ -299,6 +299,7 @@ std::vector<display::Display> BuildDisplaysFromXRandRInfo(
+     const display::DisplayConfig& display_config,
+     size_t* primary_display_index_out) {
+   DCHECK(primary_display_index_out);
++  auto* command_line = base::CommandLine::ForCurrentProcess();
+   const float primary_scale = display_config.primary_scale;
+ 
+   auto* connection = x11::Connection::Get();
+@@ -348,7 +349,7 @@ std::vector<display::Display> BuildDisplaysFromXRandRInfo(
+   connection->Flush();
+ 
+   std::vector<x11::Future<x11::GetPropertyReply>> icc_futures{n_iccs};
+-  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kHeadless)) {
++  if (!command_line->HasSwitch(switches::kHeadless)) {
+     for (size_t monitor = 0; monitor < n_iccs; ++monitor) {
+       icc_futures[monitor] = GetIccProfileFuture(connection, monitor);
+     }
+@@ -446,11 +447,18 @@ std::vector<display::Display> BuildDisplaysFromXRandRInfo(
+     }
+ 
+     const std::string name(output_info->name.begin(), output_info->name.end());
++    auto process_type =
++        command_line->GetSwitchValueASCII("type");
+     if (base::StartsWith(name, "eDP") || base::StartsWith(name, "LVDS")) {
+       display::SetInternalDisplayIds({display_id});
+-      // Use localized variant of "Built-in display" for internal displays.
++      // For browser process which has access to resource bundle,
++      // use localized variant of "Built-in display" for internal displays.
+       // This follows the ozone DRM behavior (i.e. ChromeOS).
+-      display.set_label(l10n_util::GetStringUTF8(IDS_DISPLAY_NAME_INTERNAL));
++      if (process_type.empty()) {
++        display.set_label(l10n_util::GetStringUTF8(IDS_DISPLAY_NAME_INTERNAL));
++      } else {
++        display.set_label("Built-in display");
++      }
+     } else {
+       display.set_label(edid_parser.display_name());
+     }

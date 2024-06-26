@@ -7,8 +7,8 @@
   recording buffer in events.
 * `enable_argument_filter` boolean (optional) - if true, filter event data
   according to a specific list of events that have been manually vetted to not
-  include any PII. See [the implementation in
-  Chromium][trace_event_args_allowlist.cc] for specifics.
+  include any PII. See [the implementation in Chromium][trace_event_args_allowlist.cc]
+  for specifics.
 * `included_categories` string[] (optional) - a list of tracing categories to
   include. Can include glob-like patterns using `*` at the end of the category
   name. See [tracing categories][] for the list of categories.
@@ -19,10 +19,10 @@
   include in the trace. If not specified, trace all processes.
 * `histogram_names` string[] (optional) - a list of [histogram][] names to report
   with the trace.
-* `memory_dump_config` Record<string, any> (optional) - if the
+* `memory_dump_config` Record\<string, any\> (optional) - if the
   `disabled-by-default-memory-infra` category is enabled, this contains
-  optional additional configuration for data collection. See the [Chromium
-  memory-infra docs][memory-infra docs] for more information.
+  optional additional configuration for data collection. See the
+  [Chromium memory-infra docs][memory-infra docs] for more information.
 
 An example TraceConfig that roughly matches what Chrome DevTools records:
 

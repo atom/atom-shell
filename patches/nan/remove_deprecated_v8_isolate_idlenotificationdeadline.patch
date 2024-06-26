@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Kleinschmidt <jkleinsc@electronjs.org>
+Date: Thu, 6 Jun 2024 15:16:49 -0400
+Subject: Remove deprecated v8::Isolate::IdleNotificationDeadline
+
+See https://chromium-review.googlesource.com/c/v8/v8/+/5539852
+
+Also https://github.com/nodejs/nan/issues/953#issuecomment-1791163429
+
+diff --git a/nan.h b/nan.h
+index 64f857c93818712ea3557f53ab4f3cad6813c43c..6a405a6fb6f89dcb2140de48dac4ce743e9f10fa 100644
+--- a/nan.h
++++ b/nan.h
+@@ -685,7 +685,13 @@ inline uv_loop_t* GetCurrentEventLoop() {
+     v8::Isolate::GetCurrent()->SetAddHistogramSampleFunction(cb);
+   }
+ 
+-#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 4 ||                      \
++#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 11 ||                      \
++  (V8_MAJOR_VERSION == 11 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION >= 3))
++  inline bool IdleNotification(int idle_time_in_ms) {
++    v8::Isolate::GetCurrent()->MemoryPressureNotification(v8::MemoryPressureLevel::kModerate);
++    return true;
++  }
++#elif defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 4 ||                      \
+   (V8_MAJOR_VERSION == 4 && defined(V8_MINOR_VERSION) && V8_MINOR_VERSION >= 3))
+   inline bool IdleNotification(int idle_time_in_ms) {
+     return v8::Isolate::GetCurrent()->IdleNotificationDeadline(

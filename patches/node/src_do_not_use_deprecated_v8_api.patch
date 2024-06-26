@@ -1,0 +1,118 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: ishell <isheludko@gmail.com>
+Date: Mon, 25 Mar 2024 15:45:41 +0100
+Subject: src: do not use deprecated V8 API
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Namely:
+  - `v8::ObjectTemplate::SetAccessor(v8::Local<v8::String>, ...);`
+  - `v8::ObjectTemplate::SetNativeDataProperty` with `AccessControl`
+
+Refs: https://github.com/v8/v8/commit/46c241eb99557fe8205acac5c526650c3847d180
+Refs: https://github.com/v8/v8/commit/6ec883986bd417e2a42ddb960bd9449deb7e4639
+Co-authored-by: Michaël Zasso <targos@protonmail.com>
+PR-URL: https://github.com/nodejs/node/pull/53084
+Reviewed-By: Luigi Pinca <luigipinca@gmail.com>
+Reviewed-By: Tobias Nießen <tniessen@tnie.de>
+Reviewed-By: James M Snell <jasnell@gmail.com>
+Reviewed-By: Joyee Cheung <joyeec9h3@gmail.com>
+(cherry picked from commit 26d5cafff76d3a096ebfd7d7a6279d4b5b190230)
+
+diff --git a/src/base_object-inl.h b/src/base_object-inl.h
+index da8fed7b3013df10ae02be2070545c74d9a978f0..518b22dabef0974c2e7ecb466669925338524059 100644
+--- a/src/base_object-inl.h
++++ b/src/base_object-inl.h
+@@ -132,14 +132,14 @@ v8::EmbedderGraph::Node::Detachedness BaseObject::GetDetachedness() const {
+ 
+ template <int Field>
+ void BaseObject::InternalFieldGet(
+-    v8::Local<v8::String> property,
++    v8::Local<v8::Name> property,
+     const v8::PropertyCallbackInfo<v8::Value>& info) {
+   info.GetReturnValue().Set(
+       info.This()->GetInternalField(Field).As<v8::Value>());
+ }
+ 
+-template <int Field, bool (v8::Value::* typecheck)() const>
+-void BaseObject::InternalFieldSet(v8::Local<v8::String> property,
++template <int Field, bool (v8::Value::*typecheck)() const>
++void BaseObject::InternalFieldSet(v8::Local<v8::Name> property,
+                                   v8::Local<v8::Value> value,
+                                   const v8::PropertyCallbackInfo<void>& info) {
+   // This could be e.g. value->IsFunction().
+diff --git a/src/base_object.h b/src/base_object.h
+index 5968694e8393d8434fb2ffee411dfac4c93aff29..5c16d0d1b32e2d056f4fcfa0e01781292932a0fa 100644
+--- a/src/base_object.h
++++ b/src/base_object.h
+@@ -111,10 +111,10 @@ class BaseObject : public MemoryRetainer {
+ 
+   // Setter/Getter pair for internal fields that can be passed to SetAccessor.
+   template <int Field>
+-  static void InternalFieldGet(v8::Local<v8::String> property,
++  static void InternalFieldGet(v8::Local<v8::Name> property,
+                                const v8::PropertyCallbackInfo<v8::Value>& info);
+   template <int Field, bool (v8::Value::*typecheck)() const>
+-  static void InternalFieldSet(v8::Local<v8::String> property,
++  static void InternalFieldSet(v8::Local<v8::Name> property,
+                                v8::Local<v8::Value> value,
+                                const v8::PropertyCallbackInfo<void>& info);
+ 
+diff --git a/src/node_builtins.cc b/src/node_builtins.cc
+index 3f82db324d406e342abee23ab0d7f7c9807ff652..91ee97c0d1308e650730b9977facb924ab361bf5 100644
+--- a/src/node_builtins.cc
++++ b/src/node_builtins.cc
+@@ -11,7 +11,6 @@ namespace node {
+ namespace builtins {
+ 
+ using v8::Context;
+-using v8::DEFAULT;
+ using v8::EscapableHandleScope;
+ using v8::Function;
+ using v8::FunctionCallbackInfo;
+@@ -724,7 +723,6 @@ void BuiltinLoader::CreatePerIsolateProperties(IsolateData* isolate_data,
+                                 nullptr,
+                                 Local<Value>(),
+                                 None,
+-                                DEFAULT,
+                                 SideEffectType::kHasNoSideEffect);
+ 
+   target->SetNativeDataProperty(FIXED_ONE_BYTE_STRING(isolate, "builtinIds"),
+@@ -732,7 +730,6 @@ void BuiltinLoader::CreatePerIsolateProperties(IsolateData* isolate_data,
+                                 nullptr,
+                                 Local<Value>(),
+                                 None,
+-                                DEFAULT,
+                                 SideEffectType::kHasNoSideEffect);
+ 
+   target->SetNativeDataProperty(
+@@ -741,7 +738,6 @@ void BuiltinLoader::CreatePerIsolateProperties(IsolateData* isolate_data,
+       nullptr,
+       Local<Value>(),
+       None,
+-      DEFAULT,
+       SideEffectType::kHasNoSideEffect);
+ 
+   target->SetNativeDataProperty(FIXED_ONE_BYTE_STRING(isolate, "natives"),
+@@ -749,7 +745,6 @@ void BuiltinLoader::CreatePerIsolateProperties(IsolateData* isolate_data,
+                                 nullptr,
+                                 Local<Value>(),
+                                 None,
+-                                DEFAULT,
+                                 SideEffectType::kHasNoSideEffect);
+ 
+   SetMethod(isolate, target, "getCacheUsage", BuiltinLoader::GetCacheUsage);
+diff --git a/src/node_external_reference.h b/src/node_external_reference.h
+index 17c0b2d7e1a440b5280a090ad043858faf99f009..24f0c6771720d8a6cdb684a0d562d01564d433f7 100644
+--- a/src/node_external_reference.h
++++ b/src/node_external_reference.h
+@@ -63,8 +63,6 @@ class ExternalReferenceRegistry {
+   V(CFunctionWithBool)                                                         \
+   V(const v8::CFunctionInfo*)                                                  \
+   V(v8::FunctionCallback)                                                      \
+-  V(v8::AccessorGetterCallback)                                                \
+-  V(v8::AccessorSetterCallback)                                                \
+   V(v8::AccessorNameGetterCallback)                                            \
+   V(v8::AccessorNameSetterCallback)                                            \
+   V(v8::GenericNamedPropertyDefinerCallback)                                   \

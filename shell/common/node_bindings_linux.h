@@ -15,6 +15,7 @@ class NodeBindingsLinux : public NodeBindings {
   explicit NodeBindingsLinux(BrowserEnvironment browser_env);
 
  private:
+  // NodeBindings
   void PollEvents() override;
 
   // Epoll to poll for uv's backend fd.

@@ -21,7 +21,7 @@ namespace electron::api {
 class WebContents;
 
 class WebContentsView : public View,
-                        public content::WebContentsObserver,
+                        private content::WebContentsObserver,
                         public DraggableRegionProvider {
  public:
   // Create a new instance of WebContentsView.

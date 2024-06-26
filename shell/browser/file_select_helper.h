@@ -41,7 +41,7 @@ class FileSelectHelper : public base::RefCountedThreadSafe<
                              FileSelectHelper,
                              content::BrowserThread::DeleteOnUIThread>,
                          public ui::SelectFileDialog::Listener,
-                         public content::WebContentsObserver,
+                         private content::WebContentsObserver,
                          private net::DirectoryLister::DirectoryListerDelegate {
  public:
   // disable copy

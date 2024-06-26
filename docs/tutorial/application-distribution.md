@@ -24,8 +24,8 @@ If you prefer the manual approach, there are 2 ways to distribute your applicati
 
 ### With prebuilt binaries
 
-To distribute your app manually, you need to download Electron's [prebuilt
-binaries](https://github.com/electron/electron/releases). Next, the folder
+To distribute your app manually, you need to download Electron's
+[prebuilt binaries](https://github.com/electron/electron/releases). Next, the folder
 containing your app should be named `app` and placed in Electron's resources
 directory as shown in the following examples.
 

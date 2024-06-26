@@ -37,9 +37,9 @@ bool WebContents::IsFocused() const {
 
 bool WebContents::PlatformHandleKeyboardEvent(
     content::WebContents* source,
-    const content::NativeWebKeyboardEvent& event) {
+    const input::NativeWebKeyboardEvent& event) {
   if (event.skip_if_unhandled ||
-      event.GetType() == content::NativeWebKeyboardEvent::Type::kChar)
+      event.GetType() == input::NativeWebKeyboardEvent::Type::kChar)
     return false;
 
   // Check if the webContents has preferences and to ignore shortcuts

@@ -41,6 +41,7 @@ class NotificationPresenterWin : public NotificationPresenter {
   std::wstring SaveIconToFilesystem(const SkBitmap& icon, const GURL& origin);
 
  private:
+  // NotificationPresenter
   Notification* CreateNotificationObject(
       NotificationDelegate* delegate) override;
 

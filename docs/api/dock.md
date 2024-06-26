@@ -80,4 +80,4 @@ Returns `Menu | null` - The application's [dock menu][dock-menu].
 
 Sets the `image` associated with this dock icon.
 
-[dock-menu]: https://developer.apple.com/macos/human-interface-guidelines/menus/dock-menus/
+[dock-menu]: https://developer.apple.com/design/human-interface-guidelines/dock-menus

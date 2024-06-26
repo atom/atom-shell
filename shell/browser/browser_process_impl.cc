@@ -35,8 +35,9 @@
 #include "net/proxy_resolution/proxy_config.h"
 #include "net/proxy_resolution/proxy_config_service.h"
 #include "net/proxy_resolution/proxy_config_with_annotation.h"
-#include "services/device/public/cpp/geolocation/geolocation_manager.h"
+#include "services/device/public/cpp/geolocation/geolocation_system_permission_manager.h"
 #include "services/network/public/cpp/network_switches.h"
+#include "shell/browser/net/resolve_proxy_helper.h"
 #include "shell/common/electron_paths.h"
 #include "shell/common/thread_restrictions.h"
 
@@ -100,9 +101,9 @@ void BrowserProcessImpl::PostEarlyInitialization() {
   OSCrypt::RegisterLocalPrefs(pref_registry.get());
 #endif
 
-  auto pref_store = base::MakeRefCounted<ValueMapPrefStore>();
-  ApplyProxyModeFromCommandLine(pref_store.get());
-  prefs_factory.set_command_line_prefs(std::move(pref_store));
+  in_memory_pref_store_ = base::MakeRefCounted<ValueMapPrefStore>();
+  ApplyProxyModeFromCommandLine(in_memory_pref_store());
+  prefs_factory.set_command_line_prefs(in_memory_pref_store());
 
   // Only use a persistent prefs store when cookie encryption is enabled as that
   // is the only key that needs it
@@ -304,9 +305,18 @@ UsbSystemTrayIcon* BrowserProcessImpl::usb_system_tray_icon() {
   return nullptr;
 }
 
+subresource_filter::RulesetService*
+BrowserProcessImpl::fingerprinting_protection_ruleset_service() {
+  return nullptr;
+}
+
 os_crypt_async::OSCryptAsync* BrowserProcessImpl::os_crypt_async() {
   return os_crypt_async_.get();
 }
+
+void BrowserProcessImpl::set_additional_os_crypt_async_provider_for_test(
+    size_t precedence,
+    std::unique_ptr<os_crypt_async::KeyProvider> provider) {}
 
 void BrowserProcessImpl::SetSystemLocale(const std::string& locale) {
   system_locale_ = locale;
@@ -314,6 +324,14 @@ void BrowserProcessImpl::SetSystemLocale(const std::string& locale) {
 
 const std::string& BrowserProcessImpl::GetSystemLocale() const {
   return system_locale_;
+}
+
+electron::ResolveProxyHelper* BrowserProcessImpl::GetResolveProxyHelper() {
+  if (!resolve_proxy_helper_) {
+    resolve_proxy_helper_ = base::MakeRefCounted<electron::ResolveProxyHelper>(
+        system_network_context_manager()->GetContext());
+  }
+  return resolve_proxy_helper_.get();
 }
 
 #if BUILDFLAG(IS_LINUX)
@@ -337,7 +355,6 @@ void BrowserProcessImpl::SetLinuxStorageBackend(
       break;
     case os_crypt::SelectedLinuxBackend::DEFER:
       NOTREACHED();
-      break;
   }
 }
 #endif  // BUILDFLAG(IS_LINUX)

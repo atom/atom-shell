@@ -53,9 +53,8 @@ def main():
 
   build_version = get_electron_build_version()
   if not ELECTRON_VERSION.startswith(build_version):
-    error = 'Tag name ({0}) should match build version ({1})\n'.format(
-        ELECTRON_VERSION, build_version)
-    sys.stderr.write(error)
+    errmsg = f"Tag ({ELECTRON_VERSION}) should match build ({build_version})\n"
+    sys.stderr.write(errmsg)
     sys.stderr.flush()
     return 1
 
@@ -344,8 +343,7 @@ def upload_electron(release, file_path, args):
   # if upload_to_storage is set, skip github upload.
   # todo (vertedinde): migrate this variable to upload_to_storage
   if args.upload_to_storage:
-    key_prefix = 'release-builds/{0}_{1}'.format(args.version,
-                                                     args.upload_timestamp)
+    key_prefix = f'release-builds/{args.version}_{args.upload_timestamp}'
     store_artifact(os.path.dirname(file_path), key_prefix, [file_path])
     upload_sha256_checksum(args.version, file_path, key_prefix)
     return
@@ -358,27 +356,30 @@ def upload_electron(release, file_path, args):
 
 
 def upload_io_to_github(release, filename, filepath, version):
-  print('Uploading %s to GitHub' % \
-      (filename))
+  print(f'Uploading {filename} to GitHub')
   script_path = os.path.join(
     ELECTRON_DIR, 'script', 'release', 'uploaders', 'upload-to-github.ts')
-  upload_gh_output = execute([TS_NODE, script_path, filepath, filename, 
-          str(release['id']), version])
-  if is_verbose_mode():
-    print(upload_gh_output)
+  with subprocess.Popen([TS_NODE, script_path, filepath,
+                         filename, str(release['id']), version],
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.STDOUT) as upload_process:
+    if is_verbose_mode():
+      for c in iter(lambda: upload_process.stdout.read(1), b""):
+        sys.stdout.buffer.write(c)
+        sys.stdout.flush()
 
 
 def upload_sha256_checksum(version, file_path, key_prefix=None):
-  checksum_path = '{}.sha256sum'.format(file_path)
+  checksum_path = f'{file_path}.sha256sum'
   if key_prefix is None:
-    key_prefix = 'checksums-scratchpad/{0}'.format(version)
+    key_prefix = f'checksums-scratchpad/{version}'
   sha256 = hashlib.sha256()
   with open(file_path, 'rb') as f:
     sha256.update(f.read())
 
   filename = os.path.basename(file_path)
-  with open(checksum_path, 'w') as checksum:
-    checksum.write('{} *{}'.format(sha256.hexdigest(), filename))
+  with open(checksum_path, 'w', encoding='utf-8') as checksum:
+    checksum.write(f'{sha256.hexdigest()} *{filename}')
   store_artifact(os.path.dirname(checksum_path), key_prefix, [checksum_path])
 
 
@@ -391,7 +392,7 @@ def get_release(version):
   release_env['NODE_NO_WARNINGS'] = '1'
   release_info = execute(['node', script_path, version], release_env)
   if is_verbose_mode():
-    print('Release info for version: {}:\n'.format(version))
+    print(f'Release info for version: {version}:\n')
     print(release_info)
   release = json.loads(release_info)
   return release

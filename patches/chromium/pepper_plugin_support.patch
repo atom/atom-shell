@@ -7,7 +7,7 @@ This tweaks Chrome's pepper flash and PDF plugin support to make it
 usable from Electron.
 
 diff --git a/chrome/browser/renderer_host/pepper/pepper_isolated_file_system_message_filter.cc b/chrome/browser/renderer_host/pepper/pepper_isolated_file_system_message_filter.cc
-index 7004be59929ebe573e304c7e4dfb529f54889b80..99f0edae518ad00c04ce2120eca30d6cd53e7a20 100644
+index 6c0f86dc6f588891f9e4b2ff00f39727fd6e03ef..99b8a4d6fe607ce9b502985c971ce3888aee49b5 100644
 --- a/chrome/browser/renderer_host/pepper/pepper_isolated_file_system_message_filter.cc
 +++ b/chrome/browser/renderer_host/pepper/pepper_isolated_file_system_message_filter.cc
 @@ -7,17 +7,21 @@
@@ -94,7 +94,7 @@ index 7004be59929ebe573e304c7e4dfb529f54889b80..99f0edae518ad00c04ce2120eca30d6c
 -      return OpenCrxFileSystem(context);
 +      return PP_ERROR_NOTSUPPORTED;
    }
-   NOTREACHED();
+   NOTREACHED_IN_MIGRATION();
    context->reply_msg =
 @@ -133,6 +144,7 @@ int32_t PepperIsolatedFileSystemMessageFilter::OnOpenFileSystem(
    return PP_ERROR_FAILED;

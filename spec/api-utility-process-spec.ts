@@ -7,6 +7,7 @@ import { closeWindow } from './lib/window-helpers';
 import { once } from 'node:events';
 import { pathToFileURL } from 'node:url';
 import { setImmediate } from 'node:timers/promises';
+import { systemPreferences } from 'electron';
 
 const fixturesPath = path.resolve(__dirname, 'fixtures', 'api', 'utility-process');
 const isWindowsOnArm = process.platform === 'win32' && process.arch === 'arm64';
@@ -59,11 +60,29 @@ describe('utilityProcess module', () => {
       expect(code).to.equal(0);
     });
 
+    ifit(!isWindows32Bit)('emits the correct error code when child process exits nonzero', async () => {
+      const child = utilityProcess.fork(path.join(fixturesPath, 'empty.js'));
+      await once(child, 'spawn');
+      const exit = once(child, 'exit');
+      process.kill(child.pid!);
+      const [code] = await exit;
+      expect(code).to.not.equal(0);
+    });
+
+    ifit(!isWindows32Bit)('emits the correct error code when child process is killed', async () => {
+      const child = utilityProcess.fork(path.join(fixturesPath, 'empty.js'));
+      await once(child, 'spawn');
+      const exit = once(child, 'exit');
+      process.kill(child.pid!);
+      const [code] = await exit;
+      expect(code).to.not.equal(0);
+    });
+
     ifit(!isWindows32Bit)('emits \'exit\' when child process crashes', async () => {
       const child = utilityProcess.fork(path.join(fixturesPath, 'crash.js'));
-      // Do not check for exit code in this case,
-      // SIGSEGV code can be 139 or 11 across our different CI pipeline.
-      await once(child, 'exit');
+      // SIGSEGV code can differ across pipelines but should never be 0.
+      const [code] = await once(child, 'exit');
+      expect(code).to.not.equal(0);
     });
 
     ifit(!isWindows32Bit)('emits \'exit\' corresponding to the child process', async () => {
@@ -279,6 +298,17 @@ describe('utilityProcess module', () => {
       expect(child.kill()).to.be.true();
       await exit;
     });
+
+    it('handles the parent port trying to send an non-clonable object', async () => {
+      const child = utilityProcess.fork(path.join(fixturesPath, 'non-cloneable.js'));
+      await once(child, 'spawn');
+      child.postMessage('non-cloneable');
+      const [data] = await once(child, 'message');
+      expect(data).to.equal('caught-non-cloneable');
+      const exit = once(child, 'exit');
+      expect(child.kill()).to.be.true();
+      await exit;
+    });
   });
 
   describe('behavior', () => {
@@ -373,6 +403,18 @@ describe('utilityProcess module', () => {
       appProcess.stderr.on('data', (data: Buffer) => { output += data; });
       await once(appProcess, 'exit');
       expect(output).to.include(result);
+    });
+
+    ifit(process.platform !== 'linux')('can access exposed main process modules from the utility process', async () => {
+      const message = 'Message from utility process';
+      const child = utilityProcess.fork(path.join(fixturesPath, 'expose-main-process-module.js'));
+      await once(child, 'spawn');
+      child.postMessage(message);
+      const [data] = await once(child, 'message');
+      expect(data).to.equal(systemPreferences.getMediaAccessStatus('screen'));
+      const exit = once(child, 'exit');
+      expect(child.kill()).to.be.true();
+      await exit;
     });
 
     it('can establish communication channel with sandboxed renderer', async () => {

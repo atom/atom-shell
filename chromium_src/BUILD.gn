@@ -33,6 +33,8 @@ static_library("chrome") {
     "//chrome/browser/devtools/visual_logging.h",
     "//chrome/browser/extensions/global_shortcut_listener.cc",
     "//chrome/browser/extensions/global_shortcut_listener.h",
+    "//chrome/browser/file_system_access/file_system_access_features.cc",
+    "//chrome/browser/file_system_access/file_system_access_features.h",
     "//chrome/browser/icon_loader.cc",
     "//chrome/browser/icon_loader.h",
     "//chrome/browser/icon_manager.cc",
@@ -92,6 +94,8 @@ static_library("chrome") {
     "//chrome/browser/ui/exclusive_access/exclusive_access_controller_base.h",
     "//chrome/browser/ui/exclusive_access/exclusive_access_manager.cc",
     "//chrome/browser/ui/exclusive_access/exclusive_access_manager.h",
+    "//chrome/browser/ui/exclusive_access/exclusive_access_permission_manager.cc",
+    "//chrome/browser/ui/exclusive_access/exclusive_access_permission_manager.h",
     "//chrome/browser/ui/exclusive_access/fullscreen_controller.cc",
     "//chrome/browser/ui/exclusive_access/fullscreen_controller.h",
     "//chrome/browser/ui/exclusive_access/fullscreen_within_tab_helper.cc",
@@ -181,6 +185,9 @@ static_library("chrome") {
     "//chrome/browser:resource_prefetch_predictor_proto",
     "//chrome/browser/resource_coordinator:mojo_bindings",
     "//chrome/browser/web_applications/mojom:mojom_web_apps_enum",
+    "//components/enterprise/buildflags",
+    "//components/enterprise/common/proto:connectors_proto",
+    "//components/safe_browsing/core/browser/db:safebrowsing_proto",
     "//components/vector_icons:vector_icons",
     "//ui/snapshot",
     "//ui/views/controls/webview",
@@ -231,6 +238,7 @@ static_library("chrome") {
       "//chrome/services/util_win:lib",
       "//components/webapps/common:mojo_bindings",
     ]
+    deps += [ "//components/segmentation_platform/public/proto" ]
   }
 
   if (is_mac) {
@@ -242,6 +250,8 @@ static_library("chrome") {
       "//chrome/browser/media/webrtc/system_media_capture_permissions_mac.mm",
       "//chrome/browser/media/webrtc/system_media_capture_permissions_stats_mac.h",
       "//chrome/browser/media/webrtc/system_media_capture_permissions_stats_mac.mm",
+      "//chrome/browser/media/webrtc/thumbnail_capturer_mac.h",
+      "//chrome/browser/media/webrtc/thumbnail_capturer_mac.mm",
       "//chrome/browser/media/webrtc/window_icon_util_mac.mm",
       "//chrome/browser/platform_util_mac.mm",
       "//chrome/browser/process_singleton_mac.mm",
@@ -266,6 +276,8 @@ static_library("chrome") {
       "//chrome/browser/bad_message.h",
       "//chrome/browser/printing/prefs_util.cc",
       "//chrome/browser/printing/prefs_util.h",
+      "//chrome/browser/printing/print_compositor_util.cc",
+      "//chrome/browser/printing/print_compositor_util.h",
       "//chrome/browser/printing/print_job.cc",
       "//chrome/browser/printing/print_job.h",
       "//chrome/browser/printing/print_job_manager.cc",
@@ -292,6 +304,8 @@ static_library("chrome") {
 
     if (enable_oop_printing) {
       sources += [
+        "//chrome/browser/printing/oop_features.cc",
+        "//chrome/browser/printing/oop_features.h",
         "//chrome/browser/printing/print_backend_service_manager.cc",
         "//chrome/browser/printing/print_backend_service_manager.h",
       ]
@@ -318,6 +332,8 @@ static_library("chrome") {
         "//chrome/browser/printing/pdf_to_emf_converter.h",
         "//chrome/browser/printing/printer_xml_parser_impl.cc",
         "//chrome/browser/printing/printer_xml_parser_impl.h",
+        "//chrome/browser/printing/xps_features.cc",
+        "//chrome/browser/printing/xps_features.h",
       ]
       deps += [ "//printing:printing_base" ]
     }
@@ -341,8 +357,6 @@ static_library("chrome") {
         "//chrome/browser/pdf/chrome_pdf_stream_delegate.h",
         "//chrome/browser/pdf/pdf_extension_util.cc",
         "//chrome/browser/pdf/pdf_extension_util.h",
-        "//chrome/browser/pdf/pdf_frame_util.cc",
-        "//chrome/browser/pdf/pdf_frame_util.h",
         "//chrome/browser/pdf/pdf_viewer_stream_manager.cc",
         "//chrome/browser/pdf/pdf_viewer_stream_manager.h",
         "//chrome/browser/plugins/pdf_iframe_navigation_throttle.cc",

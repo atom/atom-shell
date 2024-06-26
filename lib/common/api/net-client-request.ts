@@ -209,6 +209,22 @@ type ExtraURLLoaderOptions = {
    headers: Record<string, { name: string, value: string | string[] }>;
    allowNonHttpProtocols: boolean;
 }
+
+function validateHeader (name: any, value: any): void {
+  if (typeof name !== 'string') {
+    throw new TypeError('`name` should be a string in setHeader(name, value)');
+  }
+  if (value == null) {
+    throw new Error('`value` required in setHeader("' + name + '", value)');
+  }
+  if (!isValidHeaderName(name)) {
+    throw new Error(`Invalid header name: '${name}'`);
+  }
+  if (!isValidHeaderValue(value.toString())) {
+    throw new Error(`Invalid value for header '${name}': '${value}'`);
+  }
+}
+
 function parseOptions (optionsIn: ClientRequestConstructorOptions | string): NodeJS.CreateURLLoaderOptions & ExtraURLLoaderOptions {
   // eslint-disable-next-line node/no-deprecated-api
   const options: any = typeof optionsIn === 'string' ? url.parse(optionsIn) : { ...optionsIn };
@@ -275,12 +291,7 @@ function parseOptions (optionsIn: ClientRequestConstructorOptions | string): Nod
   };
   const headers: Record<string, string | string[]> = options.headers || {};
   for (const [name, value] of Object.entries(headers)) {
-    if (!isValidHeaderName(name)) {
-      throw new Error(`Invalid header name: '${name}'`);
-    }
-    if (!isValidHeaderValue(value.toString())) {
-      throw new Error(`Invalid value for header '${name}': '${value}'`);
-    }
+    validateHeader(name, value);
     const key = name.toLowerCase();
     urlLoaderOptions.headers[key] = { name, value };
   }
@@ -351,21 +362,10 @@ export class ClientRequest extends Writable implements Electron.ClientRequest {
   }
 
   setHeader (name: string, value: string) {
-    if (typeof name !== 'string') {
-      throw new TypeError('`name` should be a string in setHeader(name, value)');
-    }
-    if (value == null) {
-      throw new Error('`value` required in setHeader("' + name + '", value)');
-    }
     if (this._started || this._firstWrite) {
       throw new Error('Can\'t set headers after they are sent');
     }
-    if (!isValidHeaderName(name)) {
-      throw new Error(`Invalid header name: '${name}'`);
-    }
-    if (!isValidHeaderValue(value.toString())) {
-      throw new Error(`Invalid value for header '${name}': '${value}'`);
-    }
+    validateHeader(name, value);
 
     const key = name.toLowerCase();
     this._urlLoaderOptions.headers[key] = { name, value };

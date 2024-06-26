@@ -18,6 +18,7 @@ class MenuMac : public Menu {
   explicit MenuMac(gin::Arguments* args);
   ~MenuMac() override;
 
+  // Menu
   void PopupAt(BaseWindow* window,
                int x,
                int y,

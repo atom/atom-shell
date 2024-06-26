@@ -1,7 +1,7 @@
 {
   "action": {
     "dependencies": ["manifest:action"],
-    "contexts": ["blessed_extension"]
+    "contexts": ["privileged_extension"]
   },
   "action.isEnabled": {
     "channel": "stable"
@@ -15,7 +15,7 @@
   "tabs": {
     "channel": "stable",
     "extension_types": ["extension"],
-    "contexts": ["blessed_extension"]
+    "contexts": ["privileged_extension"]
   },
   "tabs.executeScript": {
     "max_manifest_version": 2
@@ -29,20 +29,28 @@
   "extension": {
     "channel": "stable",
     "extension_types": ["extension"],
-    "contexts": ["blessed_extension"]
+    "contexts": ["privileged_extension"]
   },
   "extension.getBackgroundPage": {
-    "contexts": ["blessed_extension"],
+    "contexts": ["privileged_extension"],
     "disallow_for_service_workers": true
   },
   "extension.getURL": {
-    "contexts": ["blessed_extension", "unblessed_extension", "content_script"],
+    "contexts": ["privileged_extension", "unprivileged_extension", "content_script"],
+    "max_manifest_version": 2
+  },
+  "extension.lastError": {
+    "contexts": [
+      "privileged_extension",
+      "unprivileged_extension",
+      "content_script"
+    ],
     "max_manifest_version": 2
   },
   "i18n": {
     "channel": "stable",
     "extension_types": ["extension"],
-    "contexts": ["blessed_extension", "unblessed_extension", "content_script"],
+    "contexts": ["privileged_extension", "unprivileged_extension", "content_script"],
     "disallow_for_service_workers": true
   },
   "mimeHandlerViewGuestInternal": {
@@ -53,11 +61,11 @@
   },
   "pdfViewerPrivate": {
     "dependencies": ["permission:pdfViewerPrivate"],
-    "contexts": ["blessed_extension"]
+    "contexts": ["privileged_extension"]
   },
   "resourcesPrivate": [{
     "dependencies": ["permission:resourcesPrivate"],
-    "contexts": ["blessed_extension"]
+    "contexts": ["privileged_extension"]
   }, {
     "channel": "stable",
     "contexts": ["webui"],
@@ -67,6 +75,11 @@
   }],
   "scripting": {
     "dependencies": ["permission:scripting"],
-    "contexts": ["blessed_extension"]
+    "contexts": ["privileged_extension"]
+  },
+  "scripting.globalParams": {
+    "channel": "trunk",
+    "dependencies": ["permission:scripting"],
+    "contexts": ["content_script"]
   }
 }

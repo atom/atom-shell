@@ -53,6 +53,7 @@ class NotificationDelegateImpl final : public electron::NotificationDelegate {
   NotificationDelegateImpl(const NotificationDelegateImpl&) = delete;
   NotificationDelegateImpl& operator=(const NotificationDelegateImpl&) = delete;
 
+  // electron::NotificationDelegate
   void NotificationDestroyed() override { delete this; }
 
   void NotificationClick() override {

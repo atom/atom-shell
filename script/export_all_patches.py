@@ -11,7 +11,7 @@ from lib import git
 def export_patches(target, dry_run):
   repo = target.get('repo')
   if not os.path.exists(repo):
-    warnings.warn('repo not found: %s' % repo)
+    warnings.warn(f'repo not found: {repo}')
     return
   git.export_patches(
     dry_run=dry_run,

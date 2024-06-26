@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { BrowserView, BrowserWindow, screen, webContents } from 'electron/main';
 import { closeWindow } from './lib/window-helpers';
 import { defer, ifit, startRemoteControlApp } from './lib/spec-helpers';
-import { areColorsSimilar, captureScreen, getPixelColor } from './lib/screen-helpers';
+import { ScreenCapture } from './lib/screen-helpers';
 import { once } from 'node:events';
 
 describe('BrowserView module', () => {
@@ -25,10 +25,12 @@ describe('BrowserView module', () => {
   });
 
   afterEach(async () => {
-    const p = once(w.webContents, 'destroyed');
-    await closeWindow(w);
-    w = null as any;
-    await p;
+    if (!w.isDestroyed()) {
+      const p = once(w.webContents, 'destroyed');
+      await closeWindow(w);
+      w = null as any;
+      await p;
+    }
 
     if (view && view.webContents) {
       const p = once(view.webContents, 'destroyed');
@@ -88,13 +90,8 @@ describe('BrowserView module', () => {
       w.setBrowserView(view);
       await view.webContents.loadURL('data:text/html,hello there');
 
-      const screenCapture = await captureScreen();
-      const centerColor = getPixelColor(screenCapture, {
-        x: display.size.width / 2,
-        y: display.size.height / 2
-      });
-
-      expect(areColorsSimilar(centerColor, WINDOW_BACKGROUND_COLOR)).to.be.true();
+      const screenCapture = await ScreenCapture.createForDisplay(display);
+      await screenCapture.expectColorAtCenterMatches(WINDOW_BACKGROUND_COLOR);
     });
 
     // Linux and arm64 platforms (WOA and macOS) do not return any capture sources
@@ -114,13 +111,8 @@ describe('BrowserView module', () => {
       w.setBackgroundColor(VIEW_BACKGROUND_COLOR);
       await view.webContents.loadURL('data:text/html,hello there');
 
-      const screenCapture = await captureScreen();
-      const centerColor = getPixelColor(screenCapture, {
-        x: display.size.width / 2,
-        y: display.size.height / 2
-      });
-
-      expect(areColorsSimilar(centerColor, VIEW_BACKGROUND_COLOR)).to.be.true();
+      const screenCapture = await ScreenCapture.createForDisplay(display);
+      await screenCapture.expectColorAtCenterMatches(VIEW_BACKGROUND_COLOR);
     });
   });
 
@@ -544,6 +536,53 @@ describe('BrowserView module', () => {
   });
 
   describe('shutdown behavior', () => {
+    it('emits the destroyed event when the host BrowserWindow is closed', async () => {
+      view = new BrowserView();
+      w.addBrowserView(view);
+      await view.webContents.loadURL(`data:text/html,
+        <html>
+          <body>
+            <div id="bv_id">HELLO BROWSERVIEW</div>
+          </body>
+        </html>
+      `);
+
+      const query = 'document.getElementById("bv_id").textContent';
+      const contentBefore = await view.webContents.executeJavaScript(query);
+      expect(contentBefore).to.equal('HELLO BROWSERVIEW');
+
+      w.close();
+
+      const destroyed = once(view.webContents, 'destroyed');
+      const closed = once(w, 'closed');
+      await Promise.all([destroyed, closed]);
+    });
+
+    it('does not destroy its webContents if an owner BrowserWindow close event is prevented', async () => {
+      view = new BrowserView();
+      w.addBrowserView(view);
+      await view.webContents.loadURL(`data:text/html,
+        <html>
+          <body>
+            <div id="bv_id">HELLO BROWSERVIEW</div>
+          </body>
+        </html>
+      `);
+
+      const query = 'document.getElementById("bv_id").textContent';
+      const contentBefore = await view.webContents.executeJavaScript(query);
+      expect(contentBefore).to.equal('HELLO BROWSERVIEW');
+
+      w.once('close', (e) => {
+        e.preventDefault();
+      });
+
+      w.close();
+
+      const contentAfter = await view.webContents.executeJavaScript(query);
+      expect(contentAfter).to.equal('HELLO BROWSERVIEW');
+    });
+
     it('does not crash on exit', async () => {
       const rc = await startRemoteControlApp();
       await rc.remotely(() => {

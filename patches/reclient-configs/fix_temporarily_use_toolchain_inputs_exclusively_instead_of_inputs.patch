@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Samuel Attard <marshallofsound@electronjs.org>
+Date: Fri, 8 Mar 2024 10:17:09 -0800
+Subject: fix: temporarily use toolchain_inputs exclusively instead of inputs
+
+Ref: https://chromium-review.googlesource.com/c/chromium/src/+/5340729
+
+diff --git a/chromium-browser-clang/rewrapper_mac.cfg b/chromium-browser-clang/rewrapper_mac.cfg
+index b7aae599574b1217eee48fb182d5fe899225ad98..1d4743d63f52c828022ebcb6a39a3bedcbd5ef1b 100644
+--- a/chromium-browser-clang/rewrapper_mac.cfg
++++ b/chromium-browser-clang/rewrapper_mac.cfg
+@@ -14,6 +14,5 @@
+ 
+ # This config is merged with Chromium config. See README.md.
+ 
+-inputs={src_dir}/buildtools/reclient_cfgs/chromium-browser-clang/clang_remote_wrapper
+-toolchain_inputs={linux_clang_base_path}/bin/clang
++toolchain_inputs={linux_clang_base_path}/bin/clang,{src_dir}/buildtools/reclient_cfgs/chromium-browser-clang/clang_remote_wrapper
+ remote_wrapper={src_dir}/buildtools/reclient_cfgs/chromium-browser-clang/clang_remote_wrapper
+diff --git a/python/rewrapper_linux.cfg b/python/rewrapper_linux.cfg
+index 2cdeb39313a83a94cdf321025ef969af7db83fd7..e0c74dad6a6ba9a002a9c1a1b34a31740b6428e0 100644
+--- a/python/rewrapper_linux.cfg
++++ b/python/rewrapper_linux.cfg
+@@ -14,5 +14,5 @@
+ 
+ # This config is merged with Chromium config. See README.md.
+ 
+-inputs=buildtools/reclient_cfgs/python/python_remote_wrapper
++toolchain_inputs=buildtools/reclient_cfgs/python/python_remote_wrapper
+ remote_wrapper={src_dir}/buildtools/reclient_cfgs/python/python_remote_wrapper
+\ No newline at end of file
+diff --git a/python/rewrapper_mac.cfg b/python/rewrapper_mac.cfg
+index 2cdeb39313a83a94cdf321025ef969af7db83fd7..e0c74dad6a6ba9a002a9c1a1b34a31740b6428e0 100644
+--- a/python/rewrapper_mac.cfg
++++ b/python/rewrapper_mac.cfg
+@@ -14,5 +14,5 @@
+ 
+ # This config is merged with Chromium config. See README.md.
+ 
+-inputs=buildtools/reclient_cfgs/python/python_remote_wrapper
++toolchain_inputs=buildtools/reclient_cfgs/python/python_remote_wrapper
+ remote_wrapper={src_dir}/buildtools/reclient_cfgs/python/python_remote_wrapper
+\ No newline at end of file

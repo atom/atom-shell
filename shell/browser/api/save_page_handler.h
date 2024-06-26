@@ -23,8 +23,8 @@ class WebContents;
 namespace electron::api {
 
 // A self-destroyed class for handling save page request.
-class SavePageHandler : public content::DownloadManager::Observer,
-                        public download::DownloadItem::Observer {
+class SavePageHandler : private content::DownloadManager::Observer,
+                        private download::DownloadItem::Observer {
  public:
   SavePageHandler(content::WebContents* web_contents,
                   gin_helper::Promise<void> promise);

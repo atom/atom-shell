@@ -59,7 +59,7 @@ need to be called **before** the app's `ready` event is emitted.
 With top-level `await` available in Node.js ESM, make sure to `await` every Promise that you need to
 execute before the `ready` event. Otherwise, your app may be `ready` before your code executes.
 
-This is particularly important to keep in mind for dynamic ESM import statmements (static imports are unaffected).
+This is particularly important to keep in mind for dynamic ESM import statements (static imports are unaffected).
 For example, if `index.mjs` calls `import('./set-up-paths.mjs')` at the top level, the app will
 likely already be `ready` by the time that dynamic import resolves.
 
@@ -78,7 +78,8 @@ JavaScript transpilers (e.g. Babel, TypeScript) have historically supported ES M
 syntax before Node.js supported ESM imports by turning these calls to CommonJS
 `require` calls.
 
-<details><summary>Example: @babel/plugin-transform-modules-commonjs</summary>
+<details>
+<summary>Example: @babel/plugin-transform-modules-commonjs</summary>
 
 The `@babel/plugin-transform-modules-commonjs` plugin will transform
 ESM imports down to `require` calls. The exact syntax will depend on the

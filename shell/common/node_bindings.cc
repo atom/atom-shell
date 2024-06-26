@@ -100,9 +100,10 @@
   V(electron_renderer_ipc)            \
   V(electron_renderer_web_frame)
 
-#define ELECTRON_UTILITY_BINDINGS(V) \
-  V(electron_browser_event_emitter)  \
-  V(electron_common_net)             \
+#define ELECTRON_UTILITY_BINDINGS(V)     \
+  V(electron_browser_event_emitter)      \
+  V(electron_browser_system_preferences) \
+  V(electron_common_net)                 \
   V(electron_utility_parent_port)
 
 #define ELECTRON_TESTING_BINDINGS(V) V(electron_common_testing)
@@ -255,7 +256,6 @@ v8::ModifyCodeGenerationFromStringsResult ModifyCodeGenerationFromStrings(
     // enabled.
     if (!electron::IsRendererProcess()) {
       NOTREACHED();
-      return {false, {}};
     }
     return blink::V8Initializer::CodeGenerationCheckCallbackInMainThread(
         context, source, is_code_like);
@@ -338,7 +338,7 @@ bool IsAllowedOption(const std::string_view option) {
 // Initialize NODE_OPTIONS to pass to Node.js
 // See https://nodejs.org/api/cli.html#cli_node_options_options
 void SetNodeOptions(base::Environment* env) {
-  // Options that are unilaterally disallowed
+  // Options that are expressly disallowed
   static constexpr auto disallowed = base::MakeFixedFlatSet<std::string_view>({
       "--enable-fips",
       "--experimental-policy",
@@ -352,6 +352,13 @@ void SetNodeOptions(base::Environment* env) {
       "--http-parser",
       "--max-http-header-size",
   });
+
+  if (env->HasVar("NODE_EXTRA_CA_CERTS")) {
+    if (!electron::fuses::IsNodeOptionsEnabled()) {
+      LOG(WARNING) << "NODE_OPTIONS ignored due to disabled nodeOptions fuse.";
+      env->UnSetVar("NODE_EXTRA_CA_CERTS");
+    }
+  }
 
   if (env->HasVar("NODE_OPTIONS")) {
     if (electron::fuses::IsNodeOptionsEnabled()) {
@@ -383,8 +390,8 @@ void SetNodeOptions(base::Environment* env) {
       // overwrite new NODE_OPTIONS without unsupported variables
       env->SetVar("NODE_OPTIONS", options);
     } else {
-      LOG(ERROR) << "NODE_OPTIONS have been disabled in this app";
-      env->SetVar("NODE_OPTIONS", "");
+      LOG(WARNING) << "NODE_OPTIONS ignored due to disabled nodeOptions fuse.";
+      env->UnSetVar("NODE_OPTIONS");
     }
   }
 }
@@ -651,8 +658,7 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
     v8::TryCatch try_catch(isolate);
     env = node::CreateEnvironment(
         static_cast<node::IsolateData*>(isolate_data), context, args, exec_args,
-        static_cast<node::EnvironmentFlags::Flags>(env_flags), {}, {},
-        &OnNodePreload);
+        static_cast<node::EnvironmentFlags::Flags>(env_flags));
 
     if (try_catch.HasCaught()) {
       std::string err_msg =
@@ -784,7 +790,7 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
 }
 
 void NodeBindings::LoadEnvironment(node::Environment* env) {
-  node::LoadEnvironment(env, node::StartExecutionCallback{});
+  node::LoadEnvironment(env, node::StartExecutionCallback{}, &OnNodePreload);
   gin_helper::EmitEvent(env->isolate(), env->process_object(), "loaded");
 }
 

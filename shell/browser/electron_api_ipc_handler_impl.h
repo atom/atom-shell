@@ -20,7 +20,7 @@ class RenderFrameHost;
 
 namespace electron {
 class ElectronApiIPCHandlerImpl : public mojom::ElectronApiIPC,
-                                  public content::WebContentsObserver {
+                                  private content::WebContentsObserver {
  public:
   explicit ElectronApiIPCHandlerImpl(
       content::RenderFrameHost* render_frame_host,

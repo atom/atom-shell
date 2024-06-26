@@ -9,10 +9,10 @@ don't get errors for Chrome's generated resources, which are non-existent
 because we don't generate them in our build.
 
 diff --git a/chrome/browser/ui/views/overlay/close_image_button.cc b/chrome/browser/ui/views/overlay/close_image_button.cc
-index 1a0c7f5f204f00b52747ebb7800b39a3479f1178..52a1b350c8b5a13b4c0636b43f4773b72872f025 100644
+index d236578cefc347e772305ac7ec54b9734e4aa20b..6bb89cea3b6b91ec8ea351ed60c4e4056a6340bb 100644
 --- a/chrome/browser/ui/views/overlay/close_image_button.cc
 +++ b/chrome/browser/ui/views/overlay/close_image_button.cc
-@@ -4,11 +4,14 @@
+@@ -4,10 +4,13 @@
  
  #include "chrome/browser/ui/views/overlay/close_image_button.h"
  
@@ -21,26 +21,25 @@ index 1a0c7f5f204f00b52747ebb7800b39a3479f1178..52a1b350c8b5a13b4c0636b43f4773b7
  #include "chrome/browser/ui/color/chrome_color_id.h"
  #include "chrome/grit/generated_resources.h"
 +#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
- #include "components/omnibox/browser/omnibox_field_trial.h"
  #include "components/vector_icons/vector_icons.h"
 +#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
  #include "ui/base/l10n/l10n_util.h"
  #include "ui/base/metadata/metadata_impl_macros.h"
  #include "ui/base/models/image_model.h"
-@@ -28,9 +31,11 @@ CloseImageButton::CloseImageButton(PressedCallback callback)
+@@ -27,7 +30,10 @@ CloseImageButton::CloseImageButton(PressedCallback callback)
+     : OverlayWindowImageButton(std::move(callback)) {
    SetSize(gfx::Size(kCloseButtonSize, kCloseButtonSize));
  
-   auto* icon = &views::kIcCloseIcon;
+-  auto* icon = &vector_icons::kCloseChromeRefreshIcon;
++  auto* icon = &views::kIcCloseIcon;
 +#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
-   if (OmniboxFieldTrial::IsChromeRefreshIconsEnabled()) {
-     icon = &vector_icons::kCloseChromeRefreshIcon;
-   }
++  icon = &vector_icons::kCloseChromeRefreshIcon;
 +#endif  // BUILDFLAG(GOOGLE_CHROME_BRANDING)
    SetImageModel(views::Button::STATE_NORMAL,
                  ui::ImageModel::FromVectorIcon(*icon, kColorPipWindowForeground,
                                                 kCloseButtonIconSize));
 diff --git a/chrome/browser/ui/views/overlay/video_overlay_window_views.cc b/chrome/browser/ui/views/overlay/video_overlay_window_views.cc
-index 8f486ad5ce3862038dc749148044876fbc7e9da2..b3419d2bb60ab0488fc0413843c33b5a926fee09 100644
+index 2de1e8257b1fb47078326774e841404f7695165a..62280109a74b5d606f16503151a98449147cc660 100644
 --- a/chrome/browser/ui/views/overlay/video_overlay_window_views.cc
 +++ b/chrome/browser/ui/views/overlay/video_overlay_window_views.cc
 @@ -17,9 +17,11 @@
@@ -55,16 +54,16 @@ index 8f486ad5ce3862038dc749148044876fbc7e9da2..b3419d2bb60ab0488fc0413843c33b5a
  #include "chrome/browser/ui/color/chrome_color_id.h"
  #include "chrome/browser/ui/views/overlay/back_to_tab_label_button.h"
  #include "chrome/browser/ui/views/overlay/close_image_button.h"
-@@ -58,7 +60,7 @@
+@@ -59,7 +61,7 @@
  #include "ui/aura/window.h"
  #endif
  
 -#if BUILDFLAG(IS_WIN)
 +#if 0
  #include "chrome/browser/shell_integration_win.h"
+ #include "content/public/browser/render_widget_host_view.h"
  #include "ui/aura/window.h"
- #include "ui/aura/window_tree_host.h"
-@@ -292,7 +294,7 @@ std::unique_ptr<VideoOverlayWindowViews> VideoOverlayWindowViews::Create(
+@@ -312,7 +314,7 @@ std::unique_ptr<VideoOverlayWindowViews> VideoOverlayWindowViews::Create(
    overlay_window->Init(std::move(params));
    overlay_window->OnRootViewReady();
  

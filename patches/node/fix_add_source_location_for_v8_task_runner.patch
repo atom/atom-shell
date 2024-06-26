@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: VerteDinde <vertedinde@electronjs.org>
+Date: Mon, 29 Apr 2024 02:56:27 -0700
+Subject: fix: add source location for v8::Task Runner
+
+This patch corresponds with an upstream change which adds
+Post*TaskImpl variants of v8::TaskRunner::Post*Task methods,
+which take a v8::SourceLocation argument, and makes Post*Task
+methods non-virtual. In the original CL, embedders are asked
+to override the Post*TaskImpl methods.
+
+This patch can be removed when node's upstream makes a
+corresponding change.
+
+CL: https://chromium-review.googlesource.com/c/v8/v8/+/5300826
+
+diff --git a/src/node_platform.cc b/src/node_platform.cc
+index 00ca9757bc4d0cdeb03a3f32be3ef19077cb7969..65a9b79ae6ac8b7589e8f8109a709acb41d12b97 100644
+--- a/src/node_platform.cc
++++ b/src/node_platform.cc
+@@ -245,11 +245,13 @@ void PerIsolatePlatformData::FlushTasks(uv_async_t* handle) {
+   platform_data->FlushForegroundTasksInternal();
+ }
+ 
+-void PerIsolatePlatformData::PostIdleTask(std::unique_ptr<v8::IdleTask> task) {
++void PerIsolatePlatformData::PostIdleTaskImpl(std::unique_ptr<v8::IdleTask> task,
++                                              const v8::SourceLocation& location) {
+   UNREACHABLE();
+ }
+ 
+-void PerIsolatePlatformData::PostTask(std::unique_ptr<Task> task) {
++void PerIsolatePlatformData::PostTaskImpl(std::unique_ptr<Task> task,
++                                          const v8::SourceLocation& location) {
+   if (flush_tasks_ == nullptr) {
+     // V8 may post tasks during Isolate disposal. In that case, the only
+     // sensible path forward is to discard the task.
+@@ -259,8 +261,10 @@ void PerIsolatePlatformData::PostTask(std::unique_ptr<Task> task) {
+   uv_async_send(flush_tasks_);
+ }
+ 
+-void PerIsolatePlatformData::PostDelayedTask(
+-    std::unique_ptr<Task> task, double delay_in_seconds) {
++void PerIsolatePlatformData::PostDelayedTaskImpl(
++    std::unique_ptr<Task> task,
++    double delay_in_seconds,
++    const v8::SourceLocation& location) {
+   if (flush_tasks_ == nullptr) {
+     // V8 may post tasks during Isolate disposal. In that case, the only
+     // sensible path forward is to discard the task.
+@@ -274,13 +278,15 @@ void PerIsolatePlatformData::PostDelayedTask(
+   uv_async_send(flush_tasks_);
+ }
+ 
+-void PerIsolatePlatformData::PostNonNestableTask(std::unique_ptr<Task> task) {
++void PerIsolatePlatformData::PostNonNestableTaskImpl(std::unique_ptr<Task> task,
++                                                     const v8::SourceLocation& location) {
+   PostTask(std::move(task));
+ }
+ 
+-void PerIsolatePlatformData::PostNonNestableDelayedTask(
++void PerIsolatePlatformData::PostNonNestableDelayedTaskImpl(
+     std::unique_ptr<Task> task,
+-    double delay_in_seconds) {
++    double delay_in_seconds,
++    const v8::SourceLocation& location) {
+   PostDelayedTask(std::move(task), delay_in_seconds);
+ }
+ 
+diff --git a/src/node_platform.h b/src/node_platform.h
+index 77cb5e6e4f891c510cdaf7fd6175a1f00d9bc420..dde2d1b5687a5b52a4f09183bb4ff88d7d3e4d01 100644
+--- a/src/node_platform.h
++++ b/src/node_platform.h
+@@ -59,18 +59,21 @@ class PerIsolatePlatformData :
+   ~PerIsolatePlatformData() override;
+ 
+   std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner() override;
+-  void PostTask(std::unique_ptr<v8::Task> task) override;
+-  void PostIdleTask(std::unique_ptr<v8::IdleTask> task) override;
+-  void PostDelayedTask(std::unique_ptr<v8::Task> task,
+-                       double delay_in_seconds) override;
++  void PostTaskImpl(std::unique_ptr<v8::Task> task, const v8::SourceLocation&) override;
++  void PostIdleTaskImpl(std::unique_ptr<v8::IdleTask> task, const v8::SourceLocation&) override;
++  void PostDelayedTaskImpl(std::unique_ptr<v8::Task> task,
++                          double delay_in_seconds,
++                          const v8::SourceLocation&) override;
+   bool IdleTasksEnabled() override { return false; }
+ 
+   // Non-nestable tasks are treated like regular tasks.
+   bool NonNestableTasksEnabled() const override { return true; }
+   bool NonNestableDelayedTasksEnabled() const override { return true; }
+-  void PostNonNestableTask(std::unique_ptr<v8::Task> task) override;
+-  void PostNonNestableDelayedTask(std::unique_ptr<v8::Task> task,
+-                                  double delay_in_seconds) override;
++  void PostNonNestableTaskImpl(std::unique_ptr<v8::Task> task,
++                               const v8::SourceLocation&) override;
++  void PostNonNestableDelayedTaskImpl(std::unique_ptr<v8::Task> task,
++                                      double delay_in_seconds,
++                                      const v8::SourceLocation&) override;
+ 
+   void AddShutdownCallback(void (*callback)(void*), void* data);
+   void Shutdown();

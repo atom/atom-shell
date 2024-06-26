@@ -78,7 +78,8 @@ class ElectronMimeHandlerViewGuestDelegate
   }
 
   void RecordLoadMetric(bool in_main_frame,
-                        const std::string& mime_type) override {}
+                        const std::string& mime_type,
+                        content::BrowserContext* browser_context) override {}
 };
 
 ElectronExtensionsAPIClient::ElectronExtensionsAPIClient() = default;

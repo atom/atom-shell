@@ -7,7 +7,7 @@ We don't use gin to create the V8 platform, because we need to inject Node
 things.
 
 diff --git a/gin/isolate_holder.cc b/gin/isolate_holder.cc
-index cdaa098dd404ae477d208375cc4c9ca1b5ac43e4..cb2529a65f62c40e39d7cd4c96e50e1b72abbd53 100644
+index 53599a5f245f2401bacc1b424f459c06b713b086..61d35042fcd0aa7b632c34253bce42a00c8d732d 100644
 --- a/gin/isolate_holder.cc
 +++ b/gin/isolate_holder.cc
 @@ -151,9 +151,10 @@ void IsolateHolder::Initialize(ScriptMode mode,
@@ -38,10 +38,10 @@ index c19eb72e8d37fe8145b813d07875addf793e12dc..a5db8841773618814ac90f740201d4d7
    // Returns whether `Initialize` has already been invoked in the process.
    // Initialization is a one-way operation (i.e., this method cannot return
 diff --git a/gin/v8_initializer.cc b/gin/v8_initializer.cc
-index 0b7fcb2ffd5e1a803b3d9b63e6c4285d32909364..f823cf647d1ae3d57fba3aa7a2325debcdf6050a 100644
+index 188bb9664a06782936cfeb82a66ded005a9ef653..1202c8e3e86d18212609a63ac94aa41c9318f5ee 100644
 --- a/gin/v8_initializer.cc
 +++ b/gin/v8_initializer.cc
-@@ -451,7 +451,8 @@ void SetFlags(IsolateHolder::ScriptMode mode,
+@@ -473,7 +473,8 @@ void SetFlags(IsolateHolder::ScriptMode mode,
  // static
  void V8Initializer::Initialize(IsolateHolder::ScriptMode mode,
                                 const std::string js_command_line_flags,
@@ -51,7 +51,7 @@ index 0b7fcb2ffd5e1a803b3d9b63e6c4285d32909364..f823cf647d1ae3d57fba3aa7a2325deb
    static bool v8_is_initialized = false;
    if (v8_is_initialized)
      return;
-@@ -461,7 +462,8 @@ void V8Initializer::Initialize(IsolateHolder::ScriptMode mode,
+@@ -483,7 +484,8 @@ void V8Initializer::Initialize(IsolateHolder::ScriptMode mode,
    // See https://crbug.com/v8/11043
    SetFlags(mode, js_command_line_flags);
  

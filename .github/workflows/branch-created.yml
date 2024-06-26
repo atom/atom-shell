@@ -73,7 +73,7 @@ jobs:
           org: electron
       - name: Generate Release Project Board Metadata
         if: ${{ steps.check-major-version.outputs.MAJOR }}
-        uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6.4.1
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         id: generate-project-metadata
         with:
           script: |
@@ -92,7 +92,7 @@ jobs:
             }))
       - name: Create Release Project Board
         if: ${{ steps.check-major-version.outputs.MAJOR }}
-        uses: dsanders11/project-actions/copy-project@3a81985616963f32fae17d1d1b406c631f3201a1 # v1.1.0
+        uses: dsanders11/project-actions/copy-project@eb760c48894b5702398529cbb8f6e98378e315d0 # v1.3.0
         id: create-release-board
         with:
           drafts: true
@@ -112,14 +112,14 @@ jobs:
           GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       - name: Find Previous Release Project Board
         if: ${{ steps.check-major-version.outputs.MAJOR }}
-        uses: dsanders11/project-actions/find-project@3a81985616963f32fae17d1d1b406c631f3201a1 # v1.1.0
+        uses: dsanders11/project-actions/find-project@eb760c48894b5702398529cbb8f6e98378e315d0 # v1.3.0
         id: find-prev-release-board
         with:
           title: ${{ steps.generate-project-metadata.outputs.prev-prev-major }}-x-y
           token: ${{ steps.generate-token.outputs.token }}
       - name: Close Previous Release Project Board
         if: ${{ steps.check-major-version.outputs.MAJOR }}
-        uses: dsanders11/project-actions/close-project@3a81985616963f32fae17d1d1b406c631f3201a1 # v1.1.0
+        uses: dsanders11/project-actions/close-project@eb760c48894b5702398529cbb8f6e98378e315d0 # v1.3.0
         with:
           project-number: ${{ steps.find-prev-release-board.outputs.number }}
           token: ${{ steps.generate-token.outputs.token }}

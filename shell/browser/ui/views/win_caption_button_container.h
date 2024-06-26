@@ -27,7 +27,7 @@ class WinCaptionButton;
 // frame and browser window as needed. When extended horizontally, becomes a
 // grab bar for moving the window.
 class WinCaptionButtonContainer : public views::View,
-                                  public views::WidgetObserver {
+                                  private views::WidgetObserver {
   METADATA_HEADER(WinCaptionButtonContainer, views::View)
 
  public:

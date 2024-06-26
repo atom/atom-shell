@@ -23,11 +23,11 @@ Upstream bug https://bugs.chromium.org/p/chromium/issues/detail?id=1081397.
 Upstreamed at https://chromium-review.googlesource.com/c/chromium/src/+/3856266.
 
 diff --git a/content/browser/renderer_host/navigation_request.cc b/content/browser/renderer_host/navigation_request.cc
-index 008eb76b86902b2ec5fa4a10cee4a9f2871d7d08..03ecfc07fcd5acdf4ccfdd1b83c1b19a35cf6dec 100644
+index 9d97c3debed1c679d3c1cf2cec4dc5a26dbfffa9..f30b9ad364adac48904d82afcaa9ff91c9c46ab3 100644
 --- a/content/browser/renderer_host/navigation_request.cc
 +++ b/content/browser/renderer_host/navigation_request.cc
-@@ -10216,6 +10216,12 @@ NavigationRequest::GetOriginForURLLoaderFactoryUncheckedWithDebugInfo() {
-     return std::make_pair(parent->GetLastCommittedOrigin(), "about_srcdoc");
+@@ -10466,6 +10466,12 @@ NavigationRequest::GetOriginForURLLoaderFactoryUncheckedWithDebugInfo() {
+     }
    }
  
 +  if (!common_params().url.IsStandard()) {
@@ -40,10 +40,10 @@ index 008eb76b86902b2ec5fa4a10cee4a9f2871d7d08..03ecfc07fcd5acdf4ccfdd1b83c1b19a
    // origin of |common_params.url| and/or |common_params.initiator_origin|.
    url::Origin resolved_origin = url::Origin::Resolve(
 diff --git a/third_party/blink/renderer/core/loader/document_loader.cc b/third_party/blink/renderer/core/loader/document_loader.cc
-index 059d39e07ccdeb4cd61778d4cc0c764aa35ede8f..e486e85545f2d36579e8e7b08b037bc700a7ce9f 100644
+index dd529bc8c76fe77500110a423132617aa34bd85a..9bd2033a4d7e762973f6cb5c92b8a67d366f3195 100644
 --- a/third_party/blink/renderer/core/loader/document_loader.cc
 +++ b/third_party/blink/renderer/core/loader/document_loader.cc
-@@ -2127,6 +2127,10 @@ Frame* DocumentLoader::CalculateOwnerFrame() {
+@@ -2225,6 +2225,10 @@ Frame* DocumentLoader::CalculateOwnerFrame() {
  scoped_refptr<SecurityOrigin> DocumentLoader::CalculateOrigin(
      Document* owner_document) {
    scoped_refptr<SecurityOrigin> origin;
@@ -52,9 +52,9 @@ index 059d39e07ccdeb4cd61778d4cc0c764aa35ede8f..e486e85545f2d36579e8e7b08b037bc7
 +  is_standard = url::IsStandard(
 +      protocol.data(), url::Component(0, static_cast<int>(protocol.size())));
    StringBuilder debug_info_builder;
-   if (origin_to_commit_) {
-     // Origin to commit is specified by the browser process, it must be taken
-@@ -2174,6 +2178,10 @@ scoped_refptr<SecurityOrigin> DocumentLoader::CalculateOrigin(
+   // Whether the origin is newly created within this call, instead of copied
+   // from an existing document's origin or from `origin_to_commit_`. If this is
+@@ -2277,6 +2281,10 @@ scoped_refptr<SecurityOrigin> DocumentLoader::CalculateOrigin(
      debug_info_builder.Append(", url=");
      debug_info_builder.Append(owner_document->Url().BaseAsString());
      debug_info_builder.Append(")");

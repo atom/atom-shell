@@ -21,10 +21,11 @@
 #include "components/viz/common/frame_sinks/copy_output_request.h"
 #include "components/viz/common/frame_sinks/delay_based_time_source.h"
 #include "components/viz/common/quads/compositor_render_pass.h"
-#include "content/browser/renderer_host/cursor_manager.h"  // nogncheck
 #include "content/browser/renderer_host/render_widget_host_delegate.h"  // nogncheck
 #include "content/browser/renderer_host/render_widget_host_owner_delegate.h"  // nogncheck
+#include "content/common/input/cursor_manager.h"
 #include "content/common/input/synthetic_gesture.h"  // nogncheck
+#include "content/common/input/synthetic_gesture_target.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/context_factory.h"
@@ -134,6 +135,7 @@ class ElectronDelegatedFrameHostClient
   ElectronDelegatedFrameHostClient& operator=(
       const ElectronDelegatedFrameHostClient&) = delete;
 
+  // content::DelegatedFrameHostClient
   ui::Layer* DelegatedFrameHostGetLayer() const override {
     return view_->root_layer();
   }
@@ -159,8 +161,11 @@ class ElectronDelegatedFrameHostClient
     return view_->GetDeviceScaleFactor();
   }
 
-  std::vector<viz::SurfaceId> CollectSurfaceIdsForEviction() override {
-    return view_->render_widget_host()->CollectSurfaceIdsForEviction();
+  viz::FrameEvictorClient::EvictIds CollectSurfaceIdsForEviction() override {
+    viz::FrameEvictorClient::EvictIds ids;
+    ids.embedded_ids =
+        view_->render_widget_host()->CollectSurfaceIdsForEviction();
+    return ids;
   }
 
   bool ShouldShowStaleContentOnEviction() override { return false; }
@@ -229,6 +234,7 @@ OffScreenRenderWidgetHostView::OffScreenRenderWidgetHostView(
 
   ResizeRootLayer(false);
   render_widget_host_->SetView(this);
+  render_widget_host_->render_frame_metadata_provider()->AddObserver(this);
 
   if (content::GpuDataManager::GetInstance()->HardwareAccelerationEnabled()) {
     video_consumer_ = std::make_unique<OffScreenVideoConsumer>(
@@ -239,7 +245,21 @@ OffScreenRenderWidgetHostView::OffScreenRenderWidgetHostView(
   }
 }
 
+void OffScreenRenderWidgetHostView::OnLocalSurfaceIdChanged(
+    const cc::RenderFrameMetadata& metadata) {
+  if (metadata.local_surface_id) {
+    bool changed = delegated_frame_host_allocator_.UpdateFromChild(
+        *metadata.local_surface_id);
+
+    if (changed) {
+      ResizeRootLayer(true);
+    }
+  }
+}
+
 OffScreenRenderWidgetHostView::~OffScreenRenderWidgetHostView() {
+  render_widget_host_->render_frame_metadata_provider()->RemoveObserver(this);
+
   // Marking the DelegatedFrameHost as removed from the window hierarchy is
   // necessary to remove all connections to its old ui::Compositor.
   if (is_showing_)
@@ -574,7 +594,7 @@ void OffScreenRenderWidgetHostView::DidNavigate() {
 
 bool OffScreenRenderWidgetHostView::TransformPointToCoordSpaceForView(
     const gfx::PointF& point,
-    RenderWidgetHostViewBase* target_view,
+    RenderWidgetHostViewInput* target_view,
     gfx::PointF* transformed_point) {
   if (target_view == this) {
     *transformed_point = point;
@@ -677,6 +697,10 @@ void OffScreenRenderWidgetHostView::ShowSharePicker(
 
 bool OffScreenRenderWidgetHostView::UpdateNSViewAndDisplay() {
   return false;
+}
+
+uint64_t OffScreenRenderWidgetHostView::GetNSViewId() const {
+  return 0;
 }
 #endif
 

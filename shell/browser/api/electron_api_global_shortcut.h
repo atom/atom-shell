@@ -16,7 +16,7 @@
 
 namespace electron::api {
 
-class GlobalShortcut : public extensions::GlobalShortcutListener::Observer,
+class GlobalShortcut : private extensions::GlobalShortcutListener::Observer,
                        public gin::Wrappable<GlobalShortcut> {
  public:
   static gin::Handle<GlobalShortcut> Create(v8::Isolate* isolate);

@@ -24,8 +24,6 @@ namespace electron::api {
 
 class WebRequest : public gin::Wrappable<WebRequest>, public WebRequestAPI {
  public:
-  static gin::WrapperInfo kWrapperInfo;
-
   // Return the WebRequest object attached to |browser_context|, create if there
   // is no one.
   // Note that the lifetime of WebRequest object is managed by Session, instead
@@ -44,6 +42,7 @@ class WebRequest : public gin::Wrappable<WebRequest>, public WebRequestAPI {
                                       content::BrowserContext* browser_context);
 
   // gin::Wrappable:
+  static gin::WrapperInfo kWrapperInfo;
   gin::ObjectTemplateBuilder GetObjectTemplateBuilder(
       v8::Isolate* isolate) override;
   const char* GetTypeName() override;

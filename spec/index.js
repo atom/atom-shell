@@ -40,6 +40,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme: global.standardScheme, privileges: { standard: true, secure: true, stream: false } },
   { scheme: global.zoomScheme, privileges: { standard: true, secure: true } },
   { scheme: global.serviceWorkerScheme, privileges: { allowServiceWorkers: true, standard: true, secure: true } },
+  { scheme: 'http-like', privileges: { standard: true, secure: true, corsEnabled: true, supportFetchAPI: true } },
   { scheme: 'cors-blob', privileges: { corsEnabled: true, supportFetchAPI: true } },
   { scheme: 'cors', privileges: { corsEnabled: true, supportFetchAPI: true } },
   { scheme: 'no-cors', privileges: { supportFetchAPI: true } },
@@ -147,7 +148,7 @@ app.whenReady().then(async () => {
   };
 
   const { getFiles } = require('./get-files');
-  const testFiles = await getFiles(__dirname, { filter });
+  const testFiles = await getFiles(__dirname, filter);
   for (const file of testFiles.sort()) {
     mocha.addFile(file);
   }

@@ -15,6 +15,7 @@ class NodeBindingsWin : public NodeBindings {
   explicit NodeBindingsWin(BrowserEnvironment browser_env);
 
  private:
+  // NodeBindings
   void PollEvents() override;
 };
 

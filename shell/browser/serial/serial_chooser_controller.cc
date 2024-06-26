@@ -11,6 +11,9 @@
 #include "base/functional/bind.h"
 #include "base/strings/stringprintf.h"
 #include "base/strings/utf_string_conversions.h"
+#include "device/bluetooth/public/cpp/bluetooth_uuid.h"
+#include "services/device/public/cpp/bluetooth/bluetooth_utils.h"
+#include "services/device/public/mojom/serial.mojom.h"
 #include "shell/browser/api/electron_api_session.h"
 #include "shell/browser/serial/serial_chooser_context.h"
 #include "shell/browser/serial/serial_chooser_context_factory.h"
@@ -58,14 +61,57 @@ struct Converter<device::mojom::SerialPortInfoPtr> {
 
 namespace electron {
 
+namespace {
+
+using ::device::mojom::SerialPortType;
+
+bool FilterMatchesPort(const blink::mojom::SerialPortFilter& filter,
+                       const device::mojom::SerialPortInfo& port) {
+  if (filter.bluetooth_service_class_id) {
+    if (!port.bluetooth_service_class_id) {
+      return false;
+    }
+    return device::BluetoothUUID(*port.bluetooth_service_class_id) ==
+           device::BluetoothUUID(*filter.bluetooth_service_class_id);
+  }
+  if (!filter.has_vendor_id) {
+    return true;
+  }
+  if (!port.has_vendor_id || port.vendor_id != filter.vendor_id) {
+    return false;
+  }
+  if (!filter.has_product_id) {
+    return true;
+  }
+  return port.has_product_id && port.product_id == filter.product_id;
+}
+
+bool BluetoothPortIsAllowed(
+    const std::vector<::device::BluetoothUUID>& allowed_ids,
+    const device::mojom::SerialPortInfo& port) {
+  if (!port.bluetooth_service_class_id) {
+    return true;
+  }
+  // Serial Port Profile is allowed by default.
+  if (*port.bluetooth_service_class_id == device::GetSerialPortProfileUUID()) {
+    return true;
+  }
+  return base::Contains(allowed_ids, port.bluetooth_service_class_id.value());
+}
+
+}  // namespace
+
 SerialChooserController::SerialChooserController(
     content::RenderFrameHost* render_frame_host,
     std::vector<blink::mojom::SerialPortFilterPtr> filters,
+    std::vector<::device::BluetoothUUID> allowed_bluetooth_service_class_ids,
     content::SerialChooser::Callback callback,
     content::WebContents* web_contents,
     base::WeakPtr<ElectronSerialDelegate> serial_delegate)
     : WebContentsObserver(web_contents),
       filters_(std::move(filters)),
+      allowed_bluetooth_service_class_ids_(
+          std::move(allowed_bluetooth_service_class_ids)),
       callback_(std::move(callback)),
       serial_delegate_(serial_delegate),
       render_frame_host_id_(render_frame_host->GetGlobalId()) {
@@ -93,7 +139,11 @@ api::Session* SerialChooserController::GetSession() {
 
 void SerialChooserController::OnPortAdded(
     const device::mojom::SerialPortInfo& port) {
+  if (!DisplayDevice(port))
+    return;
+
   ports_.push_back(port.Clone());
+
   api::Session* session = GetSession();
   if (session) {
     session->Emit("serial-port-added", port.Clone(), web_contents());
@@ -102,9 +152,8 @@ void SerialChooserController::OnPortAdded(
 
 void SerialChooserController::OnPortRemoved(
     const device::mojom::SerialPortInfo& port) {
-  const auto it = std::find_if(
-      ports_.begin(), ports_.end(),
-      [&port](const auto& ptr) { return ptr->token == port.token; });
+  const auto it = base::ranges::find(ports_, port.token,
+                                     &device::mojom::SerialPortInfo::token);
   if (it != ports_.end()) {
     api::Session* session = GetSession();
     if (session) {
@@ -149,7 +198,7 @@ void SerialChooserController::OnGetDevices(
             });
 
   for (auto& port : ports) {
-    if (FilterMatchesAny(*port))
+    if (DisplayDevice(*port))
       ports_.push_back(std::move(port));
   }
 
@@ -166,21 +215,17 @@ void SerialChooserController::OnGetDevices(
   }
 }
 
-bool SerialChooserController::FilterMatchesAny(
+bool SerialChooserController::DisplayDevice(
     const device::mojom::SerialPortInfo& port) const {
-  if (filters_.empty())
-    return true;
+  if (filters_.empty()) {
+    return BluetoothPortIsAllowed(allowed_bluetooth_service_class_ids_, port);
+  }
 
   for (const auto& filter : filters_) {
-    if (filter->has_vendor_id &&
-        (!port.has_vendor_id || filter->vendor_id != port.vendor_id)) {
-      continue;
+    if (FilterMatchesPort(*filter, port) &&
+        BluetoothPortIsAllowed(allowed_bluetooth_service_class_ids_, port)) {
+      return true;
     }
-    if (filter->has_product_id &&
-        (!port.has_product_id || filter->product_id != port.product_id)) {
-      continue;
-    }
-    return true;
   }
 
   return false;

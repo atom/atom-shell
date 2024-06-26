@@ -121,8 +121,8 @@ To automate the detection of misconfigurations and insecure patterns, it is
 possible to use
 [Electronegativity](https://github.com/doyensec/electronegativity). For
 additional details on potential weaknesses and implementation bugs when
-developing applications using Electron, please refer to this [guide for
-developers and auditors](https://doyensec.com/resources/us-17-Carettoni-Electronegativity-A-Study-Of-Electron-Security-wp.pdf).
+developing applications using Electron, please refer to this
+[guide for developers and auditors](https://doyensec.com/resources/us-17-Carettoni-Electronegativity-A-Study-Of-Electron-Security-wp.pdf).
 
 ### 1. Only load secure content
 
@@ -246,7 +246,7 @@ and prevent the use of Node primitives `contextIsolation` **must** also be used.
 :::info
 For more information on what `contextIsolation` is and how to enable it please
 see our dedicated [Context Isolation](context-isolation.md) document.
-:::info
+:::
 
 ### 4. Enable process sandboxing
 
@@ -259,7 +259,7 @@ content in an unsandboxed process, including the main process, is not advised.
 :::info
 For more information on what Process Sandboxing is and how to enable it please
 see our dedicated [Process Sandboxing](sandbox.md) document.
-:::info
+:::
 
 ### 5. Handle session permission requests from remote content
 
@@ -644,8 +644,8 @@ windows at runtime.
 
 #### How?
 
-[`webContents`][web-contents] will delegate to its [window open
-handler][window-open-handler] before creating new windows. The handler will
+[`webContents`][web-contents] will delegate to its
+[window open handler][window-open-handler] before creating new windows. The handler will
 receive, amongst other parameters, the `url` the window was requested to open
 and the options used to create it. We recommend that you register a handler to
 monitor the creation of windows, and deny any unexpected window creation.

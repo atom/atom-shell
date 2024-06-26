@@ -18,7 +18,9 @@ namespace electron::api {
 // Retains reference to the data pipe.
 class DataPipeHolder : public gin::Wrappable<DataPipeHolder> {
  public:
+  // gin::Wrappable
   static gin::WrapperInfo kWrapperInfo;
+  const char* GetTypeName() override;
 
   static gin::Handle<DataPipeHolder> Create(
       v8::Isolate* isolate,

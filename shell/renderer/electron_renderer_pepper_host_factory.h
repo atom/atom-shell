@@ -25,7 +25,7 @@ class ElectronRendererPepperHostFactory : public ppapi::host::HostFactory {
   ElectronRendererPepperHostFactory& operator=(
       const ElectronRendererPepperHostFactory&) = delete;
 
-  // HostFactory.
+  // ppapi::host::HostFactory
   std::unique_ptr<ppapi::host::ResourceHost> CreateResourceHost(
       ppapi::host::PpapiHost* host,
       PP_Resource resource,

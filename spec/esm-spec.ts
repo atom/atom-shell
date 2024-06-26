@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import * as cp from 'node:child_process';
 import { BrowserWindow } from 'electron';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -72,15 +72,15 @@ describe('esm', () => {
       if (w) w.close();
       w = null;
       while (tempDirs.length) {
-        await fs.remove(tempDirs.pop()!);
+        await fs.promises.rm(tempDirs.pop()!, { force: true, recursive: true });
       }
     });
 
     async function loadWindowWithPreload (preload: string, webPreferences: Electron.WebPreferences) {
-      const tmpDir = await fs.mkdtemp(path.resolve(os.tmpdir(), 'e-spec-preload-'));
+      const tmpDir = await fs.promises.mkdtemp(path.resolve(os.tmpdir(), 'e-spec-preload-'));
       tempDirs.push(tmpDir);
       const preloadPath = path.resolve(tmpDir, 'preload.mjs');
-      await fs.writeFile(preloadPath, preload);
+      await fs.promises.writeFile(preloadPath, preload);
 
       w = new BrowserWindow({
         show: false,

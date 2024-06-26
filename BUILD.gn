@@ -81,18 +81,11 @@ if (is_linux) {
     ]
   }
 
-  # Generates electron_gtk_stubs.h header which contains
-  # stubs for extracting function ptrs from the gtk library.
-  # Function signatures for which stubs are required should be
-  # declared in electron_gtk.sigs, currently this file contains
-  # signatures for the functions used with native file chooser
-  # implementation. In future, this file can be extended to contain
-  # gtk4 stubs to switch gtk version in runtime.
+  # Generates headers which contain stubs for extracting function ptrs
+  # from the gtk library. Function signatures for which stubs are
+  # required should be declared in the sig files.
   generate_stubs("electron_gtk_stubs") {
-    sigs = [
-      "shell/browser/ui/electron_gdk_pixbuf.sigs",
-      "shell/browser/ui/electron_gtk.sigs",
-    ]
+    sigs = [ "shell/browser/ui/electron_gdk_pixbuf.sigs" ]
     extra_header = "shell/browser/ui/electron_gtk.fragment"
     output_name = "electron_gtk_stubs"
     public_deps = [ "//ui/gtk:gtk_config" ]
@@ -444,6 +437,7 @@ source_set("electron_lib") {
     "//components/certificate_transparency",
     "//components/compose:buildflags",
     "//components/embedder_support:browser_util",
+    "//components/input:input",
     "//components/language/core/browser",
     "//components/net_log",
     "//components/network_hints/browser",
@@ -472,9 +466,11 @@ source_set("electron_lib") {
     "//gin",
     "//media/capture/mojom:video_capture",
     "//media/mojo/mojom",
+    "//media/mojo/mojom:web_speech_recognition",
     "//net:extras",
     "//net:net_resources",
     "//printing/buildflags",
+    "//services/device/public/cpp/bluetooth:bluetooth",
     "//services/device/public/cpp/geolocation",
     "//services/device/public/cpp/hid",
     "//services/device/public/mojom",
@@ -502,6 +498,7 @@ source_set("electron_lib") {
     "//ui/native_theme",
     "//ui/shell_dialogs",
     "//ui/views",
+    "//ui/views/controls/webview",
     "//v8",
     "//v8:v8_libplatform",
   ]
@@ -637,7 +634,6 @@ source_set("electron_lib") {
       "//ui/gtk:gtk_config",
       "//ui/linux:linux_ui",
       "//ui/linux:linux_ui_factory",
-      "//ui/views/controls/webview",
       "//ui/wm",
     ]
     if (ozone_platform_x11) {
@@ -664,9 +660,9 @@ source_set("electron_lib") {
     libs += [ "dwmapi.lib" ]
     sources += [ "shell/common/asar/archive_win.cc" ]
     deps += [
+      "//components/app_launch_prefetch",
       "//components/crash/core/app:crash_export_thunks",
       "//ui/native_theme:native_theme_browser",
-      "//ui/views/controls/webview",
       "//ui/wm",
       "//ui/wm/public",
     ]
@@ -700,6 +696,8 @@ source_set("electron_lib") {
     sources += [
       "shell/browser/printing/print_view_manager_electron.cc",
       "shell/browser/printing/print_view_manager_electron.h",
+      "shell/browser/printing/printing_utils.cc",
+      "shell/browser/printing/printing_utils.h",
       "shell/renderer/printing/print_render_frame_helper_delegate.cc",
       "shell/renderer/printing/print_render_frame_helper_delegate.h",
     ]
@@ -744,7 +742,8 @@ source_set("electron_lib") {
       "//chrome/browser/resources/pdf:resources",
       "//components/pdf/browser",
       "//components/pdf/browser:interceptors",
-      "//components/pdf/common",
+      "//components/pdf/common:constants",
+      "//components/pdf/common:util",
       "//components/pdf/renderer",
       "//pdf",
     ]
@@ -856,7 +855,7 @@ if (is_mac) {
     if (is_asan) {
       # crashpad_handler requires the ASan runtime at its @executable_path.
       sources += [ "$root_out_dir/libclang_rt.asan_osx_dynamic.dylib" ]
-      public_deps += [ "//build/config/sanitizers:copy_asan_runtime" ]
+      public_deps += [ "//build/config/sanitizers:copy_sanitizer_runtime" ]
     }
   }
 
@@ -1464,8 +1463,10 @@ dist_zip("hunspell_dictionaries_zip") {
 }
 
 copy("libcxx_headers") {
-  sources = libcxx_headers + libcxx_licenses +
-            [ "//buildtools/third_party/libc++/__config_site" ]
+  sources = libcxx_headers + libcxx_licenses + [
+              "//buildtools/third_party/libc++/__assertion_handler",
+              "//buildtools/third_party/libc++/__config_site",
+            ]
   outputs = [ "$target_gen_dir/electron_libcxx_include/{{source_root_relative_dir}}/{{source_file_part}}" ]
 }
 

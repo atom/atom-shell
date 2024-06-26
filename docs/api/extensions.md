@@ -1,9 +1,8 @@
 # Chrome Extension Support
 
-Electron supports a subset of the [Chrome Extensions
-API][chrome-extensions-api-index], primarily to support DevTools extensions and
-Chromium-internal extensions, but it also happens to support some other
-extension capabilities.
+Electron supports a subset of the [Chrome Extensions API][chrome-extensions-api-index],
+primarily to support DevTools extensions and Chromium-internal extensions,
+but it also happens to support some other extension capabilities.
 
 [chrome-extensions-api-index]: https://developer.chrome.com/extensions/api_index
 

@@ -82,4 +82,5 @@ app.on('window-all-closed', () => {
 
 After launching the Electron application, navigate to your application's
 working folder, where you'll find the rendered image.
+
 [disablehardwareacceleration]: ../api/app.md#appdisablehardwareacceleration

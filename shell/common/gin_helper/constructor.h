@@ -26,7 +26,8 @@ inline WrappableBase* InvokeFactory(
     gin::Arguments* args,
     const base::RepeatingCallback<WrappableBase*(P1)>& callback) {
   typename CallbackParamTraits<P1>::LocalType a1;
-  if (!gin_helper::GetNextArgument(args, 0, true, &a1))
+  if (!gin_helper::GetNextArgument(args, {.holder_is_first_argument = true}, 0,
+                                   &a1))
     return nullptr;
   return callback.Run(a1);
 }
@@ -37,8 +38,10 @@ inline WrappableBase* InvokeFactory(
     const base::RepeatingCallback<WrappableBase*(P1, P2)>& callback) {
   typename CallbackParamTraits<P1>::LocalType a1;
   typename CallbackParamTraits<P2>::LocalType a2;
-  if (!gin_helper::GetNextArgument(args, 0, true, &a1) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a2))
+  if (!gin_helper::GetNextArgument(args, {.holder_is_first_argument = true}, 0,
+                                   &a1) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a2))
     return nullptr;
   return callback.Run(a1, a2);
 }
@@ -50,9 +53,12 @@ inline WrappableBase* InvokeFactory(
   typename CallbackParamTraits<P1>::LocalType a1;
   typename CallbackParamTraits<P2>::LocalType a2;
   typename CallbackParamTraits<P3>::LocalType a3;
-  if (!gin_helper::GetNextArgument(args, 0, true, &a1) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a2) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a3))
+  if (!gin_helper::GetNextArgument(args, {.holder_is_first_argument = true}, 0,
+                                   &a1) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a2) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a3))
     return nullptr;
   return callback.Run(a1, a2, a3);
 }
@@ -65,10 +71,14 @@ inline WrappableBase* InvokeFactory(
   typename CallbackParamTraits<P2>::LocalType a2;
   typename CallbackParamTraits<P3>::LocalType a3;
   typename CallbackParamTraits<P4>::LocalType a4;
-  if (!gin_helper::GetNextArgument(args, 0, true, &a1) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a2) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a3) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a4))
+  if (!gin_helper::GetNextArgument(args, {.holder_is_first_argument = true}, 0,
+                                   &a1) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a2) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a3) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a4))
     return nullptr;
   return callback.Run(a1, a2, a3, a4);
 }
@@ -83,11 +93,16 @@ inline WrappableBase* InvokeFactory(
   typename CallbackParamTraits<P3>::LocalType a3;
   typename CallbackParamTraits<P4>::LocalType a4;
   typename CallbackParamTraits<P5>::LocalType a5;
-  if (!gin_helper::GetNextArgument(args, 0, true, &a1) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a2) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a3) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a4) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a5))
+  if (!gin_helper::GetNextArgument(args, {.holder_is_first_argument = true}, 0,
+                                   &a1) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a2) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a3) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a4) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a5))
     return nullptr;
   return callback.Run(a1, a2, a3, a4, a5);
 }
@@ -108,12 +123,18 @@ inline WrappableBase* InvokeFactory(
   typename CallbackParamTraits<P4>::LocalType a4;
   typename CallbackParamTraits<P5>::LocalType a5;
   typename CallbackParamTraits<P6>::LocalType a6;
-  if (!gin_helper::GetNextArgument(args, 0, true, &a1) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a2) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a3) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a4) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a5) ||
-      !gin_helper::GetNextArgument(args, 0, false, &a6))
+  if (!gin_helper::GetNextArgument(args, {.holder_is_first_argument = true}, 0,
+                                   &a1) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a2) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a3) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a4) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a5) ||
+      !gin_helper::GetNextArgument(args, {.holder_is_first_argument = false}, 0,
+                                   &a6))
     return nullptr;
   return callback.Run(a1, a2, a3, a4, a5, a6);
 }

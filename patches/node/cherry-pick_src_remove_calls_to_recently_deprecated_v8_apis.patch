@@ -1,0 +1,182 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Adam Klein <adamk@chromium.org>
+Date: Wed, 15 May 2024 09:16:00 +0200
+Subject: cherry-pick: src: remove calls to recently deprecated V8 APIs
+
+Node.js Commit: a6d54f179d997497a95c18456bef6bc3ee15e2c4
+Node.js PR: https://github.com/nodejs/node/pull/52996
+V8 API Removal CL: https://chromium-review.googlesource.com/c/v8/v8/+/5539888
+
+This patch is slightly modified from the original commit in order to
+resolve conflicts due to the base commit difference between the Node.js
+PR and the current upgrade roll.
+
+This patch is expected to be deleted once we catch up with a Node.js
+upgrade that includes the original Node.js commit above.
+
+diff --git a/src/module_wrap.cc b/src/module_wrap.cc
+index 9ad67e0993da4c3e3f8a14681edbf941cf14e2e6..29ed378d32d452518dc929e60e6038ba4ca38a5c 100644
+--- a/src/module_wrap.cc
++++ b/src/module_wrap.cc
+@@ -186,8 +186,7 @@ void ModuleWrap::New(const FunctionCallbackInfo<Value>& args) {
+       }
+ 
+       Local<String> source_text = args[2].As<String>();
+-      ScriptOrigin origin(isolate,
+-                          url,
++      ScriptOrigin origin(url,
+                           line_offset,
+                           column_offset,
+                           true,                             // is cross origin
+@@ -394,7 +393,6 @@ void ModuleWrap::Evaluate(const FunctionCallbackInfo<Value>& args) {
+ 
+   ShouldNotAbortOnUncaughtScope no_abort_scope(realm->env());
+   TryCatchScope try_catch(realm->env());
+-  Isolate::SafeForTerminationScope safe_for_termination(isolate);
+ 
+   bool timed_out = false;
+   bool received_signal = false;
+diff --git a/src/node_builtins.cc b/src/node_builtins.cc
+index f9a090f5c3e04403602ba383032e7f3230669a92..3f82db324d406e342abee23ab0d7f7c9807ff652 100644
+--- a/src/node_builtins.cc
++++ b/src/node_builtins.cc
+@@ -267,7 +267,7 @@ MaybeLocal<Function> BuiltinLoader::LookupAndCompileInternal(
+   std::string filename_s = std::string("node:") + id;
+   Local<String> filename =
+       OneByteString(isolate, filename_s.c_str(), filename_s.size());
+-  ScriptOrigin origin(isolate, filename, 0, 0, true);
++  ScriptOrigin origin(filename, 0, 0, true);
+ 
+   BuiltinCodeCacheData cached_data{};
+   {
+diff --git a/src/node_contextify.cc b/src/node_contextify.cc
+index df1d9cb4fd0442ec6ce6164a136b7a5fbcbe5b67..f6969e635f692b17b4efca1dfbee086a0199db6e 100644
+--- a/src/node_contextify.cc
++++ b/src/node_contextify.cc
+@@ -850,16 +850,15 @@ void ContextifyScript::New(const FunctionCallbackInfo<Value>& args) {
+   host_defined_options->Set(
+       isolate, loader::HostDefinedOptions::kID, id_symbol);
+ 
+-  ScriptOrigin origin(isolate,
+-                      filename,
+-                      line_offset,                          // line offset
+-                      column_offset,                        // column offset
+-                      true,                                 // is cross origin
+-                      -1,                                   // script id
+-                      Local<Value>(),                       // source map URL
+-                      false,                                // is opaque (?)
+-                      false,                                // is WASM
+-                      false,                                // is ES Module
++  ScriptOrigin origin(filename,
++                      line_offset,     // line offset
++                      column_offset,   // column offset
++                      true,            // is cross origin
++                      -1,              // script id
++                      Local<Value>(),  // source map URL
++                      false,           // is opaque (?)
++                      false,           // is WASM
++                      false,           // is ES Module
+                       host_defined_options);
+   ScriptCompiler::Source source(code, origin, cached_data);
+   ScriptCompiler::CompileOptions compile_options =
+@@ -971,7 +970,7 @@ MaybeLocal<Function> CompileFunction(Local<Context> context,
+                                      Local<String> filename,
+                                      Local<String> content,
+                                      std::vector<Local<String>>* parameters) {
+-  ScriptOrigin script_origin(context->GetIsolate(), filename, 0, 0, true);
++  ScriptOrigin script_origin(filename, 0, 0, true);
+   ScriptCompiler::Source script_source(content, script_origin);
+ 
+   return ScriptCompiler::CompileFunction(context,
+@@ -1081,7 +1080,6 @@ bool ContextifyScript::EvalMachine(Local<Context> context,
+   }
+ 
+   TryCatchScope try_catch(env);
+-  Isolate::SafeForTerminationScope safe_for_termination(env->isolate());
+   ContextifyScript* wrapped_script;
+   ASSIGN_OR_RETURN_UNWRAP(&wrapped_script, args.Holder(), false);
+   Local<UnboundScript> unbound_script =
+@@ -1244,8 +1242,7 @@ void ContextifyContext::CompileFunction(
+   Local<PrimitiveArray> host_defined_options =
+       GetHostDefinedOptions(isolate, id_symbol);
+   ScriptCompiler::Source source =
+-      GetCommonJSSourceInstance(isolate,
+-                                code,
++      GetCommonJSSourceInstance(code,
+                                 filename,
+                                 line_offset,
+                                 column_offset,
+@@ -1300,15 +1297,13 @@ void ContextifyContext::CompileFunction(
+ }
+ 
+ ScriptCompiler::Source ContextifyContext::GetCommonJSSourceInstance(
+-    Isolate* isolate,
+     Local<String> code,
+     Local<String> filename,
+     int line_offset,
+     int column_offset,
+     Local<PrimitiveArray> host_defined_options,
+     ScriptCompiler::CachedData* cached_data) {
+-  ScriptOrigin origin(isolate,
+-                      filename,
++  ScriptOrigin origin(filename,
+                       line_offset,     // line offset
+                       column_offset,   // column offset
+                       true,            // is cross origin
+@@ -1486,7 +1481,7 @@ void ContextifyContext::ContainsModuleSyntax(
+   Local<PrimitiveArray> host_defined_options =
+       GetHostDefinedOptions(isolate, id_symbol);
+   ScriptCompiler::Source source = GetCommonJSSourceInstance(
+-      isolate, code, filename, 0, 0, host_defined_options, nullptr);
++      code, filename, 0, 0, host_defined_options, nullptr);
+   ScriptCompiler::CompileOptions options = GetCompileOptions(source);
+ 
+   std::vector<Local<String>> params = GetCJSParameters(env->isolate_data());
+@@ -1534,7 +1529,7 @@ void ContextifyContext::ContainsModuleSyntax(
+               code,
+               String::NewFromUtf8(isolate, "})();").ToLocalChecked());
+           ScriptCompiler::Source wrapped_source = GetCommonJSSourceInstance(
+-              isolate, code, filename, 0, 0, host_defined_options, nullptr);
++              code, filename, 0, 0, host_defined_options, nullptr);
+           std::ignore = ScriptCompiler::CompileFunction(
+               context,
+               &wrapped_source,
+@@ -1587,8 +1582,7 @@ static void CompileFunctionForCJSLoader(
+ 
+   Local<Symbol> symbol = env->vm_dynamic_import_default_internal();
+   Local<PrimitiveArray> hdo = GetHostDefinedOptions(isolate, symbol);
+-  ScriptOrigin origin(isolate,
+-                      filename,
++  ScriptOrigin origin(filename,
+                       0,               // line offset
+                       0,               // column offset
+                       true,            // is cross origin
+diff --git a/src/node_contextify.h b/src/node_contextify.h
+index e96df803b7ec2aa1231d4ab5d4ae0fe863ceb672..d42b5e0c544e726fc3f6d8392a554df9aa480fe9 100644
+--- a/src/node_contextify.h
++++ b/src/node_contextify.h
+@@ -95,7 +95,6 @@ class ContextifyContext : public BaseObject {
+       v8::Local<v8::Symbol> id_symbol,
+       const errors::TryCatchScope& try_catch);
+   static v8::ScriptCompiler::Source GetCommonJSSourceInstance(
+-      v8::Isolate* isolate,
+       v8::Local<v8::String> code,
+       v8::Local<v8::String> filename,
+       int line_offset,
+diff --git a/test/cctest/test_environment.cc b/test/cctest/test_environment.cc
+index 64e38c83006a004ebc3519a5e9f8b04263244514..14e82cc80ff73084fb43b2ef07febfd2667a0abc 100644
+--- a/test/cctest/test_environment.cc
++++ b/test/cctest/test_environment.cc
+@@ -620,12 +620,9 @@ TEST_F(EnvironmentTest, SetImmediateMicrotasks) {
+ 
+ #ifndef _WIN32  // No SIGINT on Windows.
+ TEST_F(NodeZeroIsolateTestFixture, CtrlCWithOnlySafeTerminationTest) {
+-  // We need to go through the whole setup dance here because we want to
+-  // set only_terminate_in_safe_scope.
+   // Allocate and initialize Isolate.
+   v8::Isolate::CreateParams create_params;
+   create_params.array_buffer_allocator = allocator.get();
+-  create_params.only_terminate_in_safe_scope = true;
+   v8::Isolate* isolate = v8::Isolate::Allocate();
+   CHECK_NOT_NULL(isolate);
+   platform->RegisterIsolate(isolate, &current_loop);

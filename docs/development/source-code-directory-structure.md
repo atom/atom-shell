@@ -3,8 +3,8 @@
 The source code of Electron is separated into a few parts, mostly
 following Chromium on the separation conventions.
 
-You may need to become familiar with [Chromium's multi-process
-architecture](https://dev.chromium.org/developers/design-documents/multi-process-architecture)
+You may need to become familiar with
+[Chromium's multi-process architecture](https://dev.chromium.org/developers/design-documents/multi-process-architecture)
 to understand the source code better.
 
 ## Structure of Source Code

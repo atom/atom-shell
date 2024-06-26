@@ -325,7 +325,8 @@ describe('ipc module', () => {
             await new Promise<void>(resolve => {
               port2.start();
               port2.onclose = resolve;
-              process._linkedBinding('electron_common_v8_util').requestGarbageCollectionForTesting();
+              // @ts-ignore --expose-gc is enabled.
+              gc({ type: 'major', execution: 'async' });
             });
           }})()`);
         });

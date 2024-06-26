@@ -83,16 +83,6 @@ gin::IsolateHolder CreateIsolateHolder(v8::Isolate* isolate) {
   // Align behavior with V8 Isolate default for Node.js.
   // This is necessary for important aspects of Node.js
   // including heap and cpu profilers to function properly.
-  //
-  // Additional note:
-  // We do not want to invoke a termination exception at exit when
-  // we're running with only_terminate_in_safe_scope set to false. Heap and
-  // coverage profilers run after environment exit and if there is a pending
-  // exception at this stage then they will fail to generate the appropriate
-  // profiles. Node.js does not call node::Stop(), which calls
-  // isolate->TerminateExecution(), and therefore does not have this issue
-  // when also running with only_terminate_in_safe_scope set to false.
-  create_params->only_terminate_in_safe_scope = false;
 
   return gin::IsolateHolder(
       base::SingleThreadTaskRunner::GetCurrentDefault(),
@@ -120,7 +110,6 @@ JavascriptEnvironment::JavascriptEnvironment(uv_loop_t* event_loop,
 
 JavascriptEnvironment::~JavascriptEnvironment() {
   DCHECK_NE(platform_, nullptr);
-  platform_->DrainTasks(isolate_);
 
   {
     v8::HandleScope scope(isolate_);
@@ -132,168 +121,18 @@ JavascriptEnvironment::~JavascriptEnvironment() {
   platform_->UnregisterIsolate(isolate_);
 }
 
-class EnabledStateObserverImpl final
-    : public base::trace_event::TraceLog::EnabledStateObserver {
- public:
-  EnabledStateObserverImpl() {
-    base::trace_event::TraceLog::GetInstance()->AddEnabledStateObserver(this);
-  }
-
-  ~EnabledStateObserverImpl() override {
-    base::trace_event::TraceLog::GetInstance()->RemoveEnabledStateObserver(
-        this);
-  }
-
-  // disable copy
-  EnabledStateObserverImpl(const EnabledStateObserverImpl&) = delete;
-  EnabledStateObserverImpl& operator=(const EnabledStateObserverImpl&) = delete;
-
-  void OnTraceLogEnabled() final {
-    base::AutoLock lock(mutex_);
-    for (auto* o : observers_) {
-      o->OnTraceEnabled();
-    }
-  }
-
-  void OnTraceLogDisabled() final {
-    base::AutoLock lock(mutex_);
-    for (auto* o : observers_) {
-      o->OnTraceDisabled();
-    }
-  }
-
-  void AddObserver(v8::TracingController::TraceStateObserver* observer) {
-    {
-      base::AutoLock lock(mutex_);
-      DCHECK(!observers_.count(observer));
-      observers_.insert(observer);
-    }
-
-    // Fire the observer if recording is already in progress.
-    if (base::trace_event::TraceLog::GetInstance()->IsEnabled())
-      observer->OnTraceEnabled();
-  }
-
-  void RemoveObserver(v8::TracingController::TraceStateObserver* observer) {
-    base::AutoLock lock(mutex_);
-    DCHECK_EQ(observers_.count(observer), 1lu);
-    observers_.erase(observer);
-  }
-
- private:
-  base::Lock mutex_;
-  std::unordered_set<v8::TracingController::TraceStateObserver*> observers_;
-};
-
-class TracingControllerImpl : public node::tracing::TracingController {
- public:
-  TracingControllerImpl() = default;
-  ~TracingControllerImpl() override = default;
-
-  // disable copy
-  TracingControllerImpl(const TracingControllerImpl&) = delete;
-  TracingControllerImpl& operator=(const TracingControllerImpl&) = delete;
-
-  // TracingController implementation.
-  const uint8_t* GetCategoryGroupEnabled(const char* name) override {
-    return TRACE_EVENT_API_GET_CATEGORY_GROUP_ENABLED(name);
-  }
-  uint64_t AddTraceEvent(
-      char phase,
-      const uint8_t* category_enabled_flag,
-      const char* name,
-      const char* scope,
-      uint64_t id,
-      uint64_t bind_id,
-      int32_t num_args,
-      const char** arg_names,
-      const uint8_t* arg_types,
-      const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
-      unsigned int flags) override {
-    base::trace_event::TraceArguments args(
-        num_args, arg_names, arg_types,
-        reinterpret_cast<const unsigned long long*>(  // NOLINT(runtime/int)
-            arg_values),
-        arg_convertables);
-    DCHECK_LE(num_args, 2);
-    base::trace_event::TraceEventHandle handle =
-        TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_BIND_ID(
-            phase, category_enabled_flag, name, scope, id, bind_id, &args,
-            flags);
-    uint64_t result;
-    memcpy(&result, &handle, sizeof(result));
-    return result;
-  }
-  uint64_t AddTraceEventWithTimestamp(
-      char phase,
-      const uint8_t* category_enabled_flag,
-      const char* name,
-      const char* scope,
-      uint64_t id,
-      uint64_t bind_id,
-      int32_t num_args,
-      const char** arg_names,
-      const uint8_t* arg_types,
-      const uint64_t* arg_values,
-      std::unique_ptr<v8::ConvertableToTraceFormat>* arg_convertables,
-      unsigned int flags,
-      int64_t timestampMicroseconds) override {
-    base::trace_event::TraceArguments args(
-        num_args, arg_names, arg_types,
-        reinterpret_cast<const unsigned long long*>(  // NOLINT(runtime/int)
-            arg_values),
-        arg_convertables);
-    DCHECK_LE(num_args, 2);
-    base::TimeTicks timestamp =
-        base::TimeTicks() + base::Microseconds(timestampMicroseconds);
-    base::trace_event::TraceEventHandle handle =
-        TRACE_EVENT_API_ADD_TRACE_EVENT_WITH_THREAD_ID_AND_TIMESTAMP(
-            phase, category_enabled_flag, name, scope, id, bind_id,
-            TRACE_EVENT_API_CURRENT_THREAD_ID, timestamp, &args, flags);
-    uint64_t result;
-    memcpy(&result, &handle, sizeof(result));
-    return result;
-  }
-  void UpdateTraceEventDuration(const uint8_t* category_enabled_flag,
-                                const char* name,
-                                uint64_t handle) override {
-    base::trace_event::TraceEventHandle traceEventHandle;
-    memcpy(&traceEventHandle, &handle, sizeof(handle));
-    TRACE_EVENT_API_UPDATE_TRACE_EVENT_DURATION(category_enabled_flag, name,
-                                                traceEventHandle);
-  }
-
-  void AddTraceStateObserver(TraceStateObserver* observer) override {
-    GetObserverDelegate().AddObserver(observer);
-  }
-
-  void RemoveTraceStateObserver(TraceStateObserver* observer) override {
-    GetObserverDelegate().RemoveObserver(observer);
-  }
-
- private:
-  static EnabledStateObserverImpl& GetObserverDelegate() {
-    static base::NoDestructor<EnabledStateObserverImpl> instance;
-    return *instance;
-  }
-};
-
 v8::Isolate* JavascriptEnvironment::Initialize(uv_loop_t* event_loop,
                                                bool setup_wasm_streaming) {
   auto* cmd = base::CommandLine::ForCurrentProcess();
-
   // --js-flags.
-  std::string js_flags =
-      cmd->GetSwitchValueASCII(blink::switches::kJavaScriptFlags);
-  js_flags.append(" --no-freeze-flags-after-init");
-  if (!js_flags.empty())
-    v8::V8::SetFlagsFromString(js_flags.c_str(), js_flags.size());
+  std::string js_flags = "--no-freeze-flags-after-init ";
+  js_flags.append(cmd->GetSwitchValueASCII(blink::switches::kJavaScriptFlags));
+  v8::V8::SetFlagsFromString(js_flags.c_str(), js_flags.size());
 
   // The V8Platform of gin relies on Chromium's task schedule, which has not
   // been started at this point, so we have to rely on Node's V8Platform.
   auto* tracing_agent = node::CreateAgent();
-  auto* tracing_controller = new TracingControllerImpl();
+  auto* tracing_controller = tracing_agent->GetTracingController();
   node::tracing::TraceEventHelper::SetAgent(tracing_agent);
   platform_ = node::MultiIsolatePlatform::Create(
       base::RecommendedMaxNumberOfThreadsInThreadGroup(3, 8, 0.1, 0),

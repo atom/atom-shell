@@ -6,10 +6,10 @@ Subject: chore: patch out Profile methods in titlebar_config
 Make this code linkable in Electron by removing Profile references.
 
 diff --git a/chrome/browser/win/titlebar_config.cc b/chrome/browser/win/titlebar_config.cc
-index f088a7071b1e0e1e05aee5637484b1dea3e2a6fa..8d411e550f6a8ca1a4070bf5d5719703f90b3dfa 100644
+index 7898ea88ca529660e52c1f9e2517d6f016b740a5..114046912999f4ca9d21f7d5859d14ecaaab9f56 100644
 --- a/chrome/browser/win/titlebar_config.cc
 +++ b/chrome/browser/win/titlebar_config.cc
-@@ -19,8 +19,10 @@ BASE_FEATURE(kWindows11MicaTitlebar,
+@@ -12,8 +12,10 @@
  
  bool ShouldBrowserCustomDrawTitlebar(BrowserView* browser_view) {
    return !ShouldDefaultThemeUseMicaTitlebar() ||

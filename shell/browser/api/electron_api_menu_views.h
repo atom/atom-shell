@@ -21,6 +21,7 @@ class MenuViews : public Menu {
   ~MenuViews() override;
 
  protected:
+  // Menu
   void PopupAt(BaseWindow* window,
                int x,
                int y,

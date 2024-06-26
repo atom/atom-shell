@@ -4,6 +4,7 @@
 
 #include "shell/browser/net/network_context_service_factory.h"
 
+#include "base/no_destructor.h"
 #include "components/keyed_service/content/browser_context_dependency_manager.h"
 #include "shell/browser/net/network_context_service.h"
 
@@ -16,7 +17,8 @@ NetworkContextService* NetworkContextServiceFactory::GetForContext(
 }
 
 NetworkContextServiceFactory* NetworkContextServiceFactory::GetInstance() {
-  return base::Singleton<NetworkContextServiceFactory>::get();
+  static base::NoDestructor<NetworkContextServiceFactory> instance;
+  return instance.get();
 }
 
 NetworkContextServiceFactory::NetworkContextServiceFactory()

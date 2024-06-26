@@ -1,0 +1,154 @@
+name: 'Checkout'
+description: 'Checks out Electron and stores it in the AKS Cache'
+inputs:
+  generate-sas-token:
+    description: 'Whether to generate and persist a SAS token for the item in the cache'
+    required: false
+    default: 'false'
+runs:
+  using: "composite"
+  steps:
+  - name: Set GIT_CACHE_PATH to make gclient to use the cache
+    shell: bash
+    run: |
+      echo "GIT_CACHE_PATH=$(pwd)/git-cache" >> $GITHUB_ENV
+  - name: Install Dependencies
+    shell: bash
+    run: |
+      cd src/electron
+      node script/yarn install --frozen-lockfile
+  - name: Get Depot Tools
+    shell: bash
+    run: |
+      git clone --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git
+
+      sed -i '/ninjalog_uploader_wrapper.py/d' ./depot_tools/autoninja
+      # Remove swift-format dep from cipd on macOS until we send a patch upstream.
+      cd depot_tools
+      git apply --3way ../src/electron/.github/workflows/config/gclient.diff
+
+      # Ensure depot_tools does not update.
+      test -d depot_tools && cd depot_tools
+      touch .disable_auto_update
+  - name: Add Depot Tools to PATH
+    shell: bash
+    run: echo "$(pwd)/depot_tools" >> $GITHUB_PATH
+  - name: Generate DEPS Hash
+    shell: bash
+    run: |
+      node src/electron/script/generate-deps-hash.js && cat src/electron/.depshash-target
+      echo "DEPSHASH=v1-src-cache-$(shasum src/electron/.depshash | cut -f1 -d' ')" >> $GITHUB_ENV
+  - name: Generate SAS Key
+    if: ${{ inputs.generate-sas-token == 'true' }}
+    shell: bash
+    run: |
+      curl --unix-socket /var/run/sas/sas.sock --fail "http://foo/$DEPSHASH.tar" > sas-token
+  - name: Save SAS Key
+    if: ${{ inputs.generate-sas-token == 'true' }}
+    uses: actions/cache/save@v4
+    with:
+      path: |
+        sas-token
+      key: sas-key-${{ github.run_number }}-${{ github.run_attempt }}
+  - name: Check If Cache Exists
+    id: check-cache
+    shell: bash
+    run: |
+      cache_path=/mnt/cross-instance-cache/$DEPSHASH.tar
+      echo "Using cache key: $DEPSHASH"
+      echo "Checking for cache in: $cache_path"
+      if [ ! -f "$cache_path" ]; then
+        echo "cache_exists=false" >> $GITHUB_OUTPUT
+        echo "Cache Does Not Exist for $DEPSHASH"
+      else
+        echo "cache_exists=true" >> $GITHUB_OUTPUT
+        echo "Cache Already Exists for $DEPSHASH, Skipping.."
+      fi
+  - name: Gclient Sync
+    if: steps.check-cache.outputs.cache_exists == 'false'
+    shell: bash
+    run: |
+      gclient config \
+        --name "src/electron" \
+        --unmanaged \
+        ${GCLIENT_EXTRA_ARGS} \
+        "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+
+      ELECTRON_USE_THREE_WAY_MERGE_FOR_PATCHES=1 gclient sync --with_branch_heads --with_tags -vvvvv
+      if [ "${{ inputs.is-release }}" != "true" ]; then
+        # Re-export all the patches to check if there were changes.
+        python3 src/electron/script/export_all_patches.py src/electron/patches/config.json
+        cd src/electron
+        git update-index --refresh || true
+        if ! git diff-index --quiet HEAD --; then
+          # There are changes to the patches. Make a git commit with the updated patches
+          git add patches
+          GIT_COMMITTER_NAME="PatchUp" GIT_COMMITTER_EMAIL="73610968+patchup[bot]@users.noreply.github.com" git commit -m "chore: update patches" --author="PatchUp <73610968+patchup[bot]@users.noreply.github.com>"
+          # Export it
+          mkdir -p ../../patches
+          git format-patch -1 --stdout --keep-subject --no-stat --full-index > ../../patches/update-patches.patch
+          if (node ./script/push-patch.js 2> /dev/null > /dev/null); then
+            echo
+            echo "======================================================================"
+            echo "Changes to the patches when applying, we have auto-pushed the diff to the current branch"
+            echo "A new CI job will kick off shortly"
+            echo "======================================================================"
+            exit 1
+          else
+            echo
+            echo "======================================================================"
+            echo "There were changes to the patches when applying."
+            echo "Check the CI artifacts for a patch you can apply to fix it."
+            echo "======================================================================"
+            exit 1
+          fi
+        fi
+      fi
+
+  # delete all .git directories under src/ except for
+  # third_party/angle/ and third_party/dawn/ because of build time generation of files
+  # gen/angle/commit.h depends on third_party/angle/.git/HEAD
+  # https://chromium-review.googlesource.com/c/angle/angle/+/2074924
+  # and dawn/common/Version_autogen.h depends on  third_party/dawn/.git/HEAD
+  # https://dawn-review.googlesource.com/c/dawn/+/83901
+  # TODO: maybe better to always leave out */.git/HEAD file for all targets ?
+  - name: Delete .git directories under src to free space
+    if: steps.check-cache.outputs.cache_exists == 'false'
+    shell: bash
+    run: |
+      cd src
+      ( find . -type d -name ".git" -not -path "./third_party/angle/*" -not -path "./third_party/dawn/*" -not -path "./electron/*" ) | xargs rm -rf
+  - name: Minimize Cache Size for Upload
+    if: steps.check-cache.outputs.cache_exists == 'false'
+    shell: bash
+    run: |
+      rm -rf src/android_webview
+      rm -rf src/ios/chrome
+      rm -rf src/third_party/blink/web_tests
+      rm -rf src/third_party/blink/perf_tests
+      rm -rf src/chrome/test/data/xr/webvr_info
+      rm -rf src/third_party/angle/third_party/VK-GL-CTS/src
+      rm -rf src/third_party/swift-toolchain
+      rm -rf src/third_party/swiftshader/tests/regres/testlists
+      rm -rf src/electron
+  - name: Compress Src Directory
+    if: steps.check-cache.outputs.cache_exists == 'false'
+    shell: bash
+    run: |
+      echo "Uncompressed src size: $(du -sh src | cut -f1 -d' ')"
+      tar -cf $DEPSHASH.tar src
+      echo "Compressed src to $(du -sh $DEPSHASH.tar | cut -f1 -d' ')"
+      cp ./$DEPSHASH.tar /mnt/cross-instance-cache/
+  - name: Persist Src Cache
+    if: steps.check-cache.outputs.cache_exists == 'false'
+    shell: bash
+    run: |
+      final_cache_path=/mnt/cross-instance-cache/$DEPSHASH.tar
+      echo "Using cache key: $DEPSHASH"
+      echo "Checking path: $final_cache_path"
+      if [ ! -f "$final_cache_path" ]; then
+        echo "Cache key not found"
+        exit 1
+      else
+        echo "Cache key persisted in $final_cache_path"
+      fi

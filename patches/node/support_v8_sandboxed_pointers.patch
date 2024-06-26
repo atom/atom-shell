@@ -7,7 +7,7 @@ This refactors several allocators to allocate within the V8 memory cage,
 allowing them to be compatible with the V8_SANDBOXED_POINTERS feature.
 
 diff --git a/src/api/environment.cc b/src/api/environment.cc
-index 33edf44239a7ec13ebee2f926b1e7f9b8d0b83fe..11f8b8dea7bf4119c2d99ee451e3f1bc7bde8902 100644
+index 12414204361e7227f7f7736a07388ade3f093e00..f9d29f0065b1de63a62cfdce74a9705c22dd87d7 100644
 --- a/src/api/environment.cc
 +++ b/src/api/environment.cc
 @@ -101,6 +101,14 @@ MaybeLocal<Value> PrepareStackTraceCallback(Local<Context> context,
@@ -105,7 +105,7 @@ index 3034b114e081e2b32dd5b71653927a41af7d48df..49b0175c219d75dd3a038687f353b242
  void SecureHeapUsed(const FunctionCallbackInfo<Value>& args) {
  #ifndef OPENSSL_IS_BORINGSSL
 diff --git a/src/crypto/crypto_util.h b/src/crypto/crypto_util.h
-index 1ce5f35a70a7c855796cc96d4201cc996907cf8f..be700c953d55b35bd2fee7fd872efd9ed2600c63 100644
+index 0ae2946e5e5884d6d095c039a3b4dc537e0f29a2..8c06e81de3ae93d82bf7eaf1bada77164a130695 100644
 --- a/src/crypto/crypto_util.h
 +++ b/src/crypto/crypto_util.h
 @@ -280,7 +280,7 @@ class ByteSource {
@@ -131,10 +131,10 @@ index d45325954d980724f80d49298bbe837197237a9b..ccea18080142bd9cba3765dbbec61c2a
      return ret;
  
 diff --git a/src/node_internals.h b/src/node_internals.h
-index 9a96e042fc5cda18beb13b89965a6267fba3e0a6..bd210db0b6ad12075e8ced8b321da38752b3d050 100644
+index 5f0adcf8aaba93f8fc2874b863acfc96e30cb2b7..6b4ec38bd092358a9433a1179dbe1e71f56aa387 100644
 --- a/src/node_internals.h
 +++ b/src/node_internals.h
-@@ -112,7 +112,9 @@ v8::Maybe<bool> InitializePrimordials(v8::Local<v8::Context> context);
+@@ -118,7 +118,9 @@ v8::Maybe<bool> InitializePrimordials(v8::Local<v8::Context> context);
  
  class NodeArrayBufferAllocator : public ArrayBufferAllocator {
   public:
@@ -145,7 +145,7 @@ index 9a96e042fc5cda18beb13b89965a6267fba3e0a6..bd210db0b6ad12075e8ced8b321da387
  
    void* Allocate(size_t size) override;  // Defined in src/node.cc
    void* AllocateUninitialized(size_t size) override;
-@@ -131,7 +133,7 @@ class NodeArrayBufferAllocator : public ArrayBufferAllocator {
+@@ -137,7 +139,7 @@ class NodeArrayBufferAllocator : public ArrayBufferAllocator {
    }
  
   private:

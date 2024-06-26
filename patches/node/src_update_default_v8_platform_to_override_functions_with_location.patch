@@ -9,10 +9,10 @@ Xref: https://chromium-review.googlesource.com/c/v8/v8/+/4336198
 Backported from https://github.com/nodejs/node-v8/commit/f66b996030e94a7e4874820a53475338e1df4fe3
 
 diff --git a/src/node_platform.cc b/src/node_platform.cc
-index 927fdddb8d9a1a75263890623d05ea1df2bfee14..291e386ccae0d2f33125c221b09f4259575184ac 100644
+index 97cf6cb840bab5016e485b0dd90b3e4e1d8686c9..00ca9757bc4d0cdeb03a3f32be3ef19077cb7969 100644
 --- a/src/node_platform.cc
 +++ b/src/node_platform.cc
-@@ -496,17 +496,22 @@ bool PerIsolatePlatformData::FlushForegroundTasksInternal() {
+@@ -501,17 +501,22 @@ bool PerIsolatePlatformData::FlushForegroundTasksInternal() {
    return did_work;
  }
  
@@ -39,7 +39,7 @@ index 927fdddb8d9a1a75263890623d05ea1df2bfee14..291e386ccae0d2f33125c221b09f4259
  IsolatePlatformDelegate* NodePlatform::ForIsolate(Isolate* isolate) {
    Mutex::ScopedLock lock(per_isolate_mutex_);
    auto data = per_isolate_[isolate];
-@@ -528,8 +533,10 @@ bool NodePlatform::FlushForegroundTasks(Isolate* isolate) {
+@@ -533,8 +538,10 @@ bool NodePlatform::FlushForegroundTasks(Isolate* isolate) {
    return per_isolate->FlushForegroundTasksInternal();
  }
  

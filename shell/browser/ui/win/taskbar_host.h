@@ -52,7 +52,7 @@ class TaskbarHost {
 
   // Set the overlay icon in taskbar.
   bool SetOverlayIcon(HWND window,
-                      const SkBitmap& overlay,
+                      const SkBitmap& bitmap,
                       const std::string& text);
 
   // Set the region of the window to show as a thumbnail in taskbar.

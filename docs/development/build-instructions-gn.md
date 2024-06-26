@@ -110,20 +110,49 @@ $ export CHROMIUM_BUILDTOOLS_PATH=`pwd`/buildtools
 On Windows:
 
 ```sh
+# cmd
 $ cd src
 $ set CHROMIUM_BUILDTOOLS_PATH=%cd%\buildtools
+
+# PowerShell
+$ cd src
+$ $env:CHROMIUM_BUILDTOOLS_PATH = "$(Get-Location)\buildtools"
 ```
 
 **To generate Testing build config of Electron:**
+
+On Linux & MacOS
 
 ```sh
 $ gn gen out/Testing --args="import(\"//electron/build/args/testing.gn\")"
 ```
 
+On Windows:
+
+```sh
+# cmd
+$ gn gen out/Testing --args="import(\"//electron/build/args/testing.gn\")"
+
+# PowerShell
+gn gen out/Testing --args="import(\`"//electron/build/args/testing.gn\`")"
+```
+
 **To generate Release build config of Electron:**
+
+On Linux & MacOS
 
 ```sh
 $ gn gen out/Release --args="import(\"//electron/build/args/release.gn\")"
+```
+
+On Windows:
+
+```sh
+# cmd
+$ gn gen out/Release --args="import(\"//electron/build/args/release.gn\")"
+
+# PowerShell
+$ gn gen out/Release --args="import(\`"//electron/build/args/release.gn\`")"
 ```
 
 **Note:** This will generate a `out/Testing` or `out/Release` build directory under `src/` with the testing or release build depending upon the configuration passed above. You can replace `Testing|Release` with another names, but it should be a subdirectory of `out`.
@@ -300,3 +329,7 @@ Error: Cannot find module '/Users/<user>/.electron_build_tools/src/e'
 ```
 
 We recommend installing Node through [nvm](https://github.com/nvm-sh/nvm). This allows for easier Node version management, and is often a fix for missing `e` modules.
+
+### RBE authentication randomly fails with "Token not valid"
+
+This could be caused by the local clock time on the machine being off by a small amount. Use [time.is](https://time.is/) to check.

@@ -16,16 +16,16 @@ export type WindowOpenArgs = {
   features: string,
 }
 
-const frameNamesToWindow = new Map<string, BrowserWindow>();
-const registerFrameNameToGuestWindow = (name: string, win: BrowserWindow) => frameNamesToWindow.set(name, win);
+const frameNamesToWindow = new Map<string, WebContents>();
+const registerFrameNameToGuestWindow = (name: string, webContents: WebContents) => frameNamesToWindow.set(name, webContents);
 const unregisterFrameName = (name: string) => frameNamesToWindow.delete(name);
-const getGuestWindowByFrameName = (name: string) => frameNamesToWindow.get(name);
+const getGuestWebContentsByFrameName = (name: string) => frameNamesToWindow.get(name);
 
 /**
  * `openGuestWindow` is called to create and setup event handling for the new
  * window.
  */
-export function openGuestWindow ({ embedder, guest, referrer, disposition, postData, overrideBrowserWindowOptions, windowOpenArgs, outlivesOpener }: {
+export function openGuestWindow ({ embedder, guest, referrer, disposition, postData, overrideBrowserWindowOptions, windowOpenArgs, outlivesOpener, createWindow }: {
   embedder: WebContents,
   guest?: WebContents,
   referrer: Referrer,
@@ -34,7 +34,8 @@ export function openGuestWindow ({ embedder, guest, referrer, disposition, postD
   overrideBrowserWindowOptions?: BrowserWindowConstructorOptions,
   windowOpenArgs: WindowOpenArgs,
   outlivesOpener: boolean,
-}): BrowserWindow | undefined {
+  createWindow?: Electron.CreateWindowFunction
+}): void {
   const { url, frameName, features } = windowOpenArgs;
   const { options: parsedOptions } = parseFeatures(features);
   const browserWindowOptions = {
@@ -48,15 +49,40 @@ export function openGuestWindow ({ embedder, guest, referrer, disposition, postD
   // To spec, subsequent window.open calls with the same frame name (`target` in
   // spec parlance) will reuse the previous window.
   // https://html.spec.whatwg.org/multipage/window-object.html#apis-for-creating-and-navigating-browsing-contexts-by-name
-  const existingWindow = getGuestWindowByFrameName(frameName);
-  if (existingWindow) {
-    if (existingWindow.isDestroyed() || existingWindow.webContents.isDestroyed()) {
+  const existingWebContents = getGuestWebContentsByFrameName(frameName);
+  if (existingWebContents) {
+    if (existingWebContents.isDestroyed()) {
       // FIXME(t57ser): The webContents is destroyed for some reason, unregister the frame name
       unregisterFrameName(frameName);
     } else {
-      existingWindow.loadURL(url);
-      return existingWindow;
+      existingWebContents.loadURL(url);
+      return;
     }
+  }
+
+  if (createWindow) {
+    const webContents = createWindow({
+      webContents: guest,
+      ...browserWindowOptions
+    });
+
+    if (guest != null) {
+      if (webContents !== guest) {
+        throw new Error('Invalid webContents. Created window should be connected to webContents passed with options object.');
+      }
+
+      webContents.loadURL(url, {
+        httpReferrer: referrer,
+        ...(postData && {
+          postData,
+          extraHeaders: formatPostDataHeaders(postData as Electron.UploadRawData[])
+        })
+      });
+
+      handleWindowLifecycleEvents({ embedder, frameName, guest, outlivesOpener });
+    }
+
+    return;
   }
 
   const window = new BrowserWindow({
@@ -77,11 +103,9 @@ export function openGuestWindow ({ embedder, guest, referrer, disposition, postD
     });
   }
 
-  handleWindowLifecycleEvents({ embedder, frameName, guest: window, outlivesOpener });
+  handleWindowLifecycleEvents({ embedder, frameName, guest: window.webContents, outlivesOpener });
 
   embedder.emit('did-create-window', window, { url, frameName, options: browserWindowOptions, disposition, referrer, postData });
-
-  return window;
 }
 
 /**
@@ -92,12 +116,12 @@ export function openGuestWindow ({ embedder, guest, referrer, disposition, postD
  */
 const handleWindowLifecycleEvents = function ({ embedder, guest, frameName, outlivesOpener }: {
   embedder: WebContents,
-  guest: BrowserWindow,
+  guest: WebContents,
   frameName: string,
   outlivesOpener: boolean
 }) {
   const closedByEmbedder = function () {
-    guest.removeListener('closed', closedByUser);
+    guest.removeListener('destroyed', closedByUser);
     guest.destroy();
   };
 
@@ -110,11 +134,11 @@ const handleWindowLifecycleEvents = function ({ embedder, guest, frameName, outl
   if (!outlivesOpener) {
     embedder.once('current-render-view-deleted' as any, closedByEmbedder);
   }
-  guest.once('closed', closedByUser);
+  guest.once('destroyed', closedByUser);
 
   if (frameName) {
     registerFrameNameToGuestWindow(frameName, guest);
-    guest.once('closed', function () {
+    guest.once('destroyed', function () {
       unregisterFrameName(frameName);
     });
   }

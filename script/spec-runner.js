@@ -3,7 +3,7 @@
 const { ElectronVersions, Installer } = require('@electron/fiddle-core');
 const childProcess = require('node:child_process');
 const crypto = require('node:crypto');
-const fs = require('fs-extra');
+const fs = require('node:fs');
 const { hashElement } = require('folder-hash');
 const os = require('node:os');
 const path = require('node:path');
@@ -216,12 +216,13 @@ async function installSpecModules (dir) {
     env.npm_config_nodedir = path.resolve(BASE, `out/${utils.getOutDir({ shouldLog: true })}/gen/node_headers`);
   }
   if (fs.existsSync(path.resolve(dir, 'node_modules'))) {
-    await fs.remove(path.resolve(dir, 'node_modules'));
+    await fs.promises.rm(path.resolve(dir, 'node_modules'), { force: true, recursive: true });
   }
   const { status } = childProcess.spawnSync(NPX_CMD, [`yarn@${YARN_VERSION}`, 'install', '--frozen-lockfile'], {
     env,
     cwd: dir,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
   });
   if (status !== 0 && !process.env.IGNORE_YARN_INSTALL_ERROR) {
     console.log(`${fail} Failed to yarn install in '${dir}'`);

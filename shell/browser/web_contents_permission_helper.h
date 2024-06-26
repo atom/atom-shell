@@ -26,13 +26,13 @@ class WebContentsPermissionHelper
       delete;
 
   enum class PermissionType {
-    POINTER_LOCK = static_cast<int>(blink::PermissionType::NUM) + 1,
-    FULLSCREEN,
+    FULLSCREEN = static_cast<int>(blink::PermissionType::NUM) + 1,
     OPEN_EXTERNAL,
     SERIAL,
     HID,
     USB,
-    KEYBOARD_LOCK
+    KEYBOARD_LOCK,
+    FILE_SYSTEM
   };
 
   // Asynchronous Requests

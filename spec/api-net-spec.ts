@@ -935,12 +935,11 @@ describe('net module', () => {
           response.end();
         });
         const serverUrl = url.parse(serverUrlUnparsed);
-        const options = {
+        const urlRequest = net.request({
           port: serverUrl.port ? parseInt(serverUrl.port, 10) : undefined,
           hostname: '127.0.0.1',
           headers: { [customHeaderName]: customHeaderValue }
-        };
-        const urlRequest = net.request(options);
+        });
         const response = await getResponse(urlRequest);
         expect(response.statusCode).to.be.equal(200);
         await collectStreamBody(response);

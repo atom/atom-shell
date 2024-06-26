@@ -11,6 +11,7 @@
 
 #include "base/containers/contains.h"
 #include "base/task/single_thread_task_runner.h"
+#include "content/public/common/color_parser.h"
 #include "electron/buildflags/buildflags.h"
 #include "gin/dictionary.h"
 #include "shell/browser/api/electron_api_menu.h"
@@ -36,6 +37,7 @@
 #endif
 
 #if BUILDFLAG(IS_WIN)
+#include "shell/browser/ui/views/win_frame_view.h"
 #include "shell/browser/ui/win/taskbar_host.h"
 #include "ui/base/win/shell.h"
 #endif
@@ -116,11 +118,6 @@ BaseWindow::BaseWindow(gin_helper::Arguments* args,
 
 BaseWindow::~BaseWindow() {
   CloseImmediately();
-
-  // Destroy the native window in next tick because the native code might be
-  // iterating all windows.
-  base::SingleThreadTaskRunner::GetCurrentDefault()->DeleteSoon(
-      FROM_HERE, window_.release());
 
   // Remove global reference so the JS object can be garbage collected.
   self_ref_.Reset();
@@ -1044,6 +1041,63 @@ void BaseWindow::SetAppDetails(const gin_helper::Dictionary& options) {
                                   relaunch_command, relaunch_display_name,
                                   window_->GetAcceleratedWidget());
 }
+
+void BaseWindow::SetTitleBarOverlay(const gin_helper::Dictionary& options,
+                                    gin_helper::Arguments* args) {
+  // Ensure WCO is already enabled on this window
+  if (!window_->titlebar_overlay_enabled()) {
+    args->ThrowError("Titlebar overlay is not enabled");
+    return;
+  }
+
+  auto* window = static_cast<NativeWindowViews*>(window_.get());
+  bool updated = false;
+
+  // Check and update the button color
+  std::string btn_color;
+  if (options.Get(options::kOverlayButtonColor, &btn_color)) {
+    // Parse the string as a CSS color
+    SkColor color;
+    if (!content::ParseCssColorString(btn_color, &color)) {
+      args->ThrowError("Could not parse color as CSS color");
+      return;
+    }
+
+    // Update the view
+    window->set_overlay_button_color(color);
+    updated = true;
+  }
+
+  // Check and update the symbol color
+  std::string symbol_color;
+  if (options.Get(options::kOverlaySymbolColor, &symbol_color)) {
+    // Parse the string as a CSS color
+    SkColor color;
+    if (!content::ParseCssColorString(symbol_color, &color)) {
+      args->ThrowError("Could not parse symbol color as CSS color");
+      return;
+    }
+
+    // Update the view
+    window->set_overlay_symbol_color(color);
+    updated = true;
+  }
+
+  // Check and update the height
+  int height = 0;
+  if (options.Get(options::kOverlayHeight, &height)) {
+    window->set_titlebar_overlay_height(height);
+    updated = true;
+  }
+
+  // If anything was updated, invalidate the layout and schedule a paint of the
+  // window's frame view
+  if (updated) {
+    auto* frame_view = static_cast<WinFrameView*>(
+        window->widget()->non_client_view()->frame_view());
+    frame_view->InvalidateCaptionButtons();
+  }
+}
 #endif
 
 int32_t BaseWindow::GetID() const {
@@ -1232,6 +1286,7 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setThumbnailClip", &BaseWindow::SetThumbnailClip)
       .SetMethod("setThumbnailToolTip", &BaseWindow::SetThumbnailToolTip)
       .SetMethod("setAppDetails", &BaseWindow::SetAppDetails)
+      .SetMethod("setTitleBarOverlay", &BaseWindow::SetTitleBarOverlay)
 #endif
       .SetProperty("id", &BaseWindow::GetID);
 }

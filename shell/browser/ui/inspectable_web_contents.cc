@@ -242,6 +242,7 @@ class InspectableWebContents::NetworkResourceLoader
     response_headers_ = response_head.headers;
   }
 
+  // network::SimpleURLLoaderStreamConsumer
   void OnDataReceived(base::StringPiece chunk,
                       base::OnceClosure resume) override {
     bool encoded = !base::IsStringUTF8(chunk);
@@ -300,11 +301,6 @@ class InspectableWebContents::NetworkResourceLoader
   base::TimeDelta retry_delay_;
 };
 
-// Implemented separately on each platform.
-InspectableWebContentsView* CreateInspectableContentsView(
-    InspectableWebContents* inspectable_web_contents);
-
-// static
 // static
 void InspectableWebContents::RegisterPrefs(PrefRegistrySimple* registry) {
   registry->RegisterDictionaryPref(kDevToolsBoundsPref,
@@ -320,7 +316,7 @@ InspectableWebContents::InspectableWebContents(
     : pref_service_(pref_service),
       web_contents_(std::move(web_contents)),
       is_guest_(is_guest),
-      view_(CreateInspectableContentsView(this)) {
+      view_(new InspectableWebContentsView(this)) {
   const base::Value* bounds_dict =
       &pref_service_->GetValue(kDevToolsBoundsPref);
   if (bounds_dict->is_dict()) {
@@ -679,7 +675,7 @@ void InspectableWebContents::LoadNetworkResource(DispatchCallback callback,
   resource_request.site_for_cookies = net::SiteForCookies::FromUrl(gurl);
   resource_request.headers.AddHeadersFromString(headers);
 
-  auto* protocol_registry = ProtocolRegistry::FromBrowserContext(
+  const auto* const protocol_registry = ProtocolRegistry::FromBrowserContext(
       GetDevToolsWebContents()->GetBrowserContext());
   NetworkResourceLoader::URLLoaderFactoryHolder url_loader_factory;
   if (gurl.SchemeIsFile()) {
@@ -688,14 +684,12 @@ void InspectableWebContents::LoadNetworkResource(DispatchCallback callback,
     url_loader_factory = network::SharedURLLoaderFactory::Create(
         std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
             std::move(pending_remote)));
-  } else if (protocol_registry->IsProtocolRegistered(gurl.scheme())) {
-    auto& protocol_handler = protocol_registry->handlers().at(gurl.scheme());
-    mojo::PendingRemote<network::mojom::URLLoaderFactory> pending_remote =
-        ElectronURLLoaderFactory::Create(protocol_handler.first,
-                                         protocol_handler.second);
+  } else if (const auto* const protocol_handler =
+                 protocol_registry->FindRegistered(gurl.scheme())) {
     url_loader_factory = network::SharedURLLoaderFactory::Create(
         std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-            std::move(pending_remote)));
+            ElectronURLLoaderFactory::Create(protocol_handler->first,
+                                             protocol_handler->second)));
   } else {
     auto* partition = GetDevToolsWebContents()
                           ->GetBrowserContext()
@@ -721,6 +715,12 @@ void InspectableWebContents::OpenInNewTab(const std::string& url) {
     delegate_->DevToolsOpenInNewTab(url);
 }
 
+void InspectableWebContents::OpenSearchResultsInNewTab(
+    const std::string& query) {
+  if (delegate_)
+    delegate_->DevToolsOpenSearchResultsInNewTab(query);
+}
+
 void InspectableWebContents::ShowItemInFolder(
     const std::string& file_system_path) {
   if (file_system_path.empty())
@@ -733,9 +733,10 @@ void InspectableWebContents::ShowItemInFolder(
 
 void InspectableWebContents::SaveToFile(const std::string& url,
                                         const std::string& content,
-                                        bool save_as) {
+                                        bool save_as,
+                                        bool is_base64) {
   if (delegate_)
-    delegate_->DevToolsSaveToFile(url, content, save_as);
+    delegate_->DevToolsSaveToFile(url, content, save_as, is_base64);
 }
 
 void InspectableWebContents::AppendToFile(const std::string& url,
@@ -888,6 +889,12 @@ void InspectableWebContents::GetSyncInformation(DispatchCallback callback) {
   std::move(callback).Run(&result);
 }
 
+void InspectableWebContents::GetHostConfig(DispatchCallback callback) {
+  base::Value::Dict response_dict;
+  base::Value response = base::Value(std::move(response_dict));
+  std::move(callback).Run(&response);
+}
+
 void InspectableWebContents::ConnectionReady() {}
 
 void InspectableWebContents::RegisterExtensionsAPI(const std::string& origin,
@@ -978,7 +985,7 @@ void InspectableWebContents::WebContentsDestroyed() {
 
 bool InspectableWebContents::HandleKeyboardEvent(
     content::WebContents* source,
-    const content::NativeWebKeyboardEvent& event) {
+    const input::NativeWebKeyboardEvent& event) {
   auto* delegate = web_contents_->GetDelegate();
   return !delegate || delegate->HandleKeyboardEvent(source, event);
 }

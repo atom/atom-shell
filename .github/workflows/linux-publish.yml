@@ -1,0 +1,83 @@
+name: Publish Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-image-sha:
+        type: string
+        description: 'SHA for electron/build image'
+        default: 'cf814a4d2501e8e843caea071a6b70a48e78b855'
+      upload-to-storage:
+        description: 'Uploads to Azure storage'
+        required: false
+        default: '1'
+        type: string
+      run-linux-publish:
+        description: 'Run the publish jobs vs just the build jobs'
+        type: boolean
+        default: false
+
+jobs:
+  checkout-linux:
+    runs-on: aks-linux-large
+    container:
+      image: ghcr.io/electron/build:${{ inputs.build-image-sha }}
+      options: --user root
+      volumes:
+        - /mnt/cross-instance-cache:/mnt/cross-instance-cache
+        - /var/run/sas:/var/run/sas
+    env:
+      GCLIENT_EXTRA_ARGS: '--custom-var=checkout_arm=True --custom-var=checkout_arm64=True'
+    steps:
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Checkout & Sync & Save
+      uses: ./src/electron/.github/actions/checkout
+
+  publish-x64:
+    uses: ./.github/workflows/pipeline-segment-electron-build.yml
+    needs: checkout-linux
+    with:
+      environment: production-release
+      build-runs-on: aks-linux-large
+      build-container: '{"image":"ghcr.io/electron/build:${{ inputs.build-image-sha }}","options":"--user root","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      target-platform: linux
+      target-arch: x64
+      is-release: true
+      gn-build-type: release
+      generate-symbols: true
+      upload-to-storage: ${{ inputs.upload-to-storage }}
+    secrets: inherit
+
+  publish-arm:
+    uses: ./.github/workflows/pipeline-segment-electron-build.yml
+    needs: checkout-linux
+    with:
+      environment: production-release
+      build-runs-on: aks-linux-large
+      build-container: '{"image":"ghcr.io/electron/build:${{ inputs.build-image-sha }}","options":"--user root","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      target-platform: linux
+      target-arch: arm
+      is-release: true
+      gn-build-type: release
+      generate-symbols: true
+      upload-to-storage: ${{ inputs.upload-to-storage }}
+    secrets: inherit
+
+  publish-arm64:
+    uses: ./.github/workflows/pipeline-segment-electron-build.yml
+    needs: checkout-linux
+    with:
+      environment: production-release
+      build-runs-on: aks-linux-large
+      build-container: '{"image":"ghcr.io/electron/build:${{ inputs.build-image-sha }}","options":"--user root","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      target-platform: linux
+      target-arch: arm64
+      is-release: true
+      gn-build-type: release
+      generate-symbols: true
+      upload-to-storage: ${{ inputs.upload-to-storage }}
+    secrets: inherit

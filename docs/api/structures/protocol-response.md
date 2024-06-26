@@ -10,7 +10,7 @@
   `"text/html"`. Setting `mimeType` would implicitly set the `content-type`
   header in response, but if `content-type` is already set in `headers`, the
   `mimeType` would be ignored.
-* `headers` Record<string, string | string[]> (optional) - An object containing the response headers. The
+* `headers` Record\<string, string | string[]\> (optional) - An object containing the response headers. The
   keys must be string, and values must be either string or Array of string.
 * `data` (Buffer | string | ReadableStream) (optional) - The response body. When
   returning stream as response, this is a Node.js readable stream representing

@@ -29,7 +29,7 @@ The cookieEncryption fuse toggles whether the cookie store on disk is encrypted 
 **Default:** Enabled
 **@electron/fuses:** `FuseV1Options.EnableNodeOptionsEnvironmentVariable`
 
-The nodeOptions fuse toggles whether the [`NODE_OPTIONS`](https://nodejs.org/api/cli.html#node_optionsoptions) environment variable is respected or not.  This environment variable can be used to pass all kinds of custom options to the Node.js runtime and isn't typically used by apps in production.  Most apps can safely disable this fuse.
+The nodeOptions fuse toggles whether the [`NODE_OPTIONS`](https://nodejs.org/api/cli.html#node_optionsoptions)  and [`NODE_EXTRA_CA_CERTS`](https://github.com/nodejs/node/blob/main/doc/api/cli.md#node_extra_ca_certsfile) environment variables are respected.  The `NODE_OPTIONS` environment variable can be used to pass all kinds of custom options to the Node.js runtime and isn't typically used by apps in production.  Most apps can safely disable this fuse.
 
 ### `nodeCliInspect`
 

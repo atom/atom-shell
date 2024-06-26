@@ -1,0 +1,153 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Igor Sheludko <isheludko@gmail.com>
+Date: Tue, 30 Apr 2024 15:22:06 +0200
+Subject: src: use new V8 API to define stream accessor
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Define XxxStream.prototype.onread as an accessor in JavaScript sense.
+
+Previously it was defined via soon-to-be-deprecated
+`v8::ObjectTemplate::SetAccessor(..)` which used to call setter even
+for property stores via stream object.
+
+The replacement V8 API `v8::ObjectTemplate::SetNativeDataProperty(..)`
+defines a properly behaving data property and thus a store to a stream
+object will not trigger the "onread" setter callback.
+
+In order to preserve the desired behavior of storing the value in the
+receiver's internal field the "onread" property should be defined as
+a proper JavaScript accessor.
+
+PR-URL: https://github.com/nodejs/node/pull/53084
+Refs: https://github.com/v8/v8/commit/46c241eb99557fe8205acac5c526650c3847d180
+Refs: https://github.com/v8/v8/commit/6ec883986bd417e2a42ddb960bd9449deb7e4639
+Reviewed-By: Luigi Pinca <luigipinca@gmail.com>
+Reviewed-By: Tobias Nießen <tniessen@tnie.de>
+Reviewed-By: James M Snell <jasnell@gmail.com>
+Reviewed-By: Joyee Cheung <joyeec9h3@gmail.com>
+(cherry picked from commit bd151552ef35b0eed415eb1c50d30dafd341cee8)
+
+diff --git a/src/base_object-inl.h b/src/base_object-inl.h
+index 518b22dabef0974c2e7ecb466669925338524059..61f30b3cfbdb0f3d21fe8e93dc97c55162b69a69 100644
+--- a/src/base_object-inl.h
++++ b/src/base_object-inl.h
+@@ -132,19 +132,18 @@ v8::EmbedderGraph::Node::Detachedness BaseObject::GetDetachedness() const {
+ 
+ template <int Field>
+ void BaseObject::InternalFieldGet(
+-    v8::Local<v8::Name> property,
+-    const v8::PropertyCallbackInfo<v8::Value>& info) {
+-  info.GetReturnValue().Set(
+-      info.This()->GetInternalField(Field).As<v8::Value>());
++    const v8::FunctionCallbackInfo<v8::Value>& args) {
++  args.GetReturnValue().Set(
++      args.This()->GetInternalField(Field).As<v8::Value>());
+ }
+ 
+ template <int Field, bool (v8::Value::*typecheck)() const>
+-void BaseObject::InternalFieldSet(v8::Local<v8::Name> property,
+-                                  v8::Local<v8::Value> value,
+-                                  const v8::PropertyCallbackInfo<void>& info) {
++void BaseObject::InternalFieldSet(
++    const v8::FunctionCallbackInfo<v8::Value>& args) {
++  v8::Local<v8::Value> value = args[0];
+   // This could be e.g. value->IsFunction().
+   CHECK(((*value)->*typecheck)());
+-  info.This()->SetInternalField(Field, value);
++  args.This()->SetInternalField(Field, value);
+ }
+ 
+ bool BaseObject::has_pointer_data() const {
+diff --git a/src/base_object.h b/src/base_object.h
+index 5c16d0d1b32e2d056f4fcfa0e01781292932a0fa..ce6277dec5a2b9313ecd3699b39ec17585d5adc5 100644
+--- a/src/base_object.h
++++ b/src/base_object.h
+@@ -111,12 +111,9 @@ class BaseObject : public MemoryRetainer {
+ 
+   // Setter/Getter pair for internal fields that can be passed to SetAccessor.
+   template <int Field>
+-  static void InternalFieldGet(v8::Local<v8::Name> property,
+-                               const v8::PropertyCallbackInfo<v8::Value>& info);
++  static void InternalFieldGet(const v8::FunctionCallbackInfo<v8::Value>& args);
+   template <int Field, bool (v8::Value::*typecheck)() const>
+-  static void InternalFieldSet(v8::Local<v8::Name> property,
+-                               v8::Local<v8::Value> value,
+-                               const v8::PropertyCallbackInfo<void>& info);
++  static void InternalFieldSet(const v8::FunctionCallbackInfo<v8::Value>& args);
+ 
+   // This is a bit of a hack. See the override in async_wrap.cc for details.
+   virtual bool IsDoneInitializing() const;
+diff --git a/src/stream_base.cc b/src/stream_base.cc
+index af714734f49b836de79ebb25e61f1376b757d5ed..a8f9f98d413c8573eb22960a4cefb47408215469 100644
+--- a/src/stream_base.cc
++++ b/src/stream_base.cc
+@@ -492,6 +492,29 @@ Local<Object> StreamBase::GetObject() {
+   return GetAsyncWrap()->object();
+ }
+ 
++void StreamBase::AddAccessor(v8::Isolate* isolate,
++                             v8::Local<v8::Signature> signature,
++                             enum v8::PropertyAttribute attributes,
++                             v8::Local<v8::FunctionTemplate> t,
++                             JSMethodFunction* getter,
++                             JSMethodFunction* setter,
++                             v8::Local<v8::String> string) {
++  Local<FunctionTemplate> getter_templ =
++      NewFunctionTemplate(isolate,
++                          getter,
++                          signature,
++                          ConstructorBehavior::kThrow,
++                          SideEffectType::kHasNoSideEffect);
++  Local<FunctionTemplate> setter_templ =
++      NewFunctionTemplate(isolate,
++                          setter,
++                          signature,
++                          ConstructorBehavior::kThrow,
++                          SideEffectType::kHasSideEffect);
++  t->PrototypeTemplate()->SetAccessorProperty(
++      string, getter_templ, setter_templ, attributes);
++}
++
+ void StreamBase::AddMethod(Isolate* isolate,
+                            Local<Signature> signature,
+                            enum PropertyAttribute attributes,
+@@ -561,11 +584,14 @@ void StreamBase::AddMethods(IsolateData* isolate_data,
+                  JSMethod<&StreamBase::WriteString<LATIN1>>);
+   t->PrototypeTemplate()->Set(FIXED_ONE_BYTE_STRING(isolate, "isStreamBase"),
+                               True(isolate));
+-  t->PrototypeTemplate()->SetAccessor(
+-      FIXED_ONE_BYTE_STRING(isolate, "onread"),
+-      BaseObject::InternalFieldGet<StreamBase::kOnReadFunctionField>,
+-      BaseObject::InternalFieldSet<StreamBase::kOnReadFunctionField,
+-                                   &Value::IsFunction>);
++  AddAccessor(isolate,
++              sig,
++              static_cast<PropertyAttribute>(DontDelete | DontEnum),
++              t,
++              BaseObject::InternalFieldGet<StreamBase::kOnReadFunctionField>,
++              BaseObject::InternalFieldSet<StreamBase::kOnReadFunctionField,
++                                           &Value::IsFunction>,
++              FIXED_ONE_BYTE_STRING(isolate, "onread"));
+ }
+ 
+ void StreamBase::RegisterExternalReferences(
+diff --git a/src/stream_base.h b/src/stream_base.h
+index 62a8928e144ad6aa67eeccdbc46d44da22887fb8..ccbd769ceaf3c1e024defb3104e601d037c98b6a 100644
+--- a/src/stream_base.h
++++ b/src/stream_base.h
+@@ -413,6 +413,13 @@ class StreamBase : public StreamResource {
+   EmitToJSStreamListener default_listener_;
+ 
+   void SetWriteResult(const StreamWriteResult& res);
++  static void AddAccessor(v8::Isolate* isolate,
++                          v8::Local<v8::Signature> sig,
++                          enum v8::PropertyAttribute attributes,
++                          v8::Local<v8::FunctionTemplate> t,
++                          JSMethodFunction* getter,
++                          JSMethodFunction* setter,
++                          v8::Local<v8::String> str);
+   static void AddMethod(v8::Isolate* isolate,
+                         v8::Local<v8::Signature> sig,
+                         enum v8::PropertyAttribute attributes,

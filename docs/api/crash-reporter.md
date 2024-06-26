@@ -59,14 +59,14 @@ The `crashReporter` module has the following methods:
     number of crashes uploaded to 1/hour. Default is `false`.
   * `compress` boolean (optional) - If true, crash reports will be compressed
     and uploaded with `Content-Encoding: gzip`. Default is `true`.
-  * `extra` Record<string, string> (optional) - Extra string key/value
+  * `extra` Record\<string, string\> (optional) - Extra string key/value
     annotations that will be sent along with crash reports that are generated
     in the main process. Only string values are supported. Crashes generated in
     child processes will not contain these extra
     parameters to crash reports generated from child processes, call
     [`addExtraParameter`](#crashreporteraddextraparameterkey-value) from the
     child process.
-  * `globalExtra` Record<string, string> (optional) - Extra string key/value
+  * `globalExtra` Record\<string, string\> (optional) - Extra string key/value
     annotations that will be sent along with any crash reports generated in any
     process. These annotations cannot be changed once the crash reporter has
     been started. If a key is present in both the global extra parameters and

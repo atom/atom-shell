@@ -18,7 +18,7 @@ namespace electron {
 class AutofillDriver;
 
 class AutofillDriverFactory
-    : public content::WebContentsObserver,
+    : private content::WebContentsObserver,
       public content::WebContentsUserData<AutofillDriverFactory> {
  public:
   typedef base::OnceCallback<std::unique_ptr<AutofillDriver>()>
@@ -31,11 +31,6 @@ class AutofillDriverFactory
           pending_receiver,
       content::RenderFrameHost* render_frame_host);
 
-  // content::WebContentsObserver:
-  void RenderFrameDeleted(content::RenderFrameHost* render_frame_host) override;
-  void DidFinishNavigation(
-      content::NavigationHandle* navigation_handle) override;
-
   AutofillDriver* DriverForFrame(content::RenderFrameHost* render_frame_host);
   void AddDriverForFrame(content::RenderFrameHost* render_frame_host,
                          CreationCallback factory_method);
@@ -46,6 +41,11 @@ class AutofillDriverFactory
   WEB_CONTENTS_USER_DATA_KEY_DECL();
 
  private:
+  // content::WebContentsObserver:
+  void RenderFrameDeleted(content::RenderFrameHost* render_frame_host) override;
+  void DidFinishNavigation(
+      content::NavigationHandle* navigation_handle) override;
+
   explicit AutofillDriverFactory(content::WebContents* web_contents);
   friend class content::WebContentsUserData<AutofillDriverFactory>;
 

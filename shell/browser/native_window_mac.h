@@ -176,6 +176,8 @@ class NativeWindowMac : public NativeWindow,
 
   void UpdateWindowOriginalFrame();
 
+  bool IsPanel();
+
   // Set the attribute of NSWindow while work around a bug of zoom button.
   bool HasStyleMask(NSUInteger flag) const;
   void SetStyleMask(bool on, NSUInteger flag);

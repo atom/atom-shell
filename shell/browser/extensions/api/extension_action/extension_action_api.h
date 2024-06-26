@@ -91,6 +91,8 @@ class ExtensionActionFunction : public ExtensionFunction {
  protected:
   ExtensionActionFunction();
   ~ExtensionActionFunction() override;
+
+  // ExtensionFunction
   ResponseAction Run() override;
 
   virtual ResponseAction RunExtensionAction() = 0;

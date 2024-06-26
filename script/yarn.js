@@ -11,7 +11,8 @@ if (require.main === module) {
     env: {
       ...process.env,
       npm_config_yes: 'true'
-    }
+    },
+    shell: process.platform === 'win32'
   });
 
   child.on('exit', code => process.exit(code));

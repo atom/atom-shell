@@ -65,7 +65,7 @@ class Platform:
       return Platform.WINDOWS
 
     raise AssertionError(
-        "unexpected current platform '{}'".format(platform))
+        f"unexpected current platform '{platform}'")
 
   @staticmethod
   def get_all():
@@ -101,19 +101,19 @@ class TestsList():
     # First check that all names are present in the config.
     for binary_name in binaries:
       if binary_name not in self.tests:
-        raise Exception("binary {0} not found in config '{1}'".format(
-            binary_name, self.config_path))
+        msg = f"binary {binary_name} not found in config '{self.config_path}'"
+        raise Exception(msg)
 
     # Respect the "platform" setting.
     for binary_name in binaries:
       if not self.__platform_supports(binary_name):
-        raise Exception(
-            "binary {0} cannot be run on {1}, check the config".format(
-                binary_name, Platform.get_current()))
+        host = Platform.get_current()
+        errmsg = f"binary {binary_name} cannot run on {host}. Check the config"
+        raise Exception(errmsg)
 
     suite_returncode = sum(
-        [self.__run(binary, output_dir, verbosity, disabled_tests_policy)
-        for binary in binaries])
+        self.__run(binary, output_dir, verbosity, disabled_tests_policy)
+        for binary in binaries)
     return suite_returncode
 
   def run_all(self, output_dir=None, verbosity=Verbosity.CHATTY,
@@ -134,7 +134,7 @@ class TestsList():
 
   @staticmethod
   def __get_config_data(config_path):
-    with open(config_path, 'r') as stream:
+    with open(config_path, 'r', encoding='utf-8') as stream:
       return yaml.load(stream)
 
   @staticmethod
@@ -146,7 +146,7 @@ class TestsList():
     if isinstance(value, str):
       return {value: None}
 
-    raise AssertionError("unexpected shorthand type: {}".format(type(value)))
+    raise AssertionError(f"unexpected shorthand type: {type(value)}")
 
   @staticmethod
   def __make_a_list(value):
@@ -166,7 +166,7 @@ class TestsList():
       return [list_item for key in value for list_item in value[key]]
 
     raise AssertionError(
-        "unexpected type for list merging: {}".format(type(value)))
+        f"unexpected type for list merging: {type(value)}")
 
   def __platform_supports(self, binary_name):
     return Platform.get_current() in self.tests[binary_name]['platforms']
@@ -194,8 +194,7 @@ class TestsList():
 
           for platform in platforms:
             assert Platform.is_valid(platform), \
-                "platform '{0}' is not supported, check {1} config" \
-                    .format(platform, binary_name)
+                f"Unsupported platform {platform}, check {binary_name} config"
 
           test_data['platforms'] = platforms
 
@@ -231,7 +230,7 @@ class TestsList():
     if output_dir is None:
       return None
 
-    return os.path.join(output_dir, "results_{}.xml".format(binary_name))
+    return os.path.join(output_dir, f"results_{binary_name}.xml")
 
 
 class TestBinary():
@@ -248,50 +247,40 @@ class TestBinary():
     gtest_output = TestBinary.__get_gtest_output(output_file_path)
 
     args = [self.binary_path, gtest_filter, gtest_output]
-    stdout, stderr = TestBinary.__get_stdout_and_stderr(verbosity)
 
     returncode = 0
-    try:
-      returncode = subprocess.call(args, stdout=stdout, stderr=stderr)
-    except Exception as exception:
-      if Verbosity.ge(verbosity, Verbosity.ERRORS):
-        print("An error occurred while running '{}':".format(self.binary_path),
-            '\n', exception, file=sys.stderr)
-      returncode = 1
+
+    with open(os.devnull, "w", encoding='utf-8') as devnull:
+      stdout = stderr = None
+      if Verbosity.le(verbosity, Verbosity.ERRORS):
+        stdout = devnull
+        if verbosity == Verbosity.SILENT:
+          stderr = devnull
+
+      try:
+        returncode = subprocess.call(args, stdout=stdout, stderr=stderr)
+      except Exception as exception:
+        if Verbosity.ge(verbosity, Verbosity.ERRORS):
+          print(f"An error occurred while running '{self.binary_path}':",
+              '\n', exception, file=sys.stderr)
+        returncode = 1
 
     return returncode
 
   @staticmethod
   def __get_gtest_filter(included_tests, excluded_tests):
-    included_tests_string = TestBinary.__list_tests(included_tests)
-    excluded_tests_string = TestBinary.__list_tests(excluded_tests)
-
-    gtest_filter = "--gtest_filter={}-{}".format(included_tests_string,
-                                                 excluded_tests_string)
-    return gtest_filter
+    included_str = TestBinary.__list_tests(included_tests)
+    excluded_str = TestBinary.__list_tests(excluded_tests)
+    return f"--gtest_filter={included_str}-{excluded_str}"
 
   @staticmethod
   def __get_gtest_output(output_file_path):
-    gtest_output = ""
-    if output_file_path is not None:
-      gtest_output = "--gtest_output={0}:{1}".format(TestBinary.output_format,
-                                                     output_file_path)
-    return gtest_output
+    if output_file_path is None:
+      return ""
+    return f"--gtest_output={TestBinary.output_format}:{output_file_path}"
 
   @staticmethod
   def __list_tests(tests):
     if tests is None:
       return ''
     return ':'.join(tests)
-
-  @staticmethod
-  def __get_stdout_and_stderr(verbosity):
-    stdout = stderr = None
-
-    if Verbosity.le(verbosity, Verbosity.ERRORS):
-      devnull = open(os.devnull, 'w')
-      stdout = devnull
-      if verbosity == Verbosity.SILENT:
-        stderr = devnull
-
-    return (stdout, stderr)

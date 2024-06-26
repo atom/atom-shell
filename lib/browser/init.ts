@@ -200,11 +200,11 @@ delete process.appCodeLoaded;
 if (packagePath) {
   // Finally load app's main.js and transfer control to C++.
   if ((packageJson.type === 'module' && !mainStartupScript.endsWith('.cjs')) || mainStartupScript.endsWith('.mjs')) {
-    const { loadESM } = __non_webpack_require__('internal/process/esm_loader');
+    const { runEntryPointWithESMLoader } = __non_webpack_require__('internal/modules/run_main');
     const main = (require('url') as typeof url).pathToFileURL(path.join(packagePath, mainStartupScript));
-    loadESM(async (esmLoader: any) => {
+    runEntryPointWithESMLoader(async (cascadedLoader: any) => {
       try {
-        await esmLoader.import(main.toString(), undefined, Object.create(null));
+        await cascadedLoader.import(main.toString(), undefined, Object.create(null));
         appCodeLoaded!();
       } catch (err) {
         appCodeLoaded!();

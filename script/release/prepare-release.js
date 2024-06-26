@@ -14,7 +14,11 @@ const readline = require('node:readline');
 const releaseNotesGenerator = require('./notes/index.js');
 const { getCurrentBranch, ELECTRON_DIR } = require('../lib/utils.js');
 const bumpType = args._[0];
-const targetRepo = bumpType === 'nightly' ? 'nightlies' : 'electron';
+const targetRepo = getRepo();
+
+function getRepo () {
+  return bumpType === 'nightly' ? 'nightlies' : 'electron';
+}
 
 const octokit = new Octokit({
   auth: process.env.ELECTRON_GITHUB_TOKEN
@@ -138,9 +142,10 @@ async function pushRelease (branch) {
   }
 }
 
-async function runReleaseBuilds (branch) {
+async function runReleaseBuilds (branch, newVersion) {
   await ciReleaseBuild(branch, {
-    ghRelease: true
+    ghRelease: true,
+    newVersion
   });
 }
 
@@ -170,6 +175,8 @@ async function verifyNewVersion () {
     console.log(`${fail} Aborting release of ${newVersion}`);
     process.exit();
   }
+
+  return newVersion;
 }
 
 async function promptForVersion (version) {
@@ -205,10 +212,10 @@ async function prepareRelease (isBeta, notesOnly) {
     } else {
       const changes = await changesToRelease();
       if (changes) {
-        await verifyNewVersion();
+        const newVersion = await verifyNewVersion();
         await createRelease(currentBranch, isBeta);
         await pushRelease(currentBranch);
-        await runReleaseBuilds(currentBranch);
+        await runReleaseBuilds(currentBranch, newVersion);
       } else {
         console.log('There are no new changes to this branch since the last release, aborting release.');
         process.exit(1);

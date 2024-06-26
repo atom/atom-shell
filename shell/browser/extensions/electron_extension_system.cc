@@ -103,7 +103,7 @@ std::unique_ptr<base::Value::Dict> ParseManifest(
     LOG(ERROR) << "Failed to parse extension manifest.";
     return std::unique_ptr<base::Value::Dict>();
   }
-  return std::make_unique<base::Value::Dict>(std::move(manifest->GetDict()));
+  return std::make_unique<base::Value::Dict>(std::move(*manifest).TakeDict());
 }
 
 void ElectronExtensionSystem::LoadComponentExtensions() {
@@ -190,14 +190,12 @@ void ElectronExtensionSystem::InstallUpdate(
     bool install_immediately,
     InstallUpdateCallback install_update_callback) {
   NOTREACHED();
-  base::DeletePathRecursively(temp_dir);
 }
 
 bool ElectronExtensionSystem::FinishDelayedInstallationIfReady(
     const std::string& extension_id,
     bool install_immediately) {
   NOTREACHED();
-  return false;
 }
 
 void ElectronExtensionSystem::PerformActionBasedOnOmahaAttributes(

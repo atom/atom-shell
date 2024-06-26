@@ -8,10 +8,10 @@ decorations in maximized mode where needed, preventing empty space caused
 by decoration shadows and rounded titlebars around the window while maximized.
 
 diff --git a/ui/gtk/gtk_ui.cc b/ui/gtk/gtk_ui.cc
-index 427dadcb9e2ba6c6863395fdd17554c6ea0a89c5..aee495799882bd73970a721f961b3d5ff06ec346 100644
+index d6b7bf6496c25bd873f5e28ed38d21ef5725fee1..c4bb9b5e509907de06a4fa64370b99992f3ce5c7 100644
 --- a/ui/gtk/gtk_ui.cc
 +++ b/ui/gtk/gtk_ui.cc
-@@ -521,11 +521,12 @@ std::unique_ptr<ui::NavButtonProvider> GtkUi::CreateNavButtonProvider() {
+@@ -562,11 +562,12 @@ std::unique_ptr<ui::NavButtonProvider> GtkUi::CreateNavButtonProvider() {
  }
  
  ui::WindowFrameProvider* GtkUi::GetWindowFrameProvider(bool solid_frame,
@@ -28,10 +28,10 @@ index 427dadcb9e2ba6c6863395fdd17554c6ea0a89c5..aee495799882bd73970a721f961b3d5f
    return provider.get();
  }
 diff --git a/ui/gtk/gtk_ui.h b/ui/gtk/gtk_ui.h
-index 1564d2cb042a70d6faaed14ba70c3832949fbae6..60bebfb5cb2c511dd28e6baa2b38973db99b3e13 100644
+index 0432ea4f5906502a4f6def46ab064292a6628218..e3cbfa3a1ac8c169c429e29c1262d0dd2a05a4b6 100644
 --- a/ui/gtk/gtk_ui.h
 +++ b/ui/gtk/gtk_ui.h
-@@ -111,7 +111,8 @@ class GtkUi : public ui::LinuxUiAndTheme {
+@@ -107,7 +107,8 @@ class GtkUi : public ui::LinuxUiAndTheme {
    void SetDarkTheme(bool dark) override;
    std::unique_ptr<ui::NavButtonProvider> CreateNavButtonProvider() override;
    ui::WindowFrameProvider* GetWindowFrameProvider(bool solid_frame,
@@ -41,7 +41,7 @@ index 1564d2cb042a70d6faaed14ba70c3832949fbae6..60bebfb5cb2c511dd28e6baa2b38973d
  
   private:
    using TintMap = std::map<int, color_utils::HSL>;
-@@ -204,7 +205,7 @@ class GtkUi : public ui::LinuxUiAndTheme {
+@@ -191,7 +192,7 @@ class GtkUi : public ui::LinuxUiAndTheme {
    // while Chrome is running.  This 2D array is indexed first by whether the
    // frame is translucent (0) or solid(1), then by whether the frame is normal
    // (0) or tiled (1).
@@ -51,10 +51,10 @@ index 1564d2cb042a70d6faaed14ba70c3832949fbae6..60bebfb5cb2c511dd28e6baa2b38973d
    // Objects to notify when the window frame button order changes.
    base::ObserverList<ui::WindowButtonOrderObserver>::Unchecked
 diff --git a/ui/gtk/window_frame_provider_gtk.cc b/ui/gtk/window_frame_provider_gtk.cc
-index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95179b0083 100644
+index e24cce85b453ecee9a4854bfdf7b8eeb6814f8c3..d3e3e9b918011c433b4ac6ded245803410ccb5d4 100644
 --- a/ui/gtk/window_frame_provider_gtk.cc
 +++ b/ui/gtk/window_frame_provider_gtk.cc
-@@ -30,20 +30,23 @@ constexpr int kMaxFrameSizeDip = 64;
+@@ -29,20 +29,23 @@ constexpr int kMaxFrameSizeDip = 64;
  // will get an incorrect hint as to which pixels are fully opaque.
  constexpr int kMaxCornerRadiusDip = 32;
  
@@ -81,7 +81,7 @@ index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95
    // GTK4 renders the decoration directly on the window.
    if (!GtkCheckVersion(4)) {
      context = AppendCssNodeToStyleContext(context, "decoration");
-@@ -62,8 +65,8 @@ GtkCssContext DecorationContext(bool solid_frame, bool tiled, bool focused) {
+@@ -61,8 +64,8 @@ GtkCssContext DecorationContext(bool solid_frame, bool tiled, bool focused) {
    return context;
  }
  
@@ -92,7 +92,7 @@ index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95
    context =
        AppendCssNodeToStyleContext(context, "headerbar.header-bar.titlebar");
    if (!focused) {
-@@ -120,8 +123,8 @@ int ComputeTopCornerRadius() {
+@@ -117,8 +120,8 @@ int ComputeTopCornerRadius() {
    // need to experimentally determine the corner radius by rendering a sample.
    // Additionally, in GTK4, the headerbar corners get clipped by the window
    // rather than the headerbar having its own rounded corners.
@@ -103,7 +103,7 @@ index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95
    ApplyCssToContext(context, R"(window, headerbar {
      background-image: none;
      background-color: black;
-@@ -155,7 +158,7 @@ int ComputeTopCornerRadius() {
+@@ -152,7 +155,7 @@ int ComputeTopCornerRadius() {
  bool HeaderIsTranslucent() {
    // The arbitrary square size to render a sample header.
    constexpr int kHeaderSize = 32;
@@ -112,9 +112,9 @@ index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95
    double opacity = GetOpacityFromContext(context);
    if (opacity < 1.0) {
      return true;
-@@ -206,8 +209,8 @@ void WindowFrameProviderGtk::Asset::CloneFrom(
-   unfocused_bitmap = src.unfocused_bitmap;
- }
+@@ -186,8 +189,8 @@ WindowFrameProviderGtk::Asset& WindowFrameProviderGtk::Asset::operator=(
+ 
+ WindowFrameProviderGtk::Asset::~Asset() = default;
  
 -WindowFrameProviderGtk::WindowFrameProviderGtk(bool solid_frame, bool tiled)
 -    : solid_frame_(solid_frame), tiled_(tiled) {
@@ -123,7 +123,7 @@ index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95
    GtkSettings* settings = gtk_settings_get_default();
    // Unretained() is safe since WindowFrameProviderGtk will own the signals.
    auto callback = base::BindRepeating(&WindowFrameProviderGtk::OnThemeChanged,
-@@ -325,7 +328,7 @@ void WindowFrameProviderGtk::PaintWindowFrame(gfx::Canvas* canvas,
+@@ -337,7 +340,7 @@ void WindowFrameProviderGtk::PaintWindowFrame(gfx::Canvas* canvas,
  
    auto header =
        PaintHeaderbar({client_bounds_px.width(), top_area_height_px},
@@ -132,7 +132,7 @@ index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95
    image = gfx::ImageSkia::CreateFrom1xBitmap(header);
    // In GTK4, the headerbar gets clipped by the window.
    if (GtkCheckVersion(4)) {
-@@ -352,7 +355,7 @@ void WindowFrameProviderGtk::MaybeUpdateBitmaps(float scale) {
+@@ -366,7 +369,7 @@ WindowFrameProviderGtk::Asset& WindowFrameProviderGtk::GetOrCreateAsset(
  
    gfx::Rect frame_bounds_dip(kMaxFrameSizeDip, kMaxFrameSizeDip,
                               2 * kMaxFrameSizeDip, 2 * kMaxFrameSizeDip);
@@ -141,20 +141,20 @@ index 794efdb773422ddc12ccbe013a13aadeb980b487..a60bbd76141f06202343c68e78688a95
    frame_bounds_dip.Inset(-GtkStyleContextGetPadding(focused_context));
    frame_bounds_dip.Inset(-GtkStyleContextGetBorder(focused_context));
    gfx::Size bitmap_size(BitmapSizePx(asset), BitmapSizePx(asset));
-@@ -360,7 +363,7 @@ void WindowFrameProviderGtk::MaybeUpdateBitmaps(float scale) {
+@@ -374,7 +377,7 @@ WindowFrameProviderGtk::Asset& WindowFrameProviderGtk::GetOrCreateAsset(
                                       focused_context, scale);
    asset.unfocused_bitmap =
        PaintBitmap(bitmap_size, gfx::RectF(frame_bounds_dip),
 -                  DecorationContext(solid_frame_, tiled_, false), scale);
 +                  DecorationContext(solid_frame_, tiled_, maximized_, false), scale);
  
-   // In GTK4, there's no way to obtain the frame thickness from CSS values
-   // directly, so we must determine it experimentally based on the drawn
+   return asset;
+ }
 diff --git a/ui/gtk/window_frame_provider_gtk.h b/ui/gtk/window_frame_provider_gtk.h
-index 91236ec07c01ca14248b997577ae887c0c396cd2..d70639d2ba40e325bbbbf6117741c13354984ed5 100644
+index 4faaae32a203bfa57f3e61c391dc6917c4a0bf59..94050a0136b78730f607f42991742e0434948d0e 100644
 --- a/ui/gtk/window_frame_provider_gtk.h
 +++ b/ui/gtk/window_frame_provider_gtk.h
-@@ -18,7 +18,7 @@ namespace gtk {
+@@ -20,7 +20,7 @@ namespace gtk {
  
  class WindowFrameProviderGtk : public ui::WindowFrameProvider {
   public:
@@ -163,7 +163,7 @@ index 91236ec07c01ca14248b997577ae887c0c396cd2..d70639d2ba40e325bbbbf6117741c133
  
    WindowFrameProviderGtk(const WindowFrameProviderGtk&) = delete;
    WindowFrameProviderGtk& operator=(const WindowFrameProviderGtk&) = delete;
-@@ -70,6 +70,8 @@ class WindowFrameProviderGtk : public ui::WindowFrameProvider {
+@@ -65,6 +65,8 @@ class WindowFrameProviderGtk : public ui::WindowFrameProvider {
    // Input parameters used for drawing.
    const bool solid_frame_;
    const bool tiled_;
@@ -171,12 +171,12 @@ index 91236ec07c01ca14248b997577ae887c0c396cd2..d70639d2ba40e325bbbbf6117741c133
 +  const bool maximized_;
  
    // Scale-independent metric calculated based on the bitmaps.
-   gfx::Insets frame_thickness_dip_;
+   std::optional<gfx::Insets> frame_thickness_dip_;
 diff --git a/ui/linux/fallback_linux_ui.cc b/ui/linux/fallback_linux_ui.cc
-index 3e8f30a90b8623dd00b882fb4dd1467d1a91689e..711b646621ba0bdabd15aef8929bdf48e0e52f88 100644
+index 8903f9ba950e7878fbd1bfa0cf2a42e0cc9daa21..7d13381eb1d16193bad0be1318e8ed199c6fb845 100644
 --- a/ui/linux/fallback_linux_ui.cc
 +++ b/ui/linux/fallback_linux_ui.cc
-@@ -136,7 +136,8 @@ FallbackLinuxUi::CreateNavButtonProvider() {
+@@ -141,7 +141,8 @@ FallbackLinuxUi::CreateNavButtonProvider() {
  
  ui::WindowFrameProvider* FallbackLinuxUi::GetWindowFrameProvider(
      bool solid_frame,
@@ -187,10 +187,10 @@ index 3e8f30a90b8623dd00b882fb4dd1467d1a91689e..711b646621ba0bdabd15aef8929bdf48
  }
  
 diff --git a/ui/linux/fallback_linux_ui.h b/ui/linux/fallback_linux_ui.h
-index 1de7b4a16637b2d719f0162f43af48dfc9af5d6a..61a75cd3e3226e115bbcd5b7837d3e2d9c1e8d65 100644
+index 2612cb68984a8435c84f0b0592eda8a5df6dd91e..282b48038f83d4a6dafe734f639d994c245c67ac 100644
 --- a/ui/linux/fallback_linux_ui.h
 +++ b/ui/linux/fallback_linux_ui.h
-@@ -69,7 +69,8 @@ class FallbackLinuxUi : public LinuxUiAndTheme {
+@@ -66,7 +66,8 @@ class FallbackLinuxUi : public LinuxUiAndTheme {
    void SetDarkTheme(bool dark) override;
    std::unique_ptr<ui::NavButtonProvider> CreateNavButtonProvider() override;
    ui::WindowFrameProvider* GetWindowFrameProvider(bool solid_frame,
@@ -199,12 +199,12 @@ index 1de7b4a16637b2d719f0162f43af48dfc9af5d6a..61a75cd3e3226e115bbcd5b7837d3e2d
 +                                                  bool maximized) override;
  
   private:
-   std::string default_font_family_;
+   std::optional<gfx::FontRenderParams> default_font_render_params_;
 diff --git a/ui/linux/linux_ui.h b/ui/linux/linux_ui.h
-index 54e10ccd1cbbad34a2b1885a74bfcade12538aff..60fc5e27fb1d45805f10dbc0afc803e5fe2b81e7 100644
+index b940382678ba70debaf7f33698c0b8bd02c42c4e..4477a1012fef5ad6dd365d70d28eadd3db136ceb 100644
 --- a/ui/linux/linux_ui.h
 +++ b/ui/linux/linux_ui.h
-@@ -288,7 +288,8 @@ class COMPONENT_EXPORT(LINUX_UI) LinuxUiTheme {
+@@ -304,7 +304,8 @@ class COMPONENT_EXPORT(LINUX_UI) LinuxUiTheme {
    // The returned object is not owned by the caller and will remain alive until
    // the process ends.
    virtual WindowFrameProvider* GetWindowFrameProvider(bool solid_frame,

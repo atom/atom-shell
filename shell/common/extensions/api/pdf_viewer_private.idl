@@ -6,34 +6,85 @@
 // functionality that the PDF Viewer needs from outside the PDF plugin. This API
 // is exclusively for the PDF Viewer.
 namespace pdfViewerPrivate {
+  // Nearly identical to mimeHandlerPrivate.StreamInfo, but without a mime type
+  // nor a response header field. Those fields are unused by the PDF viewer.
+  dictionary StreamInfo {
+    // The original URL that was intercepted.
+    DOMString originalUrl;
+
+    // The URL that the stream can be read from.
+    DOMString streamUrl;
+
+    // The ID of the tab that opened the stream. If the stream is not opened in
+    // a tab, it will be -1.
+    long tabId;
+
+    // Whether the stream is embedded within another document.
+    boolean embedded;
+  };
+
+  // Identical to mimeHandlerPrivate.StreamInfo.
+  dictionary PdfPluginAttributes {
+    // The background color in ARGB format for painting. Since the background
+    // color is an unsigned 32-bit integer which can be outside the range of
+    // "long" type, define it as a "double" type here.
+    double backgroundColor;
+
+    // Indicates whether the plugin allows to execute JavaScript and maybe XFA.
+    // Loading XFA for PDF forms will automatically be disabled if this flag is
+    // false.
+    boolean allowJavascript;
+  };
+
+  callback GetStreamInfoCallback = void(StreamInfo streamInfo);
   callback IsAllowedLocalFileAccessCallback = void(boolean result);
   callback IsPdfOcrAlwaysActiveCallback = void(boolean result);
   callback OnPdfOcrPrefSetCallback = void(boolean result);
+  callback VoidCallback = void();
 
   interface Functions {
+    // Returns the StreamInfo for the stream for this context if there is one.
+    static void getStreamInfo(
+        GetStreamInfoCallback callback);
+
     // Determines if the given URL should be allowed to access local files from
     // the PDF Viewer. |callback|: Called with true if URL should be allowed to
     // access local files from the PDF Viewer, false otherwise.
-    [supportsPromises] static void isAllowedLocalFileAccess(
+    static void isAllowedLocalFileAccess(
         DOMString url,
         IsAllowedLocalFileAccessCallback callback);
 
     // Determines if the preference for PDF OCR is set to run PDF OCR always.
     // |callback|: Called with true if PDF OCR is set to be always active;
     // false otherwise.
-    [supportsPromises] static void isPdfOcrAlwaysActive(
+    static void isPdfOcrAlwaysActive(
         IsPdfOcrAlwaysActiveCallback callback);
+
+    // Sets the current tab title to `title` for a full-page PDF.
+    static void setPdfDocumentTitle(
+        DOMString title,
+        optional VoidCallback callback);
 
     // Sets a pref value for PDF OCR.
     // |value|: The new value of the pref.
     // |callback|: The callback for whether the pref was set or not.
-    [supportsPromises] static void setPdfOcrPref(
+    static void setPdfOcrPref(
         boolean value, OnPdfOcrPrefSetCallback callback);
+
+    // Sets PDF plugin attributes in the stream for this context if there is
+    // one.
+    static void setPdfPluginAttributes(
+        PdfPluginAttributes attributes,
+        optional VoidCallback callback);
   };
 
   interface Events {
     // Fired when a pref value for PDF OCR has changed.
     // |value| The pref value that changed.
     static void onPdfOcrPrefChanged(boolean value);
+
+    // Fired when the browser wants the listener to perform a save.
+    // `streamUrl`: Unique ID for the instance that should perform the save.
+    static void onSave(DOMString streamUrl);
   };
 };

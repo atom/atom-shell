@@ -25,18 +25,10 @@ interface ElectronAutofillDriver {
   HideAutofillPopup();
 };
 
-struct DraggableRegion {
-  bool draggable;
-  gfx.mojom.Rect bounds;
-};
-
 interface ElectronWebContentsUtility {
   // Informs underlying WebContents that first non-empty layout was performed
   // by compositor.
   OnFirstNonEmptyLayout();
-
-  UpdateDraggableRegions(
-    array<DraggableRegion> regions);
 
   SetTemporaryZoomLevel(double zoom_level);
 

@@ -42,7 +42,7 @@ RenderFrame* GetCurrentRenderFrame() {
 }
 
 class IPCRenderer : public gin::Wrappable<IPCRenderer>,
-                    public content::RenderFrameObserver {
+                    private content::RenderFrameObserver {
  public:
   static gin::WrapperInfo kWrapperInfo;
 

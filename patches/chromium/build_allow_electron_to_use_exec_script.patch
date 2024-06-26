@@ -6,10 +6,10 @@ Subject: build: allow electron to use exec_script
 This is similar to the //build usecase so we're OK adding ourselves here
 
 diff --git a/.gn b/.gn
-index afe0b3e90fafb9413cc49198cf3ad5d66d433b54..6b83b22994998ba98895144ec81b4cdff1b0e0db 100644
+index 44a11ec90ec9b67cf22b6d529c6843e6b6af12bc..783dd77dcdf92ec32cc6594b739eab9738f3e3ba 100644
 --- a/.gn
 +++ b/.gn
-@@ -167,4 +167,8 @@ exec_script_whitelist =
+@@ -172,4 +172,8 @@ exec_script_whitelist =
  
        "//tools/grit/grit_rule.gni",
        "//tools/gritsettings/BUILD.gn",

@@ -176,8 +176,8 @@ export function useRemoteContext (opts?: any) {
   });
 }
 
-export async function itremote (name: string, fn: Function, args?: any[]) {
-  it(name, async () => {
+async function runRemote (type: 'skip' | 'none' | 'only', name: string, fn: Function, args?: any[]) {
+  const wrapped = async () => {
     const w = await getRemoteContext();
     const { ok, message } = await w.webContents.executeJavaScript(`(async () => {
       try {
@@ -192,13 +192,34 @@ export async function itremote (name: string, fn: Function, args?: any[]) {
       }
     })()`);
     if (!ok) { throw new AssertionError(message); }
-  });
+  };
+
+  let runFn: any = it;
+  if (type === 'only') {
+    runFn = it.only;
+  } else if (type === 'skip') {
+    runFn = it.skip;
+  }
+
+  runFn(name, wrapped);
 }
+
+export const itremote = Object.assign(
+  (name: string, fn: Function, args?: any[]) => {
+    runRemote('none', name, fn, args);
+  }, {
+    only: (name: string, fn: Function, args?: any[]) => {
+      runRemote('only', name, fn, args);
+    },
+    skip: (name: string, fn: Function, args?: any[]) => {
+      runRemote('skip', name, fn, args);
+    }
+  });
 
 export async function listen (server: http.Server | https.Server | http2.Http2SecureServer) {
   const hostname = '127.0.0.1';
   await new Promise<void>(resolve => server.listen(0, hostname, () => resolve()));
   const { port } = server.address() as net.AddressInfo;
   const protocol = (server instanceof http.Server) ? 'http' : 'https';
-  return { port, url: url.format({ protocol, hostname, port }) };
+  return { port, hostname, url: url.format({ protocol, hostname, port }) };
 }

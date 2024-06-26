@@ -19,9 +19,73 @@ jobs:
           creds: ${{ secrets.ISSUE_TRIAGE_GH_APP_CREDS }}
           org: electron
       - name: Add to Issue Triage
-        uses: dsanders11/project-actions/add-item@a24415515fa60a22f71f9d9d00e36ca82660cde9 # v1.0.1
+        uses: dsanders11/project-actions/add-item@eb760c48894b5702398529cbb8f6e98378e315d0 # v1.3.0
         with:
           field: Reporter
           field-value: ${{ github.event.issue.user.login }}
           project-number: 90
           token: ${{ steps.generate-token.outputs.token }}
+  set-labels:
+    if: ${{ contains(github.event.issue.labels.*.name, 'bug :beetle:') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae # v1.1.1
+        id: generate-token
+        with:
+          creds: ${{ secrets.ISSUE_TRIAGE_GH_APP_CREDS }}
+          org: electron
+      - run: npm install mdast-util-from-markdown@2.0.0 unist-util-select@5.1.0 semver@7.6.0
+      - name: Add labels
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        with:
+          github-token: ${{ steps.generate-token.outputs.token }}
+          script: |
+            const { fromMarkdown } = await import('${{ github.workspace }}/node_modules/mdast-util-from-markdown/index.js');
+            const { select } = await import('${{ github.workspace }}/node_modules/unist-util-select/index.js');
+            const semver = await import('${{ github.workspace }}/node_modules/semver/index.js');
+
+            const [ owner, repo ] = '${{ github.repository }}'.split('/');
+            const issue_number = ${{ github.event.issue.number }};
+
+            const tree = fromMarkdown(process.env.ISSUE_BODY);
+
+            const labels = [];
+
+            const electronVersion = select('heading:has(> text[value="Electron Version"]) + paragraph > text', tree)?.value.trim();
+            if (electronVersion !== undefined) {
+              const major = semver.parse(electronVersion)?.major;
+              if (major) {
+                const versionLabel = `${major}-x-y`;
+                let labelExists = false;
+
+                try {
+                  await github.rest.issues.getLabel({
+                    owner,
+                    repo,
+                    name: versionLabel,
+                  });
+                  labelExists = true;
+                } catch {}
+
+                if (labelExists) {
+                  labels.push(versionLabel);
+                }
+              }
+            }
+
+            const gistUrl = select('heading:has(> text[value="Testcase Gist URL"]) + paragraph > text', tree)?.value.trim();
+            if (gistUrl !== undefined && gistUrl.startsWith('https://gist.github.com/')) {
+              labels.push('has-repro-gist');
+            }
+
+            if (labels.length) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels,
+              });
+            }

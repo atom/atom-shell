@@ -26,6 +26,7 @@ class ElectronContentUtilityClient : public content::ContentUtilityClient {
   ElectronContentUtilityClient& operator=(const ElectronContentUtilityClient&) =
       delete;
 
+  // content::ContentUtilityClient
   void ExposeInterfacesToBrowser(mojo::BinderMap* binders) override;
   void RegisterMainThreadServices(mojo::ServiceFactory& services) override;
   void RegisterIOThreadServices(mojo::ServiceFactory& services) override;

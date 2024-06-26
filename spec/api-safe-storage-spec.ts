@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { safeStorage } from 'electron/main';
 import { expect } from 'chai';
 import { ifdescribe } from './lib/spec-helpers';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import { once } from 'node:events';
 
 describe('safeStorage module', () => {
@@ -33,8 +33,8 @@ describe('safeStorage module', () => {
 
   after(async () => {
     const pathToEncryptedString = path.resolve(__dirname, 'fixtures', 'api', 'safe-storage', 'encrypted.txt');
-    if (await fs.pathExists(pathToEncryptedString)) {
-      await fs.remove(pathToEncryptedString);
+    if (fs.existsSync(pathToEncryptedString)) {
+      await fs.promises.rm(pathToEncryptedString, { force: true, recursive: true });
     }
   });
 

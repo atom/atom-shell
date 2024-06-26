@@ -1,0 +1,12 @@
+<html>
+<body>
+<script type="text/javascript" charset="utf-8">
+  const { ipcRenderer } = require('electron')
+  let worker = new Worker(`../workers/worker_node_fetch.js`)
+  worker.onmessage = function (event) {
+    ipcRenderer.send('worker-fetch-result', event.data)
+    worker.terminate()
+  }
+</script>
+</body>
+</html>

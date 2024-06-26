@@ -150,12 +150,12 @@ if (cjsPreloads.length) {
   }
 }
 if (esmPreloads.length) {
-  const { loadESM } = __non_webpack_require__('internal/process/esm_loader');
+  const { runEntryPointWithESMLoader } = __non_webpack_require__('internal/modules/run_main');
 
-  loadESM(async (esmLoader: any) => {
+  runEntryPointWithESMLoader(async (cascadedLoader: any) => {
     // Load the preload scripts.
     for (const preloadScript of esmPreloads) {
-      await esmLoader.import(pathToFileURL(preloadScript).toString(), undefined, Object.create(null)).catch((err: Error) => {
+      await cascadedLoader.import(pathToFileURL(preloadScript).toString(), undefined, Object.create(null)).catch((err: Error) => {
         console.error(`Unable to load preload script: ${preloadScript}`);
         console.error(err);
 

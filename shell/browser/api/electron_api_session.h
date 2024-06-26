@@ -65,12 +65,12 @@ class Session : public gin::Wrappable<Session>,
                 public gin_helper::EventEmitterMixin<Session>,
                 public gin_helper::CleanedUpAtExit,
 #if BUILDFLAG(ENABLE_BUILTIN_SPELLCHECKER)
-                public SpellcheckHunspellDictionary::Observer,
+                private SpellcheckHunspellDictionary::Observer,
 #endif
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
-                public extensions::ExtensionRegistryObserver,
+                private extensions::ExtensionRegistryObserver,
 #endif
-                public content::DownloadManager::Observer {
+                private content::DownloadManager::Observer {
  public:
   // Gets or creates Session from the |browser_context|.
   static gin::Handle<Session> CreateFrom(
@@ -147,6 +147,8 @@ class Session : public gin::Wrappable<Session>,
   v8::Local<v8::Value> GetPath(v8::Isolate* isolate);
   void SetCodeCachePath(gin::Arguments* args);
   v8::Local<v8::Promise> ClearCodeCaches(const gin_helper::Dictionary& options);
+  v8::Local<v8::Value> ClearData(gin_helper::ErrorThrower thrower,
+                                 gin::Arguments* args);
 #if BUILDFLAG(ENABLE_BUILTIN_SPELLCHECKER)
   base::Value GetSpellCheckerLanguages();
   void SetSpellCheckerLanguages(gin_helper::ErrorThrower thrower,

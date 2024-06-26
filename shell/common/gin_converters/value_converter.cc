@@ -18,7 +18,7 @@ bool Converter<base::Value::Dict>::FromV8(v8::Isolate* isolate,
       content::V8ValueConverter::Create()->FromV8Value(
           val, isolate->GetCurrentContext());
   if (value && value->is_dict()) {
-    *out = std::move(value->GetDict());
+    *out = std::move(*value).TakeDict();
     return true;
   } else {
     return false;
@@ -53,7 +53,7 @@ bool Converter<base::Value::List>::FromV8(v8::Isolate* isolate,
       content::V8ValueConverter::Create()->FromV8Value(
           val, isolate->GetCurrentContext());
   if (value && value->is_list()) {
-    *out = std::move(value->GetList());
+    *out = std::move(*value).TakeList();
     return true;
   } else {
     return false;

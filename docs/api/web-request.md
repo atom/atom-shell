@@ -99,11 +99,11 @@ Some examples of valid `urls`:
     * `referrer` string
     * `timestamp` Double
     * `uploadData` [UploadData[]](structures/upload-data.md) (optional)
-    * `requestHeaders` Record<string, string>
+    * `requestHeaders` Record\<string, string\>
   * `callback` Function
     * `beforeSendResponse` Object
       * `cancel` boolean (optional)
-      * `requestHeaders` Record<string, string | string[]> (optional) - When provided, request will be made
+      * `requestHeaders` Record\<string, string | string[]\> (optional) - When provided, request will be made
   with these headers.
 
 The `listener` will be called with `listener(details, callback)` before sending
@@ -126,7 +126,7 @@ The `callback` has to be called with a `response` object.
     * `resourceType` string - Can be `mainFrame`, `subFrame`, `stylesheet`, `script`, `image`, `font`, `object`, `xhr`, `ping`, `cspReport`, `media`, `webSocket` or `other`.
     * `referrer` string
     * `timestamp` Double
-    * `requestHeaders` Record<string, string>
+    * `requestHeaders` Record\<string, string\>
 
 The `listener` will be called with `listener(details)` just before a request is
 going to be sent to the server, modifications of previous `onBeforeSendHeaders`
@@ -148,11 +148,11 @@ response are visible by the time this listener is fired.
     * `timestamp` Double
     * `statusLine` string
     * `statusCode` Integer
-    * `responseHeaders` Record<string, string[]> (optional)
+    * `responseHeaders` Record\<string, string[]\> (optional)
   * `callback` Function
     * `headersReceivedResponse` Object
       * `cancel` boolean (optional)
-      * `responseHeaders` Record<string, string | string[]> (optional) - When provided, the server is assumed
+      * `responseHeaders` Record\<string, string | string[]\> (optional) - When provided, the server is assumed
         to have responded with these headers.
       * `statusLine` string (optional) - Should be provided when overriding
         `responseHeaders` to change header status otherwise original response
@@ -177,7 +177,7 @@ The `callback` has to be called with a `response` object.
     * `resourceType` string - Can be `mainFrame`, `subFrame`, `stylesheet`, `script`, `image`, `font`, `object`, `xhr`, `ping`, `cspReport`, `media`, `webSocket` or `other`.
     * `referrer` string
     * `timestamp` Double
-    * `responseHeaders` Record<string, string[]> (optional)
+    * `responseHeaders` Record\<string, string[]\> (optional)
     * `fromCache` boolean - Indicates whether the response was fetched from disk
       cache.
     * `statusCode` Integer
@@ -207,7 +207,7 @@ and response headers are available.
     * `ip` string (optional) - The server IP address that the request was
       actually sent to.
     * `fromCache` boolean
-    * `responseHeaders` Record<string, string[]> (optional)
+    * `responseHeaders` Record\<string, string[]\> (optional)
 
 The `listener` will be called with `listener(details)` when a server initiated
 redirect is about to occur.
@@ -226,7 +226,7 @@ redirect is about to occur.
     * `resourceType` string - Can be `mainFrame`, `subFrame`, `stylesheet`, `script`, `image`, `font`, `object`, `xhr`, `ping`, `cspReport`, `media`, `webSocket` or `other`.
     * `referrer` string
     * `timestamp` Double
-    * `responseHeaders` Record<string, string[]> (optional)
+    * `responseHeaders` Record\<string, string[]\> (optional)
     * `fromCache` boolean
     * `statusCode` Integer
     * `statusLine` string

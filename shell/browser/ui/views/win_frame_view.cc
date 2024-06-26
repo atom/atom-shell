@@ -15,6 +15,7 @@
 #include "base/win/windows_version.h"
 #include "shell/browser/native_window_views.h"
 #include "shell/browser/ui/views/win_caption_button_container.h"
+#include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/win/hwnd_metrics.h"
 #include "ui/display/win/dpi.h"
 #include "ui/display/win/screen_win.h"
@@ -24,8 +25,6 @@
 #include "ui/views/win/hwnd_util.h"
 
 namespace electron {
-
-const char WinFrameView::kViewClassName[] = "WinFrameView";
 
 WinFrameView::WinFrameView() = default;
 
@@ -165,10 +164,6 @@ int WinFrameView::NonClientHitTest(const gfx::Point& point) {
   return FramelessView::NonClientHitTest(point);
 }
 
-const char* WinFrameView::GetClassName() const {
-  return kViewClassName;
-}
-
 bool WinFrameView::IsMaximized() const {
   return frame()->IsMaximized();
 }
@@ -177,12 +172,12 @@ bool WinFrameView::ShouldCustomDrawSystemTitlebar() const {
   return window()->IsWindowControlsOverlayEnabled();
 }
 
-void WinFrameView::Layout() {
+void WinFrameView::Layout(PassKey) {
   LayoutCaptionButtons();
   if (window()->IsWindowControlsOverlayEnabled()) {
     LayoutWindowControlsOverlay();
   }
-  NonClientFrameView::Layout();
+  LayoutSuperclass<NonClientFrameView>(this);
 }
 
 int WinFrameView::FrameTopBorderThickness(bool restored) const {
@@ -293,5 +288,8 @@ void WinFrameView::LayoutWindowControlsOverlay() {
   window()->SetWindowControlsOverlayRect(bounding_rect);
   window()->NotifyLayoutWindowControlsOverlay();
 }
+
+BEGIN_METADATA(WinFrameView)
+END_METADATA
 
 }  // namespace electron

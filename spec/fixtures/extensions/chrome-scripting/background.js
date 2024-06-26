@@ -20,6 +20,27 @@ const handleRequest = async (request, sender, sendResponse) => {
       break;
     }
 
+    case 'globalParams' : {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => {
+          chrome.scripting.globalParams.changed = true;
+        },
+        world: 'ISOLATED'
+      });
+
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => JSON.stringify(chrome.scripting.globalParams),
+        world: 'ISOLATED'
+      });
+
+      const result = JSON.parse(results[0].result);
+
+      sendResponse(result);
+      break;
+    }
+
     case 'registerContentScripts': {
       await chrome.scripting.registerContentScripts([{
         id: 'session-script',

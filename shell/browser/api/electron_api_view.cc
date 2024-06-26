@@ -155,6 +155,7 @@ class JSLayoutManager : public views::LayoutManagerBase {
       : layout_callback_(std::move(layout_callback)) {}
   ~JSLayoutManager() override {}
 
+  // views::LayoutManagerBase
   views::ProposedLayout CalculateProposedLayout(
       const views::SizeBounds& size_bounds) const override {
     v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
@@ -181,6 +182,26 @@ View::~View() {
     delete view_;
 }
 
+void View::ReorderChildView(gin::Handle<View> child, size_t index) {
+  view_->ReorderChildView(child->view(), index);
+
+  const auto i = base::ranges::find(child_views_, child.ToV8());
+  DCHECK(i != child_views_.end());
+
+  // If |view| is already at the desired position, there's nothing to do.
+  const auto pos = std::next(
+      child_views_.begin(),
+      static_cast<ptrdiff_t>(std::min(index, child_views_.size() - 1)));
+  if (i == pos)
+    return;
+
+  if (pos < i) {
+    std::rotate(pos, i, std::next(i));
+  } else {
+    std::rotate(i, std::next(i), std::next(pos));
+  }
+}
+
 void View::AddChildViewAt(gin::Handle<View> child,
                           std::optional<size_t> maybe_index) {
   // TODO(nornagon): !view_ is only for supporting the weird case of
@@ -189,8 +210,25 @@ void View::AddChildViewAt(gin::Handle<View> child,
   // has a View, possibly a wrapper view around the underlying platform View.
   if (!view_)
     return;
+
+  // This will CHECK and crash in View::AddChildViewAtImpl if not handled here.
+  if (view_ == child->view()) {
+    gin_helper::ErrorThrower(isolate()).ThrowError(
+        "A view cannot be added as its own child");
+    return;
+  }
+
   size_t index =
       std::min(child_views_.size(), maybe_index.value_or(child_views_.size()));
+
+  // If the child is already a child of this view, just reorder it.
+  // This matches the behavior of View::AddChildViewAtImpl and
+  // otherwise will CHECK if the same view is added multiple times.
+  if (child->view()->parent() == view_) {
+    ReorderChildView(child, index);
+    return;
+  }
+
   child_views_.emplace(child_views_.begin() + index,     // index
                        isolate(), child->GetWrapper());  // v8::Global(args...)
 #if BUILDFLAG(IS_MAC)
@@ -213,7 +251,7 @@ void View::RemoveChildView(gin::Handle<View> child) {
     return;
   if (!child->view())
     return;
-  auto it = std::find(child_views_.begin(), child_views_.end(), child.ToV8());
+  const auto it = base::ranges::find(child_views_, child.ToV8());
   if (it != child_views_.end()) {
 #if BUILDFLAG(IS_MAC)
     ScopedCAActionDisabler disable_animations;

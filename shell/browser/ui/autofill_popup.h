@@ -19,7 +19,7 @@ namespace electron {
 
 class AutofillPopupView;
 
-class AutofillPopup : public views::ViewObserver {
+class AutofillPopup : private views::ViewObserver {
  public:
   AutofillPopup();
   ~AutofillPopup() override;

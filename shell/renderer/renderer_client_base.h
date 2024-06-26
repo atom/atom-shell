@@ -10,6 +10,7 @@
 
 #include "content/public/renderer/content_renderer_client.h"
 #include "electron/buildflags/buildflags.h"
+#include "media/base/key_systems_support_registration.h"
 #include "printing/buildflags/buildflags.h"
 #include "shell/common/gin_helper/dictionary.h"
 // In SHARED_INTERMEDIATE_DIR.
@@ -102,7 +103,6 @@ class RendererClientBase : public content::ContentRendererClient
   bool OverrideCreatePlugin(content::RenderFrame* render_frame,
                             const blink::WebPluginParams& params,
                             blink::WebPlugin** plugin) override;
-  void GetSupportedKeySystems(media::GetSupportedKeySystemsCB cb) override;
   void DidSetUserAgent(const std::string& user_agent) override;
   bool IsPluginHandledExternally(content::RenderFrame* render_frame,
                                  const blink::WebElement& plugin_element,

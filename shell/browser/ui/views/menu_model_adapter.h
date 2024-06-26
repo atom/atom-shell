@@ -21,6 +21,7 @@ class MenuModelAdapter : public views::MenuModelAdapter {
   MenuModelAdapter& operator=(const MenuModelAdapter&) = delete;
 
  protected:
+  // views::MenuModelAdapter
   bool GetAccelerator(int id, ui::Accelerator* accelerator) const override;
 
  private:

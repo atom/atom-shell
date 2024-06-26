@@ -21,6 +21,7 @@ class NotificationPresenterMac : public NotificationPresenter {
   ~NotificationPresenterMac() override;
 
  private:
+  // NotificationPresenter
   Notification* CreateNotificationObject(
       NotificationDelegate* delegate) override;
 

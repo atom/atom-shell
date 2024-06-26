@@ -2,7 +2,7 @@ is_electron_build = true
 root_extra_deps = [ "//electron" ]
 
 # Registry of NMVs --> https://github.com/nodejs/node/blob/main/doc/abi_version_registry.json
-node_module_version = 121
+node_module_version = 128
 
 v8_promise_internal_field_count = 1
 v8_embedder_string = "-electron.0"
@@ -50,16 +50,13 @@ is_cfi = false
 # TODO: fix this once sysroots have been updated.
 use_qt = false
 
-# https://chromium-review.googlesource.com/c/chromium/src/+/4365718
-# TODO(codebytere): fix perfetto incompatibility with Node.js.
-use_perfetto_client_library = false
-
 # Disables the builtins PGO for V8
 v8_builtins_profiling_log_file = ""
 
 # https://chromium.googlesource.com/chromium/src/+/main/docs/dangling_ptr.md
 # TODO(vertedinde): hunt down dangling pointers on Linux
 enable_dangling_raw_ptr_checks = false
+enable_dangling_raw_ptr_feature_flag = false
 
 # This flag speeds up the performance of fork/execve on linux systems.
 # Ref: https://chromium-review.googlesource.com/c/v8/v8/+/4602858
@@ -67,3 +64,12 @@ v8_enable_private_mapping_fork_optimization = true
 
 # Expose public V8 symbols for native modules.
 v8_expose_public_symbols = true
+
+# Disables unsafe-buffers-usage plugin due to incompatibilities with our reclient implementation
+# Ref: https://chromium-review.googlesource.com/c/chromium/src/+/5426599
+# Ref: https://github.com/electron/electron/commit/8e20f16ea35eeaeb149ae63bad3703d782665f6a
+clang_unsafe_buffers_paths = ""
+
+# Disable snapshotting a page when printing for its content to be analyzed for
+# sensitive content by enterprise users.
+enterprise_cloud_content_analysis = false

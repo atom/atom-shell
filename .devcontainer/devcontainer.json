@@ -4,12 +4,8 @@
 	"onCreateCommand": ".devcontainer/on-create-command.sh",
 	"updateContentCommand": ".devcontainer/update-content-command.sh",
 	"workspaceFolder": "/workspaces/gclient/src/electron",
-	"forwardPorts": [8088, 6080, 5901],
+	"forwardPorts": [6080, 5901],
 	"portsAttributes": {
-		"8088": {
-			"label": "Goma Control Panel",
-			"onAutoForward": "silent"
-		},
 		"6080": {
 			"label": "VNC web client (noVNC)",
 			"onAutoForward": "silent"
@@ -31,7 +27,8 @@
 			]
 		},
 		"vscode": {
-			"extensions": ["joeleinbinder.mojom-language",
+			"extensions": [
+				"joeleinbinder.mojom-language",
 				"rafaelmaiolla.diff",
 				"surajbarkale.ninja",
 				"ms-vscode.cpptools",

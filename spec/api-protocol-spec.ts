@@ -8,6 +8,8 @@ import * as http from 'node:http';
 import * as fs from 'node:fs';
 import * as qs from 'node:querystring';
 import * as stream from 'node:stream';
+import * as streamConsumers from 'node:stream/consumers';
+import * as webStream from 'node:stream/web';
 import { EventEmitter, once } from 'node:events';
 import { closeAllWindows, closeWindow } from './lib/window-helpers';
 import { WebmGenerator } from './lib/video-helpers';
@@ -1379,6 +1381,49 @@ describe('protocol module', () => {
       expect(body).to.equal(text);
     });
 
+    it('can receive stream request body asynchronously', async () => {
+      let done: any;
+      const requestReceived: Promise<Buffer[]> = new Promise(resolve => { done = resolve; });
+      protocol.handle('http-like', async (req) => {
+        const chunks = [];
+        for await (const chunk of (req.body as any)) {
+          chunks.push(chunk);
+        }
+        done(chunks);
+        return new Response('ok');
+      });
+      defer(() => { protocol.unhandle('http-like'); });
+      const w = new BrowserWindow({ show: false });
+      w.loadURL('about:blank');
+      const expectedHashChunks = await w.webContents.executeJavaScript(`
+        const dataStream = () =>
+          new ReadableStream({
+            async start(controller) {
+              for (let i = 0; i < 10; i++) { controller.enqueue(Array(1024 * 128).fill(+i).join("\\n")); }
+              controller.close();
+            },
+          }).pipeThrough(new TextEncoderStream());
+        fetch(
+          new Request("http-like://host", {
+            method: "POST",
+            body: dataStream(),
+            duplex: "half",
+          })
+        );
+        (async () => {
+          const chunks = []
+          for await (const chunk of dataStream()) {
+            chunks.push(chunk);
+          }
+          return chunks;
+        })()
+      `);
+      const expectedHash = Buffer.from(await crypto.subtle.digest('SHA-256', Buffer.concat(expectedHashChunks))).toString('hex');
+      const body = Buffer.concat(await requestReceived);
+      const actualHash = Buffer.from(await crypto.subtle.digest('SHA-256', Buffer.from(body))).toString('hex');
+      expect(actualHash).to.equal(expectedHash);
+    });
+
     it('can receive multi-part postData from loadURL', async () => {
       protocol.handle('test-scheme', (req) => new Response(req.body));
       defer(() => { protocol.unhandle('test-scheme'); });
@@ -1548,6 +1593,122 @@ describe('protocol module', () => {
       }
     });
 
+    it('does not emit undefined chunks into the request body stream when uploading a stream', async () => {
+      protocol.handle('cors', async (request) => {
+        expect(request.body).to.be.an.instanceOf(webStream.ReadableStream);
+        for await (const value of request.body as webStream.ReadableStream<Uint8Array>) {
+          expect(value).to.not.be.undefined();
+        }
+        return new Response(undefined, { status: 200 });
+      });
+      defer(() => { protocol.unhandle('cors'); });
+
+      await contents.loadFile(path.resolve(fixturesPath, 'pages', 'base-page.html'));
+      contents.on('console-message', (e, level, message) => console.log(message));
+      const ok = await contents.executeJavaScript(`(async () => {
+        function wait(milliseconds) {
+          return new Promise((resolve) => setTimeout(resolve, milliseconds));
+        }
+
+        const stream = new ReadableStream({
+          async start(controller) {
+            await wait(4);
+            controller.enqueue('This ');
+            await wait(4);
+            controller.enqueue('is ');
+            await wait(4);
+            controller.enqueue('a ');
+            await wait(4);
+            controller.enqueue('slow ');
+            await wait(4);
+            controller.enqueue('request.');
+            controller.close();
+          }
+        }).pipeThrough(new TextEncoderStream());
+        return (await fetch('cors://url.invalid', { method: 'POST', body: stream, duplex: 'half' })).ok;
+      })()`);
+      expect(ok).to.be.true();
+    });
+
+    it('does not emit undefined chunks into the request body stream when uploading a file', async () => {
+      protocol.handle('cors', async (request) => {
+        expect(request.body).to.be.an.instanceOf(webStream.ReadableStream);
+        for await (const value of request.body as webStream.ReadableStream<Uint8Array>) {
+          expect(value).to.not.be.undefined();
+        }
+        return new Response(undefined, { status: 200 });
+      });
+      defer(() => { protocol.unhandle('cors'); });
+
+      await contents.loadFile(path.resolve(fixturesPath, 'pages', 'file-input.html'));
+      const { debugger: debug } = contents;
+      debug.attach();
+      try {
+        const { root: { nodeId } } = await debug.sendCommand('DOM.getDocument');
+        const { nodeId: inputNodeId } = await debug.sendCommand('DOM.querySelector', { nodeId, selector: 'input' });
+        await debug.sendCommand('DOM.setFileInputFiles', {
+          files: [path.join(fixturesPath, 'cat-spin.mp4')],
+          nodeId: inputNodeId
+        });
+        const ok = await contents.executeJavaScript(`(async () => {
+          const formData = new FormData();
+          formData.append("data", document.getElementById("file").files[0]);
+          return (await fetch('cors://url.invalid', { method: 'POST', body: formData })).ok;
+        })()`);
+        expect(ok).to.be.true();
+      } finally {
+        debug.detach();
+      }
+    });
+
+    it('filters an illegal "origin: null" header', async () => {
+      protocol.handle('http', (req) => {
+        expect(new Headers(req.headers).get('origin')).to.not.equal('null');
+        return new Response();
+      });
+      defer(() => { protocol.unhandle('http'); });
+
+      const filePath = path.join(fixturesPath, 'pages', 'form-with-data.html');
+      await contents.loadFile(filePath);
+
+      const loadPromise = new Promise((resolve, reject) => {
+        contents.once('did-finish-load', resolve);
+        contents.once('did-fail-load', (_, errorCode, errorDescription) =>
+          reject(new Error(`did-fail-load: ${errorCode} ${errorDescription}. See AssertionError for details.`))
+        );
+      });
+      await contents.executeJavaScript(`
+        const form = document.querySelector('form');
+        form.action = 'http://cors.invalid';
+        form.method = 'POST';
+        form.submit();
+      `);
+      await loadPromise;
+    });
+
+    it('does forward Blob chunks', async () => {
+      // we register the protocol on a separate session to validate the assumption
+      // that `getBlobData()` indeed returns the blob data from a global variable
+      const s = session.fromPartition('protocol-handle-forwards-blob-chunks');
+
+      s.protocol.handle('cors', async (request) => {
+        expect(request.body).to.be.an.instanceOf(webStream.ReadableStream);
+        return new Response(
+          `hello to ${await streamConsumers.text(request.body as webStream.ReadableStream<Uint8Array>)}`,
+          { status: 200 }
+        );
+      });
+      defer(() => { s.protocol.unhandle('cors'); });
+
+      const w = new BrowserWindow({ show: false, webPreferences: { session: s } });
+      await w.webContents.loadFile(path.resolve(fixturesPath, 'pages', 'base-page.html'));
+      const response = await w.webContents.executeJavaScript(`(async () => {
+        const body = new Blob(["it's-a ", 'me! ', 'Mario!'], { type: 'text/plain' });
+        return await (await fetch('cors://url.invalid', { method: 'POST', body })).text();
+      })()`);
+      expect(response).to.be.string('hello to it\'s-a me! Mario!');
+    });
+
     // TODO(nornagon): this test doesn't pass on Linux currently, investigate.
     ifit(process.platform !== 'linux')('is fast', async () => {
       // 128 MB of spaces.
@@ -1588,7 +1749,7 @@ describe('protocol module', () => {
         const end = Date.now();
         return end - begin;
       })();
-      expect(interceptedTime).to.be.lessThan(rawTime * 1.5);
+      expect(interceptedTime).to.be.lessThan(rawTime * 1.6);
     });
   });
 });

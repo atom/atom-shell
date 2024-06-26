@@ -8,19 +8,37 @@ permissions:  # added using https://github.com/step-security/secure-workflows
   contents: read
 
 jobs:
+  issue-labeled-with-status:
+    name: status/{confirmed,reviewed} label added
+    if: github.event.label.name == 'status/confirmed' || github.event.label.name == 'status/reviewed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae # v1.1.1
+        id: generate-token
+        with:
+          creds: ${{ secrets.ISSUE_TRIAGE_GH_APP_CREDS }}
+          org: electron
+      - name: Set status
+        uses: dsanders11/project-actions/edit-item@eb760c48894b5702398529cbb8f6e98378e315d0 # v1.3.0
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
+          project-number: 90
+          field: Status
+          field-value: ✅ Triaged
   issue-labeled-blocked:
     name: blocked/* label added
     if: startsWith(github.event.label.name, 'blocked/')
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App token
-        uses: electron/github-app-auth-action@cc6751b3b5e4edc5b9a4ad0a021ac455653b6dc8 # v1.0.0
+        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae # v1.1.1
         id: generate-token
         with:
           creds: ${{ secrets.ISSUE_TRIAGE_GH_APP_CREDS }}
           org: electron
       - name: Set status
-        uses: dsanders11/project-actions/edit-item@a24415515fa60a22f71f9d9d00e36ca82660cde9 # v1.0.1
+        uses: dsanders11/project-actions/edit-item@eb760c48894b5702398529cbb8f6e98378e315d0 # v1.3.0
         with:
           token: ${{ steps.generate-token.outputs.token }}
           project-number: 90
@@ -46,13 +64,13 @@ jobs:
           fi
       - name: Generate GitHub App token
         if: ${{ steps.check-for-comment.outputs.SHOULD_COMMENT }}
-        uses: electron/github-app-auth-action@cc6751b3b5e4edc5b9a4ad0a021ac455653b6dc8 # v1.0.0
+        uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae # v1.1.1
         id: generate-token
         with:
           creds: ${{ secrets.ISSUE_TRIAGE_GH_APP_CREDS }}
       - name: Create comment
         if: ${{ steps.check-for-comment.outputs.SHOULD_COMMENT }}
-        uses: actions-cool/issues-helper@275328970dbc3bfc3bc43f5fe741bf3638300c0a # v3.3.3
+        uses: actions-cool/issues-helper@a610082f8ac0cf03e357eb8dd0d5e2ba075e017e # v3.6.0
         with:
           actions: 'create-comment'
           token: ${{ steps.generate-token.outputs.token }}

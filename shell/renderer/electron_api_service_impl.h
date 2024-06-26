@@ -32,6 +32,7 @@ class ElectronApiServiceImpl : public mojom::ElectronRenderer,
 
   void BindTo(mojo::PendingReceiver<mojom::ElectronRenderer> receiver);
 
+  // mojom::ElectronRenderer
   void Message(bool internal,
                const std::string& channel,
                blink::CloneableMessage arguments) override;
@@ -50,7 +51,7 @@ class ElectronApiServiceImpl : public mojom::ElectronRenderer,
       mojo::ScopedMessagePipeHandle* interface_pipe) override;
 
  private:
-  // RenderFrameObserver implementation.
+  // content::RenderFrameObserver
   void DidCreateDocumentElement() override;
   void OnDestruct() override;
 

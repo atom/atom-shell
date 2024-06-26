@@ -1,0 +1,245 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build-image-sha:
+        type: string
+        description: 'SHA for electron/build image'
+        default: 'cf814a4d2501e8e843caea071a6b70a48e78b855'
+        required: true
+      skip-macos:
+        type: boolean
+        description: 'Skip macOS builds'
+        default: false
+        required: false
+      skip-linux:
+        type: boolean
+        description: 'Skip Linux builds'
+        default: false
+        required: false
+      skip-lint:
+        type: boolean
+        description: 'Skip lint check'
+        default: false
+        required: false
+  push:
+    branches:
+      - main
+      - '[1-9][0-9]-x-y'
+  pull_request:
+      
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+        docs: ${{ steps.filter.outputs.docs }}
+        src: ${{ steps.filter.outputs.src }}
+        build-image-sha: ${{ steps.set-output.outputs.build-image-sha }}
+        docs-only: ${{ steps.set-output.outputs.docs-only }}
+    steps:
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 #v4.0.2
+    - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      id: filter
+      with:
+        filters: |
+          docs:
+            - 'docs/**'
+          src:
+            - '!docs/**'
+    - name: Set Outputs for Build Image SHA & Docs Only
+      id: set-output
+      run: |
+        if [ -z "${{ inputs.build-image-sha }}" ]; then
+          echo "build-image-sha=cf814a4d2501e8e843caea071a6b70a48e78b855" >> "$GITHUB_OUTPUT"
+        else
+          echo "build-image-sha=${{ inputs.build-image-sha }}" >> "$GITHUB_OUTPUT"
+        fi
+        echo "docs-only=${{ steps.filter.outputs.docs == 'true' && steps.filter.outputs.src == 'false' }}" >> "$GITHUB_OUTPUT"
+
+  # Lint Jobs
+  lint:
+    needs: setup
+    if: ${{ !inputs.skip-lint }}
+    uses: ./.github/workflows/pipeline-electron-lint.yml
+    with:
+      container: '{"image":"ghcr.io/electron/build:${{ needs.setup.outputs.build-image-sha }}","options":"--user root"}'
+    secrets: inherit
+
+  # Docs Only Jobs
+  docs-only:
+    needs: setup
+    if: ${{ needs.setup.outputs.docs-only == 'true' }}
+    uses: ./.github/workflows/pipeline-electron-docs-only.yml
+    with:
+      container: '{"image":"ghcr.io/electron/build:${{ needs.setup.outputs.build-image-sha }}","options":"--user root"}'
+    secrets: inherit
+
+  # Checkout Jobs
+  checkout-macos:
+    needs: setup
+    if: ${{ needs.setup.outputs.src == 'true' && !inputs.skip-macos}}
+    runs-on: aks-linux-large
+    container:
+      image: ghcr.io/electron/build:${{ needs.setup.outputs.build-image-sha }}
+      options: --user root
+      volumes:
+        - /mnt/cross-instance-cache:/mnt/cross-instance-cache
+        - /var/run/sas:/var/run/sas
+    env:
+      GCLIENT_EXTRA_ARGS: '--custom-var=checkout_mac=True --custom-var=host_os=mac'
+    outputs:
+      build-image-sha: ${{ needs.setup.outputs.build-image-sha }}
+    steps:
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Checkout & Sync & Save
+      uses: ./src/electron/.github/actions/checkout
+      with:
+        generate-sas-token: 'true'
+
+  checkout-linux:
+    needs: setup
+    if: ${{ needs.setup.outputs.src == 'true' && !inputs.skip-linux}}
+    runs-on: aks-linux-large
+    container:
+      image: ghcr.io/electron/build:${{ needs.setup.outputs.build-image-sha }}
+      options: --user root
+      volumes:
+        - /mnt/cross-instance-cache:/mnt/cross-instance-cache
+        - /var/run/sas:/var/run/sas
+    env:
+      GCLIENT_EXTRA_ARGS: '--custom-var=checkout_arm=True --custom-var=checkout_arm64=True'
+    outputs:
+      build-image-sha: ${{ needs.setup.outputs.build-image-sha}}
+    steps:
+    - name: Checkout Electron
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Checkout & Sync & Save
+      uses: ./src/electron/.github/actions/checkout
+
+  # Build Jobs - These cascade into testing jobs
+  macos-x64:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/pipeline-electron-build-and-test.yml
+    needs: checkout-macos
+    with:
+      build-runs-on: macos-14-xlarge
+      test-runs-on: macos-13
+      target-platform: macos
+      target-arch: x64
+      is-release: false
+      gn-build-type: testing
+      generate-symbols: false
+      upload-to-storage: '0'
+    secrets: inherit
+  
+  macos-arm64:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/pipeline-electron-build-and-test.yml
+    needs: checkout-macos
+    with:
+      build-runs-on: macos-14-xlarge
+      test-runs-on: macos-14
+      target-platform: macos
+      target-arch: arm64
+      is-release: false
+      gn-build-type: testing
+      generate-symbols: false
+      upload-to-storage: '0'
+    secrets: inherit
+
+  linux-x64:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/pipeline-electron-build-and-test-and-nan.yml
+    needs: checkout-linux
+    with:
+      build-runs-on: aks-linux-large
+      test-runs-on: aks-linux-medium
+      build-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      test-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root --privileged --init"}'
+      target-platform: linux
+      target-arch: x64
+      is-release: false
+      gn-build-type: testing
+      generate-symbols: false
+      upload-to-storage: '0'
+    secrets: inherit
+
+  linux-x64-asan:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/pipeline-electron-build-and-test.yml
+    needs: checkout-linux
+    with:
+      build-runs-on: aks-linux-large
+      test-runs-on: aks-linux-medium
+      build-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      test-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root --privileged --init"}'
+      target-platform: linux
+      target-arch: x64
+      is-release: false
+      gn-build-type: testing
+      generate-symbols: false
+      upload-to-storage: '0'
+      is-asan: true
+    secrets: inherit
+  
+  linux-arm:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/pipeline-electron-build-and-test.yml
+    needs: checkout-linux
+    with:
+      build-runs-on: aks-linux-large
+      test-runs-on: aks-linux-arm-medium
+      build-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      test-container: '{"image":"ghcr.io/electron/test:arm32v7-${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root --privileged --init","volumes":["/home/runner/externals:/mnt/runner-externals"]}'
+      target-platform: linux
+      target-arch: arm
+      is-release: false
+      gn-build-type: testing
+      generate-symbols: false
+      upload-to-storage: '0'
+    secrets: inherit
+  
+  linux-arm64:
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+    uses: ./.github/workflows/pipeline-electron-build-and-test.yml
+    needs: checkout-linux
+    with:
+      build-runs-on: aks-linux-large
+      test-runs-on: aks-linux-arm-medium
+      build-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      test-container: '{"image":"ghcr.io/electron/test:arm64v8-${{ needs.checkout-linux.outputs.build-image-sha }}","options":"--user root --privileged --init"}'
+      target-platform: linux
+      target-arch: arm64
+      is-release: false
+      gn-build-type: testing
+      generate-symbols: false
+      upload-to-storage: '0'
+    secrets: inherit

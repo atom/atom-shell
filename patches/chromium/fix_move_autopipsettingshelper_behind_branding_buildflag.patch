@@ -9,7 +9,7 @@ to support content settings UI. The support pulls in chrome content settings
 and UI code which are not valid in the scope of Electron.
 
 diff --git a/chrome/browser/picture_in_picture/picture_in_picture_window_manager.cc b/chrome/browser/picture_in_picture/picture_in_picture_window_manager.cc
-index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d90bd36a5 100644
+index ceced82cbd23b2dcd7fabf7d63028423f86e05c3..27d0b61a7b67d1c9d7e0699e287b78332d9dce26 100644
 --- a/chrome/browser/picture_in_picture/picture_in_picture_window_manager.cc
 +++ b/chrome/browser/picture_in_picture/picture_in_picture_window_manager.cc
 @@ -6,6 +6,7 @@
@@ -20,9 +20,9 @@ index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d
  #include "chrome/browser/picture_in_picture/picture_in_picture_bounds_cache.h"
  #include "chrome/browser/picture_in_picture/picture_in_picture_occlusion_tracker.h"
  #include "chrome/browser/ui/browser_navigator_params.h"
-@@ -22,7 +23,9 @@
- #include "ui/gfx/geometry/size.h"
- #if !BUILDFLAG(IS_ANDROID)
+@@ -25,7 +26,9 @@
+ #include "base/metrics/histogram_functions.h"
+ #include "base/numerics/checked_math.h"
  #include "base/task/sequenced_task_runner.h"
 +#if BUILDFLAG(GOOGLE_CHROME_BRANDING)
  #include "chrome/browser/picture_in_picture/auto_picture_in_picture_tab_helper.h"
@@ -30,7 +30,7 @@ index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d
  #include "media/base/media_switches.h"
  #include "net/base/url_util.h"
  #include "third_party/blink/public/common/features.h"
-@@ -43,7 +46,7 @@ constexpr gfx::Size kMinWindowSize(240, 52);
+@@ -46,7 +49,7 @@ constexpr gfx::Size kMinWindowSize(240, 52);
  // not apply to video Picture-in-Picture windows.
  constexpr double kMaxWindowSizeRatio = 0.8;
  
@@ -39,7 +39,7 @@ index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d
  // Returns true if a document picture-in-picture window should be focused upon
  // opening it.
  bool ShouldFocusPictureInPictureWindow(const NavigateParams& params) {
-@@ -175,7 +178,7 @@ bool PictureInPictureWindowManager::ExitPictureInPictureViaWindowUi(
+@@ -177,7 +180,7 @@ bool PictureInPictureWindowManager::ExitPictureInPictureViaWindowUi(
      return false;
    }
  
@@ -48,7 +48,7 @@ index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d
    // The user manually closed the pip window, so let the tab helper know in case
    // the auto-pip permission dialog was visible.
    if (auto* tab_helper = AutoPictureInPictureTabHelper::FromWebContents(
-@@ -361,7 +364,7 @@ gfx::Size PictureInPictureWindowManager::GetMaximumWindowSize(
+@@ -373,7 +376,7 @@ gfx::Size PictureInPictureWindowManager::GetMaximumWindowSize(
  
  // static
  void PictureInPictureWindowManager::SetWindowParams(NavigateParams& params) {
@@ -57,7 +57,7 @@ index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d
    // Always show document picture-in-picture in a new window. When this is
    // not opened via the AutoPictureInPictureTabHelper, focus the window.
    params.window_action = ShouldFocusPictureInPictureWindow(params)
-@@ -433,6 +436,7 @@ PictureInPictureWindowManager::GetOverlayView(
+@@ -452,6 +455,7 @@ PictureInPictureWindowManager::GetOverlayView(
      return nullptr;
    }
  
@@ -65,7 +65,7 @@ index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d
    // It would be nice to create this in `EnterPictureInPicture*`, but detecting
    // auto-pip while pip is in the process of opening doesn't work.
    //
-@@ -471,6 +475,8 @@ PictureInPictureWindowManager::GetOverlayView(
+@@ -490,6 +494,8 @@ PictureInPictureWindowManager::GetOverlayView(
    }
  
    return overlay_view;
@@ -75,11 +75,11 @@ index fd46d3ce5f0d0beed2736186bbc1ff41ec93fdeb..2478f2047783e16c3af3801675bc5b8d
  
  PictureInPictureOcclusionTracker*
 diff --git a/chrome/browser/ui/views/overlay/video_overlay_window_views.cc b/chrome/browser/ui/views/overlay/video_overlay_window_views.cc
-index b3419d2bb60ab0488fc0413843c33b5a926fee09..059754d92621ada9100e739ee6b5db01ae9ea75f 100644
+index 62280109a74b5d606f16503151a98449147cc660..f0f66496085d189fc6240772800c2fb5c42b77b3 100644
 --- a/chrome/browser/ui/views/overlay/video_overlay_window_views.cc
 +++ b/chrome/browser/ui/views/overlay/video_overlay_window_views.cc
-@@ -314,11 +314,13 @@ std::unique_ptr<VideoOverlayWindowViews> VideoOverlayWindowViews::Create(
-   }
+@@ -345,11 +345,13 @@ std::unique_ptr<VideoOverlayWindowViews> VideoOverlayWindowViews::Create(
+       input_scope);
  #endif  // BUILDFLAG(IS_WIN)
  
 +#if 0

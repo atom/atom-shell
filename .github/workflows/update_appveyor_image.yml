@@ -6,22 +6,23 @@ on:
   schedule:
     - cron: '0 8 * * 1-5' # runs 8:00 every business day (see https://crontab.guru)
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   bake-appveyor-image:
     name: Bake AppVeyor Image
-    permissions:
-      contents: write
-      pull-requests: write  # to create a new PR with updated Appveyor images
     runs-on: ubuntu-latest
     steps:
+    - name: Generate GitHub App token
+      uses: electron/github-app-auth-action@384fd19694fe7b6dcc9a684746c6976ad78228ae # v1.1.1
+      id: generate-token
+      with:
+        creds: ${{ secrets.APPVEYOR_UPDATER_GH_APP_CREDS }}
     - name: Checkout
-      uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       with:
         fetch-depth: 0
+        token: ${{ steps.generate-token.outputs.token }}
     - name: Yarn install
       run: |
         node script/yarn.js install --frozen-lockfile
@@ -38,7 +39,7 @@ jobs:
         fi
     - name: (Optionally) Update Appveyor Image
       if: ${{ env.APPVEYOR_IMAGE_VERSION }}
-      uses: mikefarah/yq@1c7dc0e88aad311c89889bc5ce5d8f96931a1bd0 # v4.27.2
+      uses: mikefarah/yq@f15500b20a1c991c8729870ba60a4dc3524b6a94 # v4.44.2
       with:
         cmd: |
           yq '.image = "${{ env.APPVEYOR_IMAGE_VERSION }}"' "appveyor.yml" > "appveyor2.yml"
@@ -49,26 +50,24 @@ jobs:
         diff -w -B appveyor.yml appveyor2.yml > appveyor.diff || true
         patch -f appveyor.yml < appveyor.diff
         rm appveyor2.yml appveyor.diff
+        git add appveyor.yml
     - name: (Optionally) Generate Commit Diff for WOA
       if: ${{ env.APPVEYOR_IMAGE_VERSION }}
       run: |
         diff -w -B appveyor-woa.yml appveyor-woa2.yml > appveyor-woa.diff || true
         patch -f appveyor-woa.yml < appveyor-woa.diff
         rm appveyor-woa2.yml appveyor-woa.diff
-    - name: (Optionally) Commit and Pull Request
+        git add appveyor-woa.yml
+    - name: (Optionally) Commit to Branch
       if: ${{ env.APPVEYOR_IMAGE_VERSION }}
-      uses: peter-evans/create-pull-request@2b011faafdcbc9ceb11414d64d0573f37c774b04 # v4.2.3
+      uses: dsanders11/github-app-commit-action@48d2ff8c1a855eb15d16afa97ae12616456d7cbc # v1.4.0
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: 'build: update appveyor image to latest version'
-        committer: GitHub <noreply@github.com>
-        author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-        signoff: false
-        branch: bump-appveyor-image
-        delete-branch: true
-        reviewers: electron/wg-releases
-        title: 'build: update appveyor image to latest version'
-        labels: semver/none,no-backport
-        body: |
-          This PR updates appveyor.yml to the latest baked image, ${{ env.APPVEYOR_IMAGE_VERSION }}.
-          Notes: none
+        message: 'build: update appveyor image to latest version'
+        ref: bump-appveyor-image
+        token: ${{ steps.generate-token.outputs.token }}
+    - name: (Optionally) Create Pull Request
+      if: ${{ env.APPVEYOR_IMAGE_VERSION }}
+      run: |
+        printf "This PR updates appveyor.yml to the latest baked image, ${{ env.APPVEYOR_IMAGE_VERSION }}.\n\nNotes: none" | gh pr create --head bump-appveyor-image --label no-backport --label semver/none --title 'build: update appveyor image to latest version' --body-file=-
+      env:
+        GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}

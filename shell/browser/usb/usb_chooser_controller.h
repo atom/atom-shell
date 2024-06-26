@@ -27,8 +27,8 @@ class RenderFrameHost;
 namespace electron {
 
 // UsbChooserController creates a chooser for WebUSB.
-class UsbChooserController final : public UsbChooserContext::DeviceObserver,
-                                   public content::WebContentsObserver {
+class UsbChooserController final : private UsbChooserContext::DeviceObserver,
+                                   private content::WebContentsObserver {
  public:
   UsbChooserController(
       content::RenderFrameHost* render_frame_host,

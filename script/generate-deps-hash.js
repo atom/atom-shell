@@ -36,12 +36,10 @@ addAllFiles(path.resolve(__dirname, '../patches'));
 // Create Hash
 const hasher = crypto.createHash('SHA256');
 const addToHashAndLog = (s) => {
-  console.log('Hashing:', s);
   return hasher.update(s);
 };
 addToHashAndLog(`HASH_VERSION:${HASH_VERSIONS[process.platform] || FALLBACK_HASH_VERSION}`);
 for (const file of filesToHash) {
-  console.log('Hashing Content:', file, crypto.createHash('SHA256').update(fs.readFileSync(file)).digest('hex'));
   hasher.update(fs.readFileSync(file));
 }
 

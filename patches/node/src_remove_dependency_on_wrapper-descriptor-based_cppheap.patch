@@ -1,0 +1,308 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Joyee Cheung <joyeec9h3@gmail.com>
+Date: Wed, 29 May 2024 19:59:19 +0200
+Subject: src: remove dependency on wrapper-descriptor-based CppHeap
+
+As V8 has moved away from wrapper-descriptor-based CppHeap, this
+patch:
+
+1. Create the CppHeap without using wrapper descirptors.
+2. Deprecates node::SetCppgcReference() in favor of
+   v8::Object::Wrap() since the wrapper descriptor is no longer
+   relevant. It is still kept as a compatibility layer for addons
+   that need to also work on Node.js versions without
+   v8::Object::Wrap().
+
+(cherry picked from commit 30329d06235a9f9733b1d4da479b403462d1b326)
+
+diff --git a/src/env-inl.h b/src/env-inl.h
+index 63ce35ba68b48a55d8150395304bf86c2bf23aae..c6fc53d1666ae51e69257c9bbcaf4cbff36cbad3 100644
+--- a/src/env-inl.h
++++ b/src/env-inl.h
+@@ -62,31 +62,6 @@ inline uv_loop_t* IsolateData::event_loop() const {
+   return event_loop_;
+ }
+ 
+-inline void IsolateData::SetCppgcReference(v8::Isolate* isolate,
+-                                           v8::Local<v8::Object> object,
+-                                           void* wrappable) {
+-  v8::CppHeap* heap = isolate->GetCppHeap();
+-  CHECK_NOT_NULL(heap);
+-  v8::WrapperDescriptor descriptor = heap->wrapper_descriptor();
+-  uint16_t required_size = std::max(descriptor.wrappable_instance_index,
+-                                    descriptor.wrappable_type_index);
+-  CHECK_GT(object->InternalFieldCount(), required_size);
+-
+-  uint16_t* id_ptr = nullptr;
+-  {
+-    Mutex::ScopedLock lock(isolate_data_mutex_);
+-    auto it =
+-        wrapper_data_map_.find(descriptor.embedder_id_for_garbage_collected);
+-    CHECK_NE(it, wrapper_data_map_.end());
+-    id_ptr = &(it->second->cppgc_id);
+-  }
+-
+-  object->SetAlignedPointerInInternalField(descriptor.wrappable_type_index,
+-                                           id_ptr);
+-  object->SetAlignedPointerInInternalField(descriptor.wrappable_instance_index,
+-                                           wrappable);
+-}
+-
+ inline uint16_t* IsolateData::embedder_id_for_cppgc() const {
+   return &(wrapper_data_->cppgc_id);
+ }
+diff --git a/src/env.cc b/src/env.cc
+index 5c75e5b99d9415163640ab90f5891c0fee067a88..17b389ae3e1eea52d02b3f3ffdf67fd489e6bf42 100644
+--- a/src/env.cc
++++ b/src/env.cc
+@@ -22,6 +22,7 @@
+ #include "util-inl.h"
+ #include "v8-cppgc.h"
+ #include "v8-profiler.h"
++#include "v8-sandbox.h"  // v8::Object::Wrap(), v8::Object::Unwrap()
+ 
+ #include <algorithm>
+ #include <atomic>
+@@ -68,7 +69,6 @@ using v8::TryCatch;
+ using v8::Uint32;
+ using v8::Undefined;
+ using v8::Value;
+-using v8::WrapperDescriptor;
+ using worker::Worker;
+ 
+ int const ContextEmbedderTag::kNodeContextTag = 0x6e6f64;
+@@ -518,6 +518,14 @@ void IsolateData::CreateProperties() {
+   CreateEnvProxyTemplate(this);
+ }
+ 
++// Previously, the general convention of the wrappable layout for cppgc in
++// the ecosystem is:
++// [  0  ] -> embedder id
++// [  1  ] -> wrappable instance
++// Now V8 has deprecated this layout-based tracing enablement, embedders
++// should simply use v8::Object::Wrap() and v8::Object::Unwrap(). We preserve
++// this layout only to distinguish internally how the memory of a Node.js
++// wrapper is managed or whether a wrapper is managed by Node.js.
+ constexpr uint16_t kDefaultCppGCEmebdderID = 0x90de;
+ Mutex IsolateData::isolate_data_mutex_;
+ std::unordered_map<uint16_t, std::unique_ptr<PerIsolateWrapperData>>
+@@ -539,36 +547,16 @@ IsolateData::IsolateData(Isolate* isolate,
+   v8::CppHeap* cpp_heap = isolate->GetCppHeap();
+ 
+   uint16_t cppgc_id = kDefaultCppGCEmebdderID;
+-  if (cpp_heap != nullptr) {
+-    // The general convention of the wrappable layout for cppgc in the
+-    // ecosystem is:
+-    // [  0  ] -> embedder id
+-    // [  1  ] -> wrappable instance
+-    // If the Isolate includes a CppHeap attached by another embedder,
+-    // And if they also use the field 0 for the ID, we DCHECK that
+-    // the layout matches our layout, and record the embedder ID for cppgc
+-    // to avoid accidentally enabling cppgc on non-cppgc-managed wrappers .
+-    v8::WrapperDescriptor descriptor = cpp_heap->wrapper_descriptor();
+-    if (descriptor.wrappable_type_index == BaseObject::kEmbedderType) {
+-      cppgc_id = descriptor.embedder_id_for_garbage_collected;
+-      DCHECK_EQ(descriptor.wrappable_instance_index, BaseObject::kSlot);
+-    }
+-    // If the CppHeap uses the slot we use to put non-cppgc-traced BaseObject
+-    // for embedder ID, V8 could accidentally enable cppgc on them. So
+-    // safe guard against this.
+-    DCHECK_NE(descriptor.wrappable_type_index, BaseObject::kSlot);
+-  } else {
+-    cpp_heap_ = CppHeap::Create(
+-        platform,
+-        CppHeapCreateParams{
+-            {},
+-            WrapperDescriptor(
+-                BaseObject::kEmbedderType, BaseObject::kSlot, cppgc_id)});
+-    isolate->AttachCppHeap(cpp_heap_.get());
+-  }
+   // We do not care about overflow since we just want this to be different
+   // from the cppgc id.
+   uint16_t non_cppgc_id = cppgc_id + 1;
++  if (cpp_heap == nullptr) {
++    cpp_heap_ = CppHeap::Create(platform, v8::CppHeapCreateParams{{}});
++    // TODO(joyeecheung): pass it into v8::Isolate::CreateParams and let V8
++    // own it when we can keep the isolate registered/task runner discoverable
++    // during isolate disposal.
++    isolate->AttachCppHeap(cpp_heap_.get());
++  }
+ 
+   {
+     // GC could still be run after the IsolateData is destroyed, so we store
+@@ -600,11 +588,12 @@ IsolateData::~IsolateData() {
+   }
+ }
+ 
+-// Public API
++// Deprecated API, embedders should use v8::Object::Wrap() directly instead.
+ void SetCppgcReference(Isolate* isolate,
+                        Local<Object> object,
+                        void* wrappable) {
+-  IsolateData::SetCppgcReference(isolate, object, wrappable);
++  v8::Object::Wrap<v8::CppHeapPointerTag::kDefaultTag>(
++      isolate, object, wrappable);
+ }
+ 
+ void IsolateData::MemoryInfo(MemoryTracker* tracker) const {
+diff --git a/src/env.h b/src/env.h
+index 910c69b6d1d17ef25201dbb39d3d074f4f3f011f..5fd375f143dd529c83aca59348182cce47d3abf8 100644
+--- a/src/env.h
++++ b/src/env.h
+@@ -164,10 +164,6 @@ class NODE_EXTERN_PRIVATE IsolateData : public MemoryRetainer {
+   uint16_t* embedder_id_for_cppgc() const;
+   uint16_t* embedder_id_for_non_cppgc() const;
+ 
+-  static inline void SetCppgcReference(v8::Isolate* isolate,
+-                                       v8::Local<v8::Object> object,
+-                                       void* wrappable);
+-
+   inline uv_loop_t* event_loop() const;
+   inline MultiIsolatePlatform* platform() const;
+   inline const SnapshotData* snapshot_data() const;
+diff --git a/src/node.h b/src/node.h
+index 76e2459eceed127e69c686f26fd5bd369b81f1af..37f310cbda4b69857ff505ea25c99e43790deeb6 100644
+--- a/src/node.h
++++ b/src/node.h
+@@ -1561,24 +1561,14 @@ void RegisterSignalHandler(int signal,
+                            bool reset_handler = false);
+ #endif  // _WIN32
+ 
+-// Configure the layout of the JavaScript object with a cppgc::GarbageCollected
+-// instance so that when the JavaScript object is reachable, the garbage
+-// collected instance would have its Trace() method invoked per the cppgc
+-// contract. To make it work, the process must have called
+-// cppgc::InitializeProcess() before, which is usually the case for addons
+-// loaded by the stand-alone Node.js executable. Embedders of Node.js can use
+-// either need to call it themselves or make sure that
+-// ProcessInitializationFlags::kNoInitializeCppgc is *not* set for cppgc to
+-// work.
+-// If the CppHeap is owned by Node.js, which is usually the case for addon,
+-// the object must be created with at least two internal fields available,
+-// and the first two internal fields would be configured by Node.js.
+-// This may be superseded by a V8 API in the future, see
+-// https://bugs.chromium.org/p/v8/issues/detail?id=13960. Until then this
+-// serves as a helper for Node.js isolates.
+-NODE_EXTERN void SetCppgcReference(v8::Isolate* isolate,
+-                                   v8::Local<v8::Object> object,
+-                                   void* wrappable);
++// This is kept as a compatibility layer for addons to wrap cppgc-managed
++// objects on Node.js versions without v8::Object::Wrap(). Addons created to
++// work with only Node.js versions with v8::Object::Wrap() should use that
++// instead.
++NODE_DEPRECATED("Use v8::Object::Wrap()",
++                NODE_EXTERN void SetCppgcReference(v8::Isolate* isolate,
++                                                   v8::Local<v8::Object> object,
++                                                   void* wrappable));
+ 
+ }  // namespace node
+ 
+diff --git a/test/addons/cppgc-object/binding.cc b/test/addons/cppgc-object/binding.cc
+index 1b70ff11dc561abdc5ac794f6280557d5c428239..7fc16a87b843ce0626ee137a07c3ccb7f4cc6493 100644
+--- a/test/addons/cppgc-object/binding.cc
++++ b/test/addons/cppgc-object/binding.cc
+@@ -1,8 +1,10 @@
++#include <assert.h>
+ #include <cppgc/allocation.h>
+ #include <cppgc/garbage-collected.h>
+ #include <cppgc/heap.h>
+ #include <node.h>
+ #include <v8-cppgc.h>
++#include <v8-sandbox.h>
+ #include <v8.h>
+ #include <algorithm>
+ 
+@@ -15,8 +17,10 @@ class CppGCed : public cppgc::GarbageCollected<CppGCed> {
+   static void New(const v8::FunctionCallbackInfo<v8::Value>& args) {
+     v8::Isolate* isolate = args.GetIsolate();
+     v8::Local<v8::Object> js_object = args.This();
+-    CppGCed* gc_object = cppgc::MakeGarbageCollected<CppGCed>(
+-        isolate->GetCppHeap()->GetAllocationHandle());
++    auto* heap = isolate->GetCppHeap();
++    assert(heap != nullptr);
++    CppGCed* gc_object =
++        cppgc::MakeGarbageCollected<CppGCed>(heap->GetAllocationHandle());
+     node::SetCppgcReference(isolate, js_object, gc_object);
+     args.GetReturnValue().Set(js_object);
+   }
+@@ -24,12 +28,6 @@ class CppGCed : public cppgc::GarbageCollected<CppGCed> {
+   static v8::Local<v8::Function> GetConstructor(
+       v8::Local<v8::Context> context) {
+     auto ft = v8::FunctionTemplate::New(context->GetIsolate(), New);
+-    auto ot = ft->InstanceTemplate();
+-    v8::WrapperDescriptor descriptor =
+-        context->GetIsolate()->GetCppHeap()->wrapper_descriptor();
+-    uint16_t required_size = std::max(descriptor.wrappable_instance_index,
+-                                      descriptor.wrappable_type_index);
+-    ot->SetInternalFieldCount(required_size + 1);
+     return ft->GetFunction(context).ToLocalChecked();
+   }
+ 
+diff --git a/test/cctest/test_cppgc.cc b/test/cctest/test_cppgc.cc
+index 49665174615870b4f70529b1d548e593846140a1..edd413ae9b956b2e59e8166785adef6a8ff06d51 100644
+--- a/test/cctest/test_cppgc.cc
++++ b/test/cctest/test_cppgc.cc
+@@ -3,16 +3,12 @@
+ #include <cppgc/heap.h>
+ #include <node.h>
+ #include <v8-cppgc.h>
++#include <v8-sandbox.h>
+ #include <v8.h>
+ #include "node_test_fixture.h"
+ 
+ // This tests that Node.js can work with an existing CppHeap.
+ 
+-// Mimic the Blink layout.
+-static int kWrappableTypeIndex = 0;
+-static int kWrappableInstanceIndex = 1;
+-static uint16_t kEmbedderID = 0x1;
+-
+ // Mimic a class that does not know about Node.js.
+ class CppGCed : public cppgc::GarbageCollected<CppGCed> {
+  public:
+@@ -23,12 +19,11 @@ class CppGCed : public cppgc::GarbageCollected<CppGCed> {
+   static void New(const v8::FunctionCallbackInfo<v8::Value>& args) {
+     v8::Isolate* isolate = args.GetIsolate();
+     v8::Local<v8::Object> js_object = args.This();
+-    CppGCed* gc_object = cppgc::MakeGarbageCollected<CppGCed>(
+-        isolate->GetCppHeap()->GetAllocationHandle());
+-    js_object->SetAlignedPointerInInternalField(kWrappableTypeIndex,
+-                                                &kEmbedderID);
+-    js_object->SetAlignedPointerInInternalField(kWrappableInstanceIndex,
+-                                                gc_object);
++    auto* heap = isolate->GetCppHeap();
++    CHECK_NOT_NULL(heap);
++    CppGCed* gc_object =
++        cppgc::MakeGarbageCollected<CppGCed>(heap->GetAllocationHandle());
++    node::SetCppgcReference(isolate, js_object, gc_object);
+     kConstructCount++;
+     args.GetReturnValue().Set(js_object);
+   }
+@@ -36,8 +31,6 @@ class CppGCed : public cppgc::GarbageCollected<CppGCed> {
+   static v8::Local<v8::Function> GetConstructor(
+       v8::Local<v8::Context> context) {
+     auto ft = v8::FunctionTemplate::New(context->GetIsolate(), New);
+-    auto ot = ft->InstanceTemplate();
+-    ot->SetInternalFieldCount(2);
+     return ft->GetFunction(context).ToLocalChecked();
+   }
+ 
+@@ -58,12 +51,12 @@ TEST_F(NodeZeroIsolateTestFixture, ExistingCppHeapTest) {
+ 
+   // Create and attach the CppHeap before we set up the IsolateData so that
+   // it recognizes the existing heap.
+-  std::unique_ptr<v8::CppHeap> cpp_heap = v8::CppHeap::Create(
+-      platform.get(),
+-      v8::CppHeapCreateParams(
+-          {},
+-          v8::WrapperDescriptor(
+-              kWrappableTypeIndex, kWrappableInstanceIndex, kEmbedderID)));
++  std::unique_ptr<v8::CppHeap> cpp_heap =
++      v8::CppHeap::Create(platform.get(), v8::CppHeapCreateParams{{}});
++
++  // TODO(joyeecheung): pass it into v8::Isolate::CreateParams and let V8
++  // own it when we can keep the isolate registered/task runner discoverable
++  // during isolate disposal.
+   isolate->AttachCppHeap(cpp_heap.get());
+ 
+   // Try creating Context + IsolateData + Environment.

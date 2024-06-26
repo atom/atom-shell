@@ -14,6 +14,11 @@ namespace content {
 class BrowserContext;
 }
 
+namespace base {
+template <typename T>
+class NoDestructor;
+}
+
 namespace electron {
 
 class NetworkContextService;
@@ -33,7 +38,7 @@ class NetworkContextServiceFactory : public BrowserContextKeyedServiceFactory {
       delete;
 
  private:
-  friend struct base::DefaultSingletonTraits<NetworkContextServiceFactory>;
+  friend base::NoDestructor<NetworkContextServiceFactory>;
 
   NetworkContextServiceFactory();
   ~NetworkContextServiceFactory() override;

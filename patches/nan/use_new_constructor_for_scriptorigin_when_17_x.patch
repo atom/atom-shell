@@ -5,8 +5,12 @@ Subject: use new constructor for ScriptOrigin when >= 17.x
 
 https://chromium-review.googlesource.com/c/v8/v8/+/3395880
 
+Also
+See https://chromium-review.googlesource.com/c/v8/v8/+/5539888
+ScriptOrigin constructor with isolate has been removed;
+
 diff --git a/test/cpp/news.cpp b/test/cpp/news.cpp
-index a218167c7e3a5ec90c6668943cb395dba2bbe3a7..08557d5478d5400445603deffd721525ecbf746e 100644
+index a218167c7e3a5ec90c6668943cb395dba2bbe3a7..b1fa6e2a77e926e38006bf47ffcda2ae86555d17 100644
 --- a/test/cpp/news.cpp
 +++ b/test/cpp/news.cpp
 @@ -115,7 +115,7 @@ NAN_METHOD(NewScript) {
@@ -14,7 +18,7 @@ index a218167c7e3a5ec90c6668943cb395dba2bbe3a7..08557d5478d5400445603deffd721525
  NAN_METHOD(NewScript2) {
    v8::ScriptOrigin origin(
 -#if NODE_MODULE_VERSION >= NODE_18_0_MODULE_VERSION
-+#if NODE_MODULE_VERSION >= NODE_17_0_MODULE_VERSION
++#if NODE_MODULE_VERSION >= NODE_17_0_MODULE_VERSION && NODE_MODULE_VERSION < NODE_20_0_MODULE_VERSION
      info.GetIsolate(),
  #endif
      New<v8::String>("x").ToLocalChecked());
@@ -23,7 +27,7 @@ index a218167c7e3a5ec90c6668943cb395dba2bbe3a7..08557d5478d5400445603deffd721525
  NAN_METHOD(CompileScript2) {
    v8::ScriptOrigin origin(
 -#if NODE_MODULE_VERSION >= NODE_18_0_MODULE_VERSION
-+#if NODE_MODULE_VERSION >= NODE_17_0_MODULE_VERSION
++#if NODE_MODULE_VERSION >= NODE_17_0_MODULE_VERSION && NODE_MODULE_VERSION < NODE_20_0_MODULE_VERSION
      info.GetIsolate(),
  #endif
      New<v8::String>("x").ToLocalChecked());

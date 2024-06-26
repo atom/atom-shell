@@ -77,6 +77,7 @@ template("electron_extra_paks") {
       "//content:content_resources",
       "//content/browser/resources/gpu:resources",
       "//content/browser/resources/media:resources",
+      "//content/browser/resources/process:resources",
       "//content/browser/tracing:resources",
       "//content/browser/webrtc/resources",
       "//electron:resources",
@@ -96,6 +97,7 @@ template("electron_extra_paks") {
     # New paks should be added here by default.
     sources += [
       "$root_gen_dir/content/browser/devtools/devtools_resources.pak",
+      "$root_gen_dir/content/process_resources.pak",
       "$root_gen_dir/ui/resources/webui_resources.pak",
     ]
     deps += [ "//content/browser/devtools:devtools_resources" ]

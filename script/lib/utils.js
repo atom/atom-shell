@@ -1,6 +1,5 @@
 const { GitProcess } = require('dugite');
 const fs = require('node:fs');
-const klaw = require('klaw');
 const os = require('node:os');
 const path = require('node:path');
 
@@ -130,18 +129,13 @@ function chunkFilenames (filenames, offset = 0) {
  * @returns {Promise<string[]>}
 */
 async function findMatchingFiles (top, test) {
-  return new Promise(resolve => {
-    const matches = [];
-    klaw(top, {
-      filter: f => path.basename(f) !== '.bin'
-    })
-      .on('end', () => resolve(matches))
-      .on('data', item => {
-        if (test(item.path)) {
-          matches.push(item.path);
-        }
-      });
-  });
+  return fs.promises.readdir(top, { encoding: 'utf8', recursive: true })
+    .then(files => {
+      return files
+        .filter(name => path.basename(name) !== '.bin')
+        .filter(name => test(name))
+        .map(name => path.join(top, name));
+    });
 }
 
 module.exports = {

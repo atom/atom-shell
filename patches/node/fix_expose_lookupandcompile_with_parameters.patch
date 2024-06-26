@@ -10,10 +10,10 @@ parameters.
 This should be upstreamed.
 
 diff --git a/src/node_builtins.cc b/src/node_builtins.cc
-index bcef04f980d1b1f010c5349ecbfca8080f39b308..6861c28eb6deea72e844b04048d88ca726385c7f 100644
+index 2cac503e92640a4683a4be6969f1ed40e42785a0..f9a090f5c3e04403602ba383032e7f3230669a92 100644
 --- a/src/node_builtins.cc
 +++ b/src/node_builtins.cc
-@@ -482,6 +482,18 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
+@@ -491,6 +491,18 @@ MaybeLocal<Value> BuiltinLoader::CompileAndCall(Local<Context> context,
    return fn->Call(context, undefined, argc, argv);
  }
  
@@ -29,11 +29,11 @@ index bcef04f980d1b1f010c5349ecbfca8080f39b308..6861c28eb6deea72e844b04048d88ca7
 +  return maybe;
 +}
 +
- bool BuiltinLoader::CompileAllBuiltins(Local<Context> context) {
-   std::vector<std::string_view> ids = GetBuiltinIds();
-   bool all_succeeded = true;
+ bool BuiltinLoader::CompileAllBuiltinsAndCopyCodeCache(
+     Local<Context> context,
+     const std::vector<std::string>& eager_builtins,
 diff --git a/src/node_builtins.h b/src/node_builtins.h
-index 11d10f52b7c492bfae4bc58b39c20a693762a72d..b995e15fcd795f310126a38ec652efcd9fd36945 100644
+index a1a9fe7d592f0d57b70dcee8c865b99d71248bf2..3279aac04fd20080db258eafa2826c2dda614b90 100644
 --- a/src/node_builtins.h
 +++ b/src/node_builtins.h
 @@ -99,6 +99,12 @@ class NODE_EXTERN_PRIVATE BuiltinLoader {

@@ -12,12 +12,11 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/ref_counted.h"
 #include "mojo/public/cpp/bindings/receiver.h"
+#include "services/network/public/mojom/network_context.mojom.h"
 #include "services/network/public/mojom/proxy_lookup_client.mojom.h"
 #include "url/gurl.h"
 
 namespace electron {
-
-class ElectronBrowserContext;
 
 class ResolveProxyHelper
     : public base::RefCountedThreadSafe<ResolveProxyHelper>,
@@ -25,7 +24,7 @@ class ResolveProxyHelper
  public:
   using ResolveProxyCallback = base::OnceCallback<void(std::string)>;
 
-  explicit ResolveProxyHelper(ElectronBrowserContext* browser_context);
+  explicit ResolveProxyHelper(network::mojom::NetworkContext* network_context);
 
   void ResolveProxy(const GURL& url, ResolveProxyCallback callback);
 
@@ -71,7 +70,7 @@ class ResolveProxyHelper
   mojo::Receiver<network::mojom::ProxyLookupClient> receiver_{this};
 
   // Weak Ref
-  raw_ptr<ElectronBrowserContext> browser_context_;
+  raw_ptr<network::mojom::NetworkContext> network_context_ = nullptr;
 };
 
 }  // namespace electron

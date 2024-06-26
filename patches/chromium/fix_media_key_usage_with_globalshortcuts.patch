@@ -11,7 +11,7 @@ counter to the design of globalShortcuts, and so we need to instead
 use `ui::MediaKeysListener`.
 
 diff --git a/chrome/browser/extensions/global_shortcut_listener.cc b/chrome/browser/extensions/global_shortcut_listener.cc
-index fa5be7e4dbddd8333263c412b84a1d93b2d5046a..1b3c65359bff41a96ff27aef6e979ac7e6e8518d 100644
+index a8acaa1780af7a0801832e1a698ed8d03598618c..5d92376feebc94d0c0e7658496eb9742740b089d 100644
 --- a/chrome/browser/extensions/global_shortcut_listener.cc
 +++ b/chrome/browser/extensions/global_shortcut_listener.cc
 @@ -7,6 +7,7 @@
@@ -59,7 +59,7 @@ index f96af14cb915c8ab92b314ac15b6dffcdd6ec607..2556abe433493251ebd48d4aeddaa6d4
    // true if register successfully, or false if 1) the specificied |accelerator|
    // has been registered by another caller or other native applications, or
 diff --git a/content/browser/media/media_keys_listener_manager_impl.cc b/content/browser/media/media_keys_listener_manager_impl.cc
-index 259e7814d1f01a8f3c4786433fc8fc70eb14bc72..63f5450a90bab295bc203fb6498357f5d6fd35b9 100644
+index 6f8d1243fe6b1c6dd83371ad4ff2e2d8ad6c865e..d9dd04769e94da14f1dcb8d4929ca2853431511c 100644
 --- a/content/browser/media/media_keys_listener_manager_impl.cc
 +++ b/content/browser/media/media_keys_listener_manager_impl.cc
 @@ -88,7 +88,11 @@ bool MediaKeysListenerManagerImpl::StartWatchingMediaKey(
@@ -75,7 +75,7 @@ index 259e7814d1f01a8f3c4786433fc8fc70eb14bc72..63f5450a90bab295bc203fb6498357f5
        !media_keys_listener_->StartWatchingMediaKey(key_code)) {
      return false;
    }
-@@ -354,6 +358,20 @@ void MediaKeysListenerManagerImpl::StartListeningForMediaKeysIfNecessary() {
+@@ -357,6 +361,20 @@ void MediaKeysListenerManagerImpl::StartListeningForMediaKeysIfNecessary() {
          this, ui::MediaKeysListener::Scope::kGlobal);
      DCHECK(media_keys_listener_);
    }

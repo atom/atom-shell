@@ -20,6 +20,7 @@
 #include "content/public/renderer/render_thread.h"
 #include "electron/buildflags/buildflags.h"
 #include "electron/fuses.h"
+#include "media/base/key_systems_support_registration.h"
 #include "printing/buildflags/buildflags.h"
 #include "shell/browser/api/electron_api_protocol.h"
 #include "shell/common/api/electron_api_native_image.h"
@@ -37,6 +38,7 @@
 #include "shell/renderer/electron_autofill_agent.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
+#include "third_party/blink/public/platform/web_runtime_features.h"
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/public/web/web_custom_element.h"  // NOLINT(build/include_alpha)
 #include "third_party/blink/public/web/web_frame_widget.h"
@@ -67,8 +69,8 @@
 #endif
 
 #if BUILDFLAG(ENABLE_PDF_VIEWER)
-#include "chrome/common/pdf_util.h"
-#include "components/pdf/common/internal_plugin_helpers.h"
+#include "components/pdf/common/constants.h"  // nogncheck
+#include "components/pdf/common/pdf_util.h"   // nogncheck
 #include "components/pdf/renderer/pdf_internal_plugin_delegate.h"
 #include "shell/common/electron_constants.h"
 #endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
@@ -89,11 +91,13 @@
 #include "content/public/common/webplugininfo.h"
 #include "extensions/common/constants.h"
 #include "extensions/common/extensions_client.h"
+#include "extensions/renderer/api/core_extensions_renderer_api_provider.h"
 #include "extensions/renderer/dispatcher.h"
 #include "extensions/renderer/extension_frame_helper.h"
 #include "extensions/renderer/extension_web_view_helper.h"
 #include "extensions/renderer/guest_view/mime_handler_view/mime_handler_view_container_manager.h"
 #include "shell/common/extensions/electron_extensions_client.h"
+#include "shell/renderer/extensions/electron_extensions_renderer_api_provider.h"
 #include "shell/renderer/extensions/electron_extensions_renderer_client.h"
 #endif  // BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
 
@@ -225,6 +229,14 @@ bool RendererClientBase::ShouldLoadPreload(
 void RendererClientBase::RenderThreadStarted() {
   auto* command_line = base::CommandLine::ForCurrentProcess();
 
+  // Enable MessagePort close event by default.
+  // The feature got reverted from stable to test in
+  // https://chromium-review.googlesource.com/c/chromium/src/+/5276821
+  // We had the event supported through patch before upstream support,
+  // this is an alternative option than restoring our patch.
+  blink::WebRuntimeFeatures::EnableFeatureFromString("MessagePortCloseEvent",
+                                                     true);
+
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   auto* thread = content::RenderThread::Get();
 
@@ -233,6 +245,11 @@ void RendererClientBase::RenderThreadStarted() {
 
   extensions_renderer_client_ =
       std::make_unique<ElectronExtensionsRendererClient>();
+  extensions_renderer_client_->AddAPIProvider(
+      std::make_unique<extensions::CoreExtensionsRendererAPIProvider>());
+  extensions_renderer_client_->AddAPIProvider(
+      std::make_unique<ElectronExtensionsRendererAPIProvider>());
+  extensions_renderer_client_->RenderThreadStarted();
   extensions::ExtensionsRendererClient::Set(extensions_renderer_client_.get());
 
   thread->AddObserver(extensions_renderer_client_->GetDispatcher());
@@ -387,15 +404,6 @@ bool RendererClientBase::OverrideCreatePlugin(
 
   *plugin = nullptr;
   return true;
-}
-
-void RendererClientBase::GetSupportedKeySystems(
-    media::GetSupportedKeySystemsCB cb) {
-#if BUILDFLAG(ENABLE_WIDEVINE)
-  GetChromeKeySystems(std::move(cb));
-#else
-  std::move(cb).Run({});
-#endif
 }
 
 void RendererClientBase::DidSetUserAgent(const std::string& user_agent) {

@@ -8,10 +8,10 @@ is therefore not a method that will compile given we don't include
 relevant files.
 
 diff --git a/chrome/browser/profiles/profile_selections.cc b/chrome/browser/profiles/profile_selections.cc
-index 78c1e22427794262a33acd5a318abc9a1ec35871..a84b6103378fab20f6fdda2c8ec9bbd2dd2d2f20 100644
+index 6e2d839eb0e7ec1aa260f41904f78b1b2a2cbf73..6e2802e96da51eb0d5130c4847a07b1fddc1231d 100644
 --- a/chrome/browser/profiles/profile_selections.cc
 +++ b/chrome/browser/profiles/profile_selections.cc
-@@ -14,6 +14,7 @@
+@@ -13,6 +13,7 @@
  #endif  // BUILDFLAG(IS_CHROMEOS_ASH)
  
  bool AreKeyedServicesDisabledForProfileByDefault(const Profile* profile) {
@@ -19,7 +19,7 @@ index 78c1e22427794262a33acd5a318abc9a1ec35871..a84b6103378fab20f6fdda2c8ec9bbd2
    // By default disable all services for System Profile.
    // Even though having no services is also the default value for Guest Profile,
    // this is not really the case in practice because a lot of Service Factories
-@@ -21,7 +22,7 @@ bool AreKeyedServicesDisabledForProfileByDefault(const Profile* profile) {
+@@ -20,7 +21,7 @@ bool AreKeyedServicesDisabledForProfileByDefault(const Profile* profile) {
    if (profile && profile->IsSystemProfile()) {
      return true;
    }

@@ -46,8 +46,8 @@ namespace electron::api {
 class SimpleURLLoaderWrapper
     : public gin::Wrappable<SimpleURLLoaderWrapper>,
       public gin_helper::EventEmitterMixin<SimpleURLLoaderWrapper>,
-      public network::SimpleURLLoaderStreamConsumer,
-      public network::mojom::URLLoaderNetworkServiceObserver {
+      private network::SimpleURLLoaderStreamConsumer,
+      private network::mojom::URLLoaderNetworkServiceObserver {
  public:
   ~SimpleURLLoaderWrapper() override;
   static gin::Handle<SimpleURLLoaderWrapper> Create(gin::Arguments* args);
@@ -113,6 +113,8 @@ class SimpleURLLoaderWrapper
   void OnDataUseUpdate(int32_t network_traffic_annotation_id_hash,
                        int64_t recv_bytes,
                        int64_t sent_bytes) override {}
+  void OnWebSocketConnectedToPrivateNetwork(
+      network::mojom::IPAddressSpace ip_address_space) override {}
   void Clone(
       mojo::PendingReceiver<network::mojom::URLLoaderNetworkServiceObserver>
           observer) override;

@@ -31,6 +31,10 @@ namespace printing {
 class PrintJobManager;
 }
 
+namespace electron {
+class ResolveProxyHelper;
+}
+
 // Empty definition for std::unique_ptr, rather than a forward declaration
 class BackgroundModeManager {};
 
@@ -47,15 +51,14 @@ class BrowserProcessImpl : public BrowserProcess {
 
   static void ApplyProxyModeFromCommandLine(ValueMapPrefStore* pref_store);
 
-  BuildState* GetBuildState() override;
   void PostEarlyInitialization();
   void PreCreateThreads();
   void PreMainMessageLoopRun();
   void PostDestroyThreads() {}
   void PostMainMessageLoopRun();
-
   void SetSystemLocale(const std::string& locale);
   const std::string& GetSystemLocale() const;
+  electron::ResolveProxyHelper* GetResolveProxyHelper();
 
 #if BUILDFLAG(IS_LINUX)
   void SetLinuxStorageBackend(os_crypt::SelectedLinuxBackend selected_backend);
@@ -64,6 +67,8 @@ class BrowserProcessImpl : public BrowserProcess {
   }
 #endif
 
+  // BrowserProcess
+  BuildState* GetBuildState() override;
   void EndSession() override {}
   void FlushLocalStateAndReply(base::OnceClosure reply) override {}
   bool IsShuttingDown() override;
@@ -111,6 +116,9 @@ class BrowserProcessImpl : public BrowserProcess {
   HidSystemTrayIcon* hid_system_tray_icon() override;
   UsbSystemTrayIcon* usb_system_tray_icon() override;
   os_crypt_async::OSCryptAsync* os_crypt_async() override;
+  void set_additional_os_crypt_async_provider_for_test(
+      size_t precedence,
+      std::unique_ptr<os_crypt_async::KeyProvider> provider) override;
   void CreateDevToolsProtocolHandler() override {}
   void CreateDevToolsAutoOpener() override {}
   void set_background_mode_manager_for_test(
@@ -122,6 +130,12 @@ class BrowserProcessImpl : public BrowserProcess {
   const std::string& GetApplicationLocale() override;
   printing::PrintJobManager* print_job_manager() override;
   StartupData* startup_data() override;
+  subresource_filter::RulesetService*
+  fingerprinting_protection_ruleset_service() override;
+
+  ValueMapPrefStore* in_memory_pref_store() const {
+    return in_memory_pref_store_.get();
+  }
 
  private:
   void CreateNetworkQualityObserver();
@@ -139,6 +153,8 @@ class BrowserProcessImpl : public BrowserProcess {
 #endif
   embedder_support::OriginTrialsSettingsStorage origin_trials_settings_storage_;
 
+  scoped_refptr<ValueMapPrefStore> in_memory_pref_store_;
+  scoped_refptr<electron::ResolveProxyHelper> resolve_proxy_helper_;
   std::unique_ptr<network::NetworkQualityTracker> network_quality_tracker_;
   std::unique_ptr<
       network::NetworkQualityTracker::RTTAndThroughputEstimatesObserver>

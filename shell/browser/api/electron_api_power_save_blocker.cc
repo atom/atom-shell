@@ -124,6 +124,10 @@ gin::ObjectTemplateBuilder PowerSaveBlocker::GetObjectTemplateBuilder(
       .SetMethod("isStarted", &PowerSaveBlocker::IsStarted);
 }
 
+const char* PowerSaveBlocker::GetTypeName() {
+  return "PowerSaveBlocker";
+}
+
 }  // namespace electron::api
 
 namespace {

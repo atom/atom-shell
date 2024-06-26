@@ -16,6 +16,7 @@ class NotificationPresenterLinux : public NotificationPresenter {
   ~NotificationPresenterLinux() override;
 
  private:
+  // NotificationPresenter
   Notification* CreateNotificationObject(
       NotificationDelegate* delegate) override;
 };

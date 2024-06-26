@@ -27,7 +27,7 @@ namespace {
 mach_port_t TaskForPid(pid_t pid) {
   mach_port_t task = MACH_PORT_NULL;
   if (auto* port_provider = content::BrowserChildProcessHost::GetPortProvider())
-    task = port_provider->TaskForPid(pid);
+    task = port_provider->TaskForHandle(pid);
   if (task == MACH_PORT_NULL && pid == getpid())
     task = mach_task_self();
   return task;

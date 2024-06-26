@@ -15,6 +15,7 @@ class ElectronWebAuthenticationDelegate
  public:
   ~ElectronWebAuthenticationDelegate() override;
 
+  // content::WebAuthenticationDelegate
   bool SupportsResidentKeys(
       content::RenderFrameHost* render_frame_host) override;
 };

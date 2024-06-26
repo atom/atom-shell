@@ -69,7 +69,6 @@ class ElectronBindings {
   static v8::Local<v8::Value> GetBlinkMemoryInfo(v8::Isolate* isolate);
   static v8::Local<v8::Value> GetCPUUsage(base::ProcessMetrics* metrics,
                                           v8::Isolate* isolate);
-  static v8::Local<v8::Value> GetIOCounters(v8::Isolate* isolate);
   static bool TakeHeapSnapshot(v8::Isolate* isolate,
                                const base::FilePath& file_path);
 

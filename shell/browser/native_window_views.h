@@ -38,8 +38,8 @@ gfx::Rect ScreenToDIPRect(HWND hwnd, const gfx::Rect& pixel_bounds);
 #endif
 
 class NativeWindowViews : public NativeWindow,
-                          public views::WidgetObserver,
-                          public ui::EventHandler {
+                          private views::WidgetObserver,
+                          private ui::EventHandler {
  public:
   NativeWindowViews(const gin_helper::Dictionary& options,
                     NativeWindow* parent);
@@ -231,9 +231,8 @@ class NativeWindowViews : public NativeWindow,
   void SetEnabledInternal(bool enabled);
 
   // NativeWindow:
-  void HandleKeyboardEvent(
-      content::WebContents*,
-      const content::NativeWebKeyboardEvent& event) override;
+  void HandleKeyboardEvent(content::WebContents*,
+                           const input::NativeWebKeyboardEvent& event) override;
 
   // ui::EventHandler:
   void OnMouseEvent(ui::MouseEvent* event) override;

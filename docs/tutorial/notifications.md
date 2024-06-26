@@ -158,11 +158,10 @@ This module allows you to detect ahead of time whether or not the notification w
 ### Linux
 
 Notifications are sent using `libnotify`, which can show notifications on any
-desktop environment that follows [Desktop Notifications
-Specification][notification-spec], including Cinnamon, Enlightenment, Unity,
-GNOME, and KDE.
+desktop environment that follows [Desktop Notifications Specification][notification-spec],
+including Cinnamon, Enlightenment, Unity, GNOME, and KDE.
 
-[notification-spec]: https://developer-old.gnome.org/notification-spec/
+[notification-spec]: https://specifications.freedesktop.org/notification-spec/notification-spec-latest.html
 [app-user-model-id]: https://learn.microsoft.com/en-us/windows/win32/shell/appids
 [set-app-user-model-id]: ../api/app.md#appsetappusermodelidid-windows
 [squirrel-events]: https://github.com/electron/windows-installer/blob/main/README.md#handling-squirrel-events

@@ -76,8 +76,11 @@ void MessagePort::PostMessage(gin::Arguments* args) {
     return;
   }
 
-  electron::SerializeV8Value(args->isolate(), message_value,
-                             &transferable_message);
+  if (!electron::SerializeV8Value(args->isolate(), message_value,
+                                  &transferable_message)) {
+    // SerializeV8Value sets an exception.
+    return;
+  }
 
   v8::Local<v8::Value> transferables;
   std::vector<gin::Handle<MessagePort>> wrapped_ports;

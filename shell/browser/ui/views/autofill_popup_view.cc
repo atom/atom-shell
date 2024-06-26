@@ -366,7 +366,7 @@ bool AutofillPopupView::AcceleratorPressed(const ui::Accelerator& accelerator) {
 }
 
 bool AutofillPopupView::HandleKeyPressEvent(
-    const content::NativeWebKeyboardEvent& event) {
+    const input::NativeWebKeyboardEvent& event) {
   if (!popup_)
     return false;
   switch (event.windows_key_code) {

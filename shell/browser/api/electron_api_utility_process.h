@@ -13,9 +13,11 @@
 #include "base/environment.h"
 #include "base/memory/weak_ptr.h"
 #include "base/process/process_handle.h"
+#include "content/public/browser/service_process_host.h"
 #include "gin/wrappable.h"
 #include "mojo/public/cpp/bindings/connector.h"
 #include "mojo/public/cpp/bindings/message.h"
+#include "mojo/public/cpp/bindings/receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "shell/browser/event_emitter_mixin.h"
 #include "shell/common/gin_helper/pinnable.h"
@@ -38,7 +40,8 @@ class UtilityProcessWrapper
     : public gin::Wrappable<UtilityProcessWrapper>,
       public gin_helper::Pinnable<UtilityProcessWrapper>,
       public gin_helper::EventEmitterMixin<UtilityProcessWrapper>,
-      public mojo::MessageReceiver {
+      public mojo::MessageReceiver,
+      public content::ServiceProcessHost::Observer {
  public:
   enum class IOHandle : size_t { STDIN = 0, STDOUT = 1, STDERR = 2 };
   enum class IOType { IO_PIPE, IO_INHERIT, IO_IGNORE };
@@ -47,7 +50,7 @@ class UtilityProcessWrapper
   static gin::Handle<UtilityProcessWrapper> Create(gin::Arguments* args);
   static raw_ptr<UtilityProcessWrapper> FromProcessId(base::ProcessId pid);
 
-  void Shutdown(int exit_code);
+  void Shutdown(uint64_t exit_code);
 
   // gin::Wrappable
   static gin::WrapperInfo kWrapperInfo;
@@ -62,10 +65,10 @@ class UtilityProcessWrapper
                         base::EnvironmentMap env_map,
                         base::FilePath current_working_directory,
                         bool use_plugin_helper);
-  void OnServiceProcessDisconnected(uint32_t error_code,
-                                    const std::string& description);
-  void OnServiceProcessLaunched(const base::Process& process);
+  void OnServiceProcessLaunch(const base::Process& process);
   void CloseConnectorPort();
+
+  void HandleTermination(uint64_t exit_code);
 
   void PostMessage(gin::Arguments* args);
   bool Kill() const;
@@ -73,6 +76,15 @@ class UtilityProcessWrapper
 
   // mojo::MessageReceiver
   bool Accept(mojo::Message* mojo_message) override;
+
+  // content::ServiceProcessHost::Observer
+  void OnServiceProcessTerminatedNormally(
+      const content::ServiceProcessInfo& info) override;
+  void OnServiceProcessCrashed(
+      const content::ServiceProcessInfo& info) override;
+
+  void OnServiceProcessDisconnected(uint32_t exit_code,
+                                    const std::string& description);
 
   base::ProcessId pid_ = base::kNullProcessId;
 #if BUILDFLAG(IS_WIN)

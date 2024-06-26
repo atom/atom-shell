@@ -18,7 +18,7 @@ namespace electron::api {
 class AutoUpdater : public gin::Wrappable<AutoUpdater>,
                     public gin_helper::EventEmitterMixin<AutoUpdater>,
                     public auto_updater::Delegate,
-                    public WindowListObserver {
+                    private WindowListObserver {
  public:
   static gin::Handle<AutoUpdater> Create(v8::Isolate* isolate);
 
@@ -36,7 +36,7 @@ class AutoUpdater : public gin::Wrappable<AutoUpdater>,
   AutoUpdater();
   ~AutoUpdater() override;
 
-  // Delegate implementations.
+  // auto_updater::Delegate:
   void OnError(const std::string& message) override;
   void OnError(const std::string& message,
                const int code,

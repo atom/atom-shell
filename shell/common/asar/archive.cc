@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "base/check.h"
+#include "base/containers/span.h"
 #include "base/files/file.h"
 #include "base/files/file_util.h"
 #include "base/json/json_reader.h"
@@ -115,7 +116,7 @@ bool FillFileInfoWithNode(Archive::FileInfo* info,
     info->executable = *executable;
   }
 
-#if BUILDFLAG(IS_MAC)
+#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
   if (load_integrity &&
       electron::fuses::IsEmbeddedAsarIntegrityValidationEnabled()) {
     if (const base::Value::Dict* integrity = node->FindDict("integrity")) {
@@ -214,7 +215,7 @@ bool Archive::Init() {
   }
 
   uint32_t size;
-  if (!base::PickleIterator(base::Pickle(buf.data(), buf.size()))
+  if (!base::PickleIterator(base::Pickle::WithData(base::as_byte_span(buf)))
            .ReadUInt32(&size)) {
     LOG(ERROR) << "Failed to parse header size from " << path_.value();
     return false;
@@ -231,7 +232,7 @@ bool Archive::Init() {
   }
 
   std::string header;
-  if (!base::PickleIterator(base::Pickle(buf.data(), buf.size()))
+  if (!base::PickleIterator(base::Pickle::WithData(base::as_byte_span(buf)))
            .ReadString(&header)) {
     LOG(ERROR) << "Failed to parse header from " << path_.value();
     return false;
@@ -269,7 +270,7 @@ bool Archive::Init() {
   }
 
   header_size_ = 8 + size;
-  header_ = std::move(value->GetDict());
+  header_ = std::move(*value).TakeDict();
   return true;
 }
 

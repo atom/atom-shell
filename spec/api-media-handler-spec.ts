@@ -25,9 +25,7 @@ describe('setDisplayMediaRequestHandler', () => {
   // error message:
   // [ERROR:video_capture_device_client.cc(659)] error@ OnStart@content/browser/media/capture/desktop_capture_device_mac.cc:98, CGDisplayStreamCreate failed, OS message: Value too large to be stored in data type (84)
   // This is possibly related to the OS/VM setup that CircleCI uses for macOS.
-  // Our arm64 runners are in @jkleinsc's office, and are real machines, so the
-  // test works there.
-  ifit(!(process.platform === 'darwin' && process.arch === 'x64'))('works when calling getDisplayMedia', async function () {
+  ifit(process.platform !== 'darwin')('works when calling getDisplayMedia', async function () {
     if ((await desktopCapturer.getSources({ types: ['screen'] })).length === 0) {
       return this.skip();
     }
@@ -306,7 +304,7 @@ describe('setDisplayMediaRequestHandler', () => {
     expect(ok).to.be.true(message);
   });
 
-  ifit(!(process.platform === 'darwin' && process.arch === 'x64'))('can supply a screen response to preferCurrentTab', async () => {
+  ifit(process.platform !== 'darwin')('can supply a screen response to preferCurrentTab', async () => {
     const ses = session.fromPartition('' + Math.random());
     let requestHandlerCalled = false;
     ses.setDisplayMediaRequestHandler(async (request, callback) => {

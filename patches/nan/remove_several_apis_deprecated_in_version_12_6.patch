@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: John Kleinschmidt <jkleinsc@electronjs.org>
+Date: Thu, 6 Jun 2024 15:17:39 -0400
+Subject: Remove several APIs deprecated in version 12.6
+
+See https://chromium-review.googlesource.com/c/v8/v8/+/5539888
+
+ScriptOrigin constructor with isolate has been removed;
+Deprecation instructions were to "Use constructor without the isolate."
+
+diff --git a/nan_scriptorigin.h b/nan_scriptorigin.h
+index ce79cdf8dc931d61633c74079a4c38efd3c785ed..85202aaba148540644d39ea2cdf88de0dd101fe4 100644
+--- a/nan_scriptorigin.h
++++ b/nan_scriptorigin.h
+@@ -11,7 +11,25 @@
+ 
+ class ScriptOrigin : public v8::ScriptOrigin {
+  public:
+-#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 9 ||                      \
++#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 12 ||                     \
++  (V8_MAJOR_VERSION == 12 && (defined(V8_MINOR_VERSION) && (V8_MINOR_VERSION > 6\
++      || (V8_MINOR_VERSION == 7 && defined(V8_BUILD_NUMBER)                    \
++          && V8_BUILD_NUMBER >= 1)))))
++  explicit ScriptOrigin(v8::Local<v8::Value> name) :
++      v8::ScriptOrigin(name) {}
++
++  ScriptOrigin(v8::Local<v8::Value> name
++             , v8::Local<v8::Integer> line) :
++      v8::ScriptOrigin(name
++                   , To<int32_t>(line).FromMaybe(0)) {}
++
++  ScriptOrigin(v8::Local<v8::Value> name
++             , v8::Local<v8::Integer> line
++             , v8::Local<v8::Integer> column) :
++      v8::ScriptOrigin(name
++                   , To<int32_t>(line).FromMaybe(0)
++                   , To<int32_t>(column).FromMaybe(0)) {}
++#elif defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION > 9 ||                      \
+   (V8_MAJOR_VERSION == 9 && (defined(V8_MINOR_VERSION) && (V8_MINOR_VERSION > 0\
+       || (V8_MINOR_VERSION == 0 && defined(V8_BUILD_NUMBER)                    \
+           && V8_BUILD_NUMBER >= 1)))))

@@ -85,8 +85,8 @@ def make_diff(diff_file, original, reformatted):
         difflib.unified_diff(
             original,
             reformatted,
-            fromfile='a/{}'.format(diff_file),
-            tofile='b/{}'.format(diff_file),
+            fromfile=f'a/{diff_file}',
+            tofile=f'b/{diff_file}',
             n=3))
 
 
@@ -111,8 +111,7 @@ def run_clang_format_diff_wrapper(args, file_name):
         raise
     except Exception as e:
         # pylint: disable=W0707
-        raise UnexpectedError('{}: {}: {}'.format(
-            file_name, e.__class__.__name__, e), e)
+        raise UnexpectedError(f'{file_name}: {e.__class__.__name__}: {e}', e)
 
 
 def run_clang_format_diff(args, file_name):
@@ -131,25 +130,22 @@ def run_clang_format_diff(args, file_name):
         print(" ".join(invocation))
         return [], []
     try:
-        proc = subprocess.Popen(
-            ' '.join(invocation),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-            shell=True)
+        with subprocess.Popen(' '.join(invocation),
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE,
+                              universal_newlines=True,
+                              shell=True) as proc:
+            outs = list(proc.stdout.readlines())
+            errs = list(proc.stderr.readlines())
+            proc.wait()
+            if proc.returncode:
+                code = proc.returncode
+                msg = f"clang-format exited with code {code}: '{file_name}'"
+                raise DiffError(msg, errs)
     except OSError as exc:
-        # pylint: disable=W0707
-        raise DiffError(
-            "Command '{}' failed to start: {}".format(
-                subprocess.list2cmdline(invocation), exc
-            )
-        )
-    outs = list(proc.stdout.readlines())
-    errs = list(proc.stderr.readlines())
-    proc.wait()
-    if proc.returncode:
-        raise DiffError("clang-format exited with status {}: '{}'".format(
-            proc.returncode, file_name), errs)
+        # pylint: disable=raise-missing-from
+        cmd = subprocess.list2cmdline(invocation)
+        raise DiffError(f"Command '{cmd}' failed to start: {exc}")
     if args.fix:
         return None, errs
     if sys.platform == 'win32':
@@ -200,7 +196,7 @@ def print_trouble(prog, message, use_colors):
     error_text = 'error:'
     if use_colors:
         error_text = bold_red(error_text)
-    print("{}: {} {}".format(prog, error_text, message), file=sys.stderr)
+    print(f"{prog}: {error_text} {message}", file=sys.stderr)
 
 
 def main():
@@ -212,8 +208,8 @@ def main():
         default=get_buildtools_executable('clang-format'))
     parser.add_argument(
         '--extensions',
-        help='comma separated list of file extensions (default: {})'.format(
-            DEFAULT_EXTENSIONS),
+        help='comma-separated list of file extensions'
+             f' (default: {DEFAULT_EXTENSIONS})',
         default=DEFAULT_EXTENSIONS)
     parser.add_argument(
         '--fix',
@@ -290,18 +286,18 @@ def main():
 
     parse_files = []
     if args.changed:
-        stdout = subprocess.Popen(
+        with subprocess.Popen(
             "git diff --name-only --cached",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True,
             universal_newlines=True
-        ).communicate()[0].split("\n")
-        for line in stdout:
-            file_name = line.rstrip()
-            # don't check deleted files
-            if os.path.isfile(file_name):
-                parse_files.append(file_name)
+        ) as child:
+            for line in child.communicate()[0].split("\n"):
+                file_name = line.rstrip()
+                # don't check deleted files
+                if os.path.isfile(file_name):
+                    parse_files.append(file_name)
 
     else:
         parse_files = args.files
@@ -324,6 +320,7 @@ def main():
     njobs = min(len(files), njobs)
 
     if not args.fix:
+        # pylint: disable=consider-using-with
         patch_file = tempfile.NamedTemporaryFile(delete=False,
                                                  prefix='electron-format-')
 
@@ -333,6 +330,7 @@ def main():
         it = (run_clang_format_diff_wrapper(args, file) for file in files)
         pool = None
     else:
+        # pylint: disable=consider-using-with
         pool = multiprocessing.Pool(njobs)
         it = pool.imap_unordered(
             partial(run_clang_format_diff_wrapper, args), files)
@@ -373,8 +371,11 @@ def main():
           patch_file.close()
           os.unlink(patch_file.name)
         else:
-          print("\nTo patch these files, run:\n$ git apply {}\n"
-                .format(patch_file.name))
+          print(
+            'To patch these files, run:',
+            f"$ git apply {patch_file.name}", sep='\n')
+          filename=patch_file.name
+          print(f"\nTo patch these files, run:\n$ git apply {filename}\n")
 
     return retcode
 

@@ -75,7 +75,8 @@ function spawnAndCheckExitCode (cmd, args, opts) {
 
 function cpplint (args) {
   args.unshift(`--root=${SOURCE_ROOT}`);
-  const result = childProcess.spawnSync(IS_WINDOWS ? 'cpplint.bat' : 'cpplint.py', args, { encoding: 'utf8', shell: true });
+  const cmd = IS_WINDOWS ? 'cpplint.bat' : 'cpplint.py';
+  const result = childProcess.spawnSync(cmd, args, { encoding: 'utf8', shell: true });
   // cpplint.py writes EVERYTHING to stderr, including status messages
   if (result.stderr) {
     for (const line of result.stderr.split(/[\r\n]+/)) {
@@ -120,10 +121,10 @@ const LINTERS = [{
   roots: ['script'],
   test: filename => filename.endsWith('.py'),
   run: (opts, filenames) => {
-    const rcfile = path.join(DEPOT_TOOLS, 'pylintrc');
+    const rcfile = path.join(DEPOT_TOOLS, 'pylintrc-2.17');
     const args = ['--rcfile=' + rcfile, ...filenames];
     const env = { PYTHONPATH: path.join(ELECTRON_ROOT, 'script'), ...process.env };
-    spawnAndCheckExitCode('pylint-2.7', args, { env });
+    spawnAndCheckExitCode('pylint-2.17', args, { env });
   }
 }, {
   key: 'javascript',
@@ -251,8 +252,10 @@ const LINTERS = [{
 
     const allOk = filenames.length > 0 && filenames.map(f => {
       const patchText = fs.readFileSync(f, 'utf8');
-      const subjectAndDescription = /Subject: (.*?)\n\n([\s\S]*?)\s*(?=diff)/ms.exec(patchText);
-      if (!subjectAndDescription[2]) {
+
+      const regex = /Subject: (.*?)\n\n([\s\S]*?)\s*(?=diff)/ms;
+      const subjectAndDescription = regex.exec(patchText);
+      if (!subjectAndDescription?.[2]) {
         console.warn(`Patch file '${f}' has no description. Every patch must contain a justification for why the patch exists and the plan for its removal.`);
         return false;
       }
@@ -277,7 +280,7 @@ const LINTERS = [{
 
     // Run markdownlint on all Markdown files
     for (const chunk of chunkFilenames(filenames)) {
-      spawnAndCheckExitCode('electron-markdownlint', chunk);
+      spawnAndCheckExitCode('markdownlint-cli2', chunk);
     }
 
     // Run the remaining checks only in docs

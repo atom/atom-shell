@@ -21,7 +21,7 @@ class PushNotifications
     : public ElectronBrowserClient::Delegate,
       public gin::Wrappable<PushNotifications>,
       public gin_helper::EventEmitterMixin<PushNotifications>,
-      public BrowserObserver {
+      private BrowserObserver {
  public:
   static PushNotifications* Get();
   static gin::Handle<PushNotifications> Create(v8::Isolate* isolate);

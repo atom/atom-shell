@@ -104,7 +104,7 @@ void NodeService::Initialize(node::mojom::NodeServiceParamsPtr params) {
         js_env_->DestroyMicrotasksRunner();
         node::Stop(env, node::StopFlags::kDoNotTerminateIsolate);
         node_env_stopped_ = true;
-        receiver_.ResetWithReason(exit_code, "");
+        receiver_.ResetWithReason(exit_code, "process_exit_termination");
       });
 
   node_env_->set_trace_sync_io(node_env_->options()->trace_sync_io);

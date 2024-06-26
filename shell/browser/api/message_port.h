@@ -53,9 +53,9 @@ class MessagePort : public gin::Wrappable<MessagePort>,
       bool* threw_exception);
 
   // gin::Wrappable
+  static gin::WrapperInfo kWrapperInfo;
   gin::ObjectTemplateBuilder GetObjectTemplateBuilder(
       v8::Isolate* isolate) override;
-  static gin::WrapperInfo kWrapperInfo;
   const char* GetTypeName() override;
 
  private:

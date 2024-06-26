@@ -174,7 +174,7 @@ dialog.showOpenDialog(mainWindow, {
     * `dontAddToRecent` _Windows_ - Do not add the item being saved to the recent documents list.
   * `securityScopedBookmarks` boolean (optional) _macOS_ _mas_ - Create a [security scoped bookmark](https://developer.apple.com/library/content/documentation/Security/Conceptual/AppSandboxDesignGuide/AppSandboxInDepth/AppSandboxInDepth.html#//apple_ref/doc/uid/TP40011183-CH3-SW16) when packaged for the Mac App Store. If this option is enabled and the file doesn't already exist a blank file will be created at the chosen path.
 
-Returns `string | undefined`, the path of the file chosen by the user; if the dialog is cancelled it returns `undefined`.
+Returns `string`, the path of the file chosen by the user; if the dialog is cancelled it returns an empty string.
 
 The `browserWindow` argument allows the dialog to attach itself to a parent window, making it modal.
 
@@ -207,7 +207,7 @@ The `filters` specifies an array of file types that can be displayed, see
 Returns `Promise<Object>` - Resolve with an object containing the following:
 
 * `canceled` boolean - whether or not the dialog was canceled.
-* `filePath` string (optional) - If the dialog is canceled, this will be `undefined`.
+* `filePath` string - If the dialog is canceled, this will be an empty string.
 * `bookmark` string (optional) _macOS_ _mas_ - Base64 encoded string which contains the security scoped bookmark data for the saved file. `securityScopedBookmarks` must be enabled for this to be present. (For return values, see [table here](#bookmarks-array).)
 
 The `browserWindow` argument allows the dialog to attach itself to a parent window, making it modal.

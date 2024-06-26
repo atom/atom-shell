@@ -7,7 +7,7 @@ Subject: feat: add kNoStartDebugSignalHandler to Environment to prevent
 This patch should be upstreamed, it allows embedders to prevent the call to StartDebugSignalHandler which handles SIGUSR1 and starts the inspector agent.  Apps that have --inspect disabled also don't want SIGUSR1 to have this affect.
 
 diff --git a/src/env-inl.h b/src/env-inl.h
-index d5124e73e7c4c6b631ccfedf407e02bc444b428f..564de2990c09a54693686666f9ad66398ff76ab5 100644
+index 099e7352e68af6179f143741c626d8f539b568bb..63ce35ba68b48a55d8150395304bf86c2bf23aae 100644
 --- a/src/env-inl.h
 +++ b/src/env-inl.h
 @@ -677,6 +677,10 @@ inline bool Environment::no_global_search_paths() const {
@@ -22,10 +22,10 @@ index d5124e73e7c4c6b631ccfedf407e02bc444b428f..564de2990c09a54693686666f9ad6639
    // configure --no-browser-globals
  #ifdef NODE_NO_BROWSER_GLOBALS
 diff --git a/src/env.h b/src/env.h
-index 1047f1d794da2a3a035df5eaab1c809a7fca3d23..448075e354c760a2dbd1dd763f40b7a645730250 100644
+index c0c99456471788d40218152291a32db5fbdf1101..910c69b6d1d17ef25201dbb39d3d074f4f3f011f 100644
 --- a/src/env.h
 +++ b/src/env.h
-@@ -787,6 +787,7 @@ class Environment : public MemoryRetainer {
+@@ -801,6 +801,7 @@ class Environment : public MemoryRetainer {
    inline bool tracks_unmanaged_fds() const;
    inline bool hide_console_windows() const;
    inline bool no_global_search_paths() const;
@@ -34,10 +34,10 @@ index 1047f1d794da2a3a035df5eaab1c809a7fca3d23..448075e354c760a2dbd1dd763f40b7a6
    inline uint64_t thread_id() const;
    inline worker::Worker* worker_context() const;
 diff --git a/src/inspector_agent.cc b/src/inspector_agent.cc
-index de372400fd9cedb0a724ce434c8944760dd2d078..58eb4befb94a68aa8f27c11665e9d7b32fe472be 100644
+index 63c8ae14abb3dee3c4a628d1042c2e9e25688806..4e1eb17dd174e18a814fce6b170d75d161937ace 100644
 --- a/src/inspector_agent.cc
 +++ b/src/inspector_agent.cc
-@@ -707,8 +707,10 @@ bool Agent::Start(const std::string& path,
+@@ -717,8 +717,10 @@ bool Agent::Start(const std::string& path,
                                StartIoThreadAsyncCallback));
      uv_unref(reinterpret_cast<uv_handle_t*>(&start_io_thread_async));
      start_io_thread_async.data = this;
@@ -51,10 +51,10 @@ index de372400fd9cedb0a724ce434c8944760dd2d078..58eb4befb94a68aa8f27c11665e9d7b3
      parent_env_->AddCleanupHook([](void* data) {
        Environment* env = static_cast<Environment*>(data);
 diff --git a/src/node.h b/src/node.h
-index 74a097279d3e5dc3ee6c5e609fd35cf44e5002f5..868366f6d3e35d0fe543c89efd7d5e313a831a96 100644
+index 24dd1d9fe8de5993863f9fcd0ce7f65ec5460cce..c267ed1eeaa2d8b6ecd5a1563a4e9440bf0cca00 100644
 --- a/src/node.h
 +++ b/src/node.h
-@@ -656,7 +656,11 @@ enum Flags : uint64_t {
+@@ -658,7 +658,11 @@ enum Flags : uint64_t {
    // This control is needed by embedders who may not want to initialize the V8
    // inspector in situations where one has already been created,
    // e.g. Blink's in Chromium.

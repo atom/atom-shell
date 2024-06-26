@@ -17,10 +17,10 @@ Upstreams:
 - https://github.com/nodejs/node/pull/39136
 
 diff --git a/src/crypto/crypto_cipher.cc b/src/crypto/crypto_cipher.cc
-index 2e6e02d229b67bc97e0d15a2704e091d5289df9c..6fd0416820998bd0ba4c4cd4fe3093f144610f18 100644
+index 67cd4f2adf15e7d8511f561c54163b1842e971af..7e0e1a62289289b8362870ba4869c97494b9298a 100644
 --- a/src/crypto/crypto_cipher.cc
 +++ b/src/crypto/crypto_cipher.cc
-@@ -27,7 +27,8 @@ using v8::Value;
+@@ -28,7 +28,8 @@ using v8::Value;
  namespace crypto {
  namespace {
  bool IsSupportedAuthenticatedMode(const EVP_CIPHER* cipher) {
@@ -30,8 +30,25 @@ index 2e6e02d229b67bc97e0d15a2704e091d5289df9c..6fd0416820998bd0ba4c4cd4fe3093f1
    case EVP_CIPH_CCM_MODE:
    case EVP_CIPH_GCM_MODE:
  #ifndef OPENSSL_NO_OCB
+@@ -1088,7 +1089,7 @@ void PublicKeyCipher::Cipher(const FunctionCallbackInfo<Value>& args) {
+     if (EVP_PKEY_decrypt_init(ctx.get()) <= 0) {
+       return ThrowCryptoError(env, ERR_get_error());
+     }
+-
++#ifndef OPENSSL_IS_BORINGSSL
+     int rsa_pkcs1_implicit_rejection =
+         EVP_PKEY_CTX_ctrl_str(ctx.get(), "rsa_pkcs1_implicit_rejection", "1");
+     // From the doc -2 means that the option is not supported.
+@@ -1104,6 +1105,7 @@ void PublicKeyCipher::Cipher(const FunctionCallbackInfo<Value>& args) {
+           "RSA_PKCS1_PADDING is no longer supported for private decryption,"
+           " this can be reverted with --security-revert=CVE-2023-46809");
+     }
++#endif
+   }
+ 
+   const EVP_MD* digest = nullptr;
 diff --git a/src/crypto/crypto_common.cc b/src/crypto/crypto_common.cc
-index c6120a655ec853aef11c66ed37d7ca0ffb957dd3..a52ca15cb0ab592d4196d4bd0f1133240967d70c 100644
+index 3517c39ad0b71a4d3efefeee2a3d55b70494bc1d..7164e539880e6d33ee1ea1fb77bae8adf4095708 100644
 --- a/src/crypto/crypto_common.cc
 +++ b/src/crypto/crypto_common.cc
 @@ -158,7 +158,7 @@ const char* GetClientHelloALPN(const SSLPointer& ssl) {
@@ -84,7 +101,7 @@ index c6120a655ec853aef11c66ed37d7ca0ffb957dd3..a52ca15cb0ab592d4196d4bd0f113324
  
  const char* X509ErrorCode(long err) {  // NOLINT(runtime/int)
    const char* code = "UNSPECIFIED";
-@@ -1044,14 +1051,14 @@ MaybeLocal<Array> GetClientHelloCiphers(
+@@ -1042,14 +1049,14 @@ MaybeLocal<Array> GetClientHelloCiphers(
      Environment* env,
      const SSLPointer& ssl) {
    EscapableHandleScope scope(env->isolate());
@@ -130,10 +147,10 @@ index 6e5bbe07d0c337b36f3157c2e6404fdc91849fd1..7ec682833213de9054a8c30751436d12
    DHPointer dh;
    {
 diff --git a/src/crypto/crypto_dh.cc b/src/crypto/crypto_dh.cc
-index 408d6be2a9cfdbcb52af285204c07c40bf74a5a9..9c3244a14bc286d60805bac5719df6595d802768 100644
+index b4447102a8478639a5aa774e583834d79808603f..ecf938d51ccdbfcb825d44c5ed4ea1229cb05389 100644
 --- a/src/crypto/crypto_dh.cc
 +++ b/src/crypto/crypto_dh.cc
-@@ -153,13 +153,11 @@ bool DiffieHellman::Init(BignumPointer&& bn_p, int g) {
+@@ -154,13 +154,11 @@ bool DiffieHellman::Init(BignumPointer&& bn_p, int g) {
  bool DiffieHellman::Init(const char* p, int p_len, int g) {
    dh_.reset(DH_new());
    if (p_len <= 0) {
@@ -148,8 +165,8 @@ index 408d6be2a9cfdbcb52af285204c07c40bf74a5a9..9c3244a14bc286d60805bac5719df659
 +    OPENSSL_PUT_ERROR(DH, DH_R_BAD_GENERATOR);
      return false;
    }
-   BIGNUM* bn_p =
-@@ -177,21 +175,18 @@ bool DiffieHellman::Init(const char* p, int p_len, int g) {
+   BignumPointer bn_p(
+@@ -176,20 +174,17 @@ bool DiffieHellman::Init(const char* p, int p_len, int g) {
  bool DiffieHellman::Init(const char* p, int p_len, const char* g, int g_len) {
    dh_.reset(DH_new());
    if (p_len <= 0) {
@@ -164,17 +181,16 @@ index 408d6be2a9cfdbcb52af285204c07c40bf74a5a9..9c3244a14bc286d60805bac5719df659
 +    OPENSSL_PUT_ERROR(DH, DH_R_BAD_GENERATOR);
      return false;
    }
-   BIGNUM* bn_g =
-       BN_bin2bn(reinterpret_cast<const unsigned char*>(g), g_len, nullptr);
-   if (BN_is_zero(bn_g) || BN_is_one(bn_g)) {
-     BN_free(bn_g);
+   BignumPointer bn_g(
+       BN_bin2bn(reinterpret_cast<const unsigned char*>(g), g_len, nullptr));
+   if (BN_is_zero(bn_g.get()) || BN_is_one(bn_g.get())) {
 -    ERR_put_error(ERR_LIB_DH, DH_F_DH_BUILTIN_GENPARAMS,
 -      DH_R_BAD_GENERATOR, __FILE__, __LINE__);
 +    OPENSSL_PUT_ERROR(DH, DH_R_BAD_GENERATOR);
      return false;
    }
-   BIGNUM* bn_p =
-@@ -218,8 +213,10 @@ typedef BignumPointer (*StandardizedGroupInstantiator)();
+   BignumPointer bn_p(
+@@ -219,8 +214,10 @@ typedef BignumPointer (*StandardizedGroupInstantiator)();
  inline StandardizedGroupInstantiator FindDiffieHellmanGroup(const char* name) {
  #define V(n, p)                                                                \
    if (StringEqualNoCase(name, n)) return InstantiateStandardizedGroup<p>
@@ -185,7 +201,7 @@ index 408d6be2a9cfdbcb52af285204c07c40bf74a5a9..9c3244a14bc286d60805bac5719df659
    V("modp5", BN_get_rfc3526_prime_1536);
    V("modp14", BN_get_rfc3526_prime_2048);
    V("modp15", BN_get_rfc3526_prime_3072);
-@@ -558,15 +555,20 @@ EVPKeyCtxPointer DhKeyGenTraits::Setup(DhKeyPairGenConfig* params) {
+@@ -559,15 +556,21 @@ EVPKeyCtxPointer DhKeyGenTraits::Setup(DhKeyPairGenConfig* params) {
        return EVPKeyCtxPointer();
      }
  
@@ -196,17 +212,19 @@ index 408d6be2a9cfdbcb52af285204c07c40bf74a5a9..9c3244a14bc286d60805bac5719df659
      key_params = EVPKeyPointer(EVP_PKEY_new());
      CHECK(key_params);
      CHECK_EQ(EVP_PKEY_assign_DH(key_params.get(), dh.release()), 1);
+-  } else if (int* prime_size = std::get_if<int>(&params->params.prime)) {
 +#else
 +    return EVPKeyCtxPointer();
 +#endif
-   } else if (int* prime_size = std::get_if<int>(&params->params.prime)) {
++  } else if (std::get_if<int>(&params->params.prime)) {
      EVPKeyCtxPointer param_ctx(EVP_PKEY_CTX_new_id(EVP_PKEY_DH, nullptr));
      EVP_PKEY* raw_params = nullptr;
 +#ifndef OPENSSL_IS_BORINGSSL
++    int* prime_size = std::get_if<int>(&params->params.prime);
      if (!param_ctx ||
          EVP_PKEY_paramgen_init(param_ctx.get()) <= 0 ||
          EVP_PKEY_CTX_set_dh_paramgen_prime_len(
-@@ -580,6 +582,9 @@ EVPKeyCtxPointer DhKeyGenTraits::Setup(DhKeyPairGenConfig* params) {
+@@ -581,6 +584,9 @@ EVPKeyCtxPointer DhKeyGenTraits::Setup(DhKeyPairGenConfig* params) {
      }
  
      key_params = EVPKeyPointer(raw_params);
@@ -356,13 +374,35 @@ index 5734d8fdc5505e1586f571c19b840bd56e9c9f1f..3034b114e081e2b32dd5b71653927a41
  }
  }  // namespace
  
+diff --git a/src/env.h b/src/env.h
+index 904dda4caf9695acec72bd95ba235b92b07eabe2..c0c99456471788d40218152291a32db5fbdf1101 100644
+--- a/src/env.h
++++ b/src/env.h
+@@ -49,7 +49,7 @@
+ #include "uv.h"
+ #include "v8.h"
+ 
+-#if HAVE_OPENSSL
++#if HAVE_OPENSSL && OPENSSL_VERSION_MAJOR >= 3
+ #include <openssl/evp.h>
+ #endif
+ 
+@@ -1035,7 +1035,7 @@ class Environment : public MemoryRetainer {
+     kExitInfoFieldCount
+   };
+ 
+-#if HAVE_OPENSSL
++#if HAVE_OPENSSL// && !defined(OPENSSL_IS_BORINGSSL)
+ #if OPENSSL_VERSION_MAJOR >= 3
+   // We declare another alias here to avoid having to include crypto_util.h
+   using EVPMDPointer = DeleteFnPtr<EVP_MD, EVP_MD_free>;
 diff --git a/src/node_metadata.cc b/src/node_metadata.cc
-index b88cfb98e75aca426224e19376b3ff4c23b92e53..b66f4e2b5cbd8f36af42f82a8921207302360e39 100644
+index 844c5ac2c2b948b3be35cb3e447717a510a463a6..72a75ee0bf391ea508441f49413f85c5b735b259 100644
 --- a/src/node_metadata.cc
 +++ b/src/node_metadata.cc
-@@ -16,7 +16,7 @@
- #include "v8.h"
- #include "zlib_version.h"
+@@ -21,7 +21,7 @@
+ #include <zlib.h>
+ #endif  // NODE_BUNDLED_ZLIB
  
 -#if HAVE_OPENSSL
 +#if HAVE_OPENSSL && !defined(OPENSSL_IS_BORINGSSL)
@@ -383,7 +423,7 @@ index cf051585e779e2b03bd7b95fe5008b89cc7f8162..9de49c6828468fdf846dcd4ad445390f
  #if NODE_OPENSSL_HAS_QUIC
  #include <openssl/quic.h>
 diff --git a/src/node_options.cc b/src/node_options.cc
-index 5da6918af8c125259a89ce95bbbbc4fc475c4c69..a3d25cdd52f18e319ae3ac81437c8a0206b18690 100644
+index 937ce44696175dc80edabcd9fc2709a6716d1a66..dae3237abc95362db81a1f529becfac43454d709 100644
 --- a/src/node_options.cc
 +++ b/src/node_options.cc
 @@ -6,7 +6,7 @@
@@ -396,7 +436,7 @@ index 5da6918af8c125259a89ce95bbbbc4fc475c4c69..a3d25cdd52f18e319ae3ac81437c8a02
  #endif
  
 diff --git a/src/node_options.h b/src/node_options.h
-index 312fae8f759c5828d0770ceee845dc4754871436..207468a2177d36894c64cb37aac946af02c82549 100644
+index 0a2f5512f689f87b73aa582782c484f73a4ebc43..e1985f2188eec6869521aecd39d2d74d5cc1616a 100644
 --- a/src/node_options.h
 +++ b/src/node_options.h
 @@ -11,7 +11,7 @@

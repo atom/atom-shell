@@ -16,6 +16,7 @@
 #include "mojo/public/cpp/bindings/pending_remote.h"
 #include "services/network/public/cpp/resource_request.h"
 #include "services/network/public/mojom/fetch_api.mojom.h"
+#include "url/origin.h"
 
 class PrefService;
 
@@ -104,6 +105,7 @@ class ElectronExtensionsBrowserClient
       const override;
   mojo::PendingRemote<network::mojom::URLLoaderFactory>
   GetControlledFrameEmbedderURLLoader(
+      const url::Origin& app_origin,
       int frame_tree_node_id,
       content::BrowserContext* browser_context) override;
   std::unique_ptr<extensions::ExtensionHostDelegate>

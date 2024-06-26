@@ -1,0 +1,63 @@
+name: 'Restore Cache AZCopy'
+description: 'Restores Electron src cache via AZCopy'
+runs:
+  using: "composite"
+  steps:
+  - name: Obtain SAS Key
+    continue-on-error: true
+    uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
+    with:
+      path: |
+        sas-token
+      key: sas-key-${{ github.run_number }}-1
+  - name: Obtain SAS Key
+    continue-on-error: true
+    uses: actions/cache/restore@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
+    with:
+      path: |
+        sas-token
+      key: sas-key-${{ github.run_number }}-${{ github.run_attempt }}
+  - name: Download Src Cache from AKS
+    # The cache will always exist here as a result of the checkout job
+    # Either it was uploaded to Azure in the checkout job for this commit
+    # or it was uploaded in the checkout job for a previous commit.
+    uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+    with:
+      timeout_minutes: 20
+      max_attempts: 3
+      retry_on: error
+      command: |
+        sas_token=$(cat sas-token)
+        if [ -z $sas-token ]; then
+          echo "SAS Token not found; exiting src cache download early..."
+          exit 1
+        fi
+        azcopy copy \
+          "https://${{ env.AZURE_AKS_CACHE_STORAGE_ACCOUNT }}.file.core.windows.net/${{ env.AZURE_AKS_CACHE_SHARE_NAME }}/${{ env.CACHE_PATH }}?$sas_token" $DEPSHASH.tar
+  - name: Clean SAS Key
+    shell: bash
+    run: rm -f sas-token
+  - name: Unzip and Ensure Src Cache
+    shell: bash
+    run: |
+      echo "Downloaded cache is $(du -sh $DEPSHASH.tar | cut -f1)"
+      mkdir temp-cache
+      tar -xf $DEPSHASH.tar -C temp-cache
+      echo "Unzipped cache is $(du -sh temp-cache/src | cut -f1)"
+
+      if [ -d "temp-cache/src" ]; then
+        echo "Relocating Cache"
+        rm -rf src
+        mv temp-cache/src src
+
+        echo "Deleting zip file"
+        rm -rf $DEPSHASH.tar
+      fi
+
+      if [ ! -d "src/third_party/blink" ]; then
+        echo "Cache was not correctly restored - exiting"
+        exit 1
+      fi
+
+      echo "Wiping Electron Directory"
+      rm -rf src/electron

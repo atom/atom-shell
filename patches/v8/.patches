@@ -1,2 +1,3 @@
 chore_allow_customizing_microtask_policy_per_context.patch
 deps_add_v8_object_setinternalfieldfornodecore.patch
+revert_heap_add_checks_position_info.patch

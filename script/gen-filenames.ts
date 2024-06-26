@@ -1,5 +1,5 @@
 import * as cp from 'node:child_process';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 
@@ -48,7 +48,7 @@ const main = async () => {
   ];
 
   const webpackTargetsWithDeps = await Promise.all(webpackTargets.map(async webpackTarget => {
-    const tmpDir = await fs.mkdtemp(path.resolve(os.tmpdir(), 'electron-filenames-'));
+    const tmpDir = await fs.promises.mkdtemp(path.resolve(os.tmpdir(), 'electron-filenames-'));
     const child = cp.spawn('node', [
       './node_modules/webpack-cli/bin/cli.js',
       '--config', `./build/webpack/${webpackTarget.config}`,
@@ -89,7 +89,7 @@ const main = async () => {
         // Make the generated list easier to read
         .sort()
     };
-    await fs.remove(tmpDir);
+    await fs.promises.rm(tmpDir, { force: true, recursive: true });
     return webpackTargetWithDeps;
   }));
 

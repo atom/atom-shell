@@ -30,10 +30,9 @@ class ElectronMainDelegate : public content::ContentMainDelegate {
   ElectronMainDelegate(const ElectronMainDelegate&) = delete;
   ElectronMainDelegate& operator=(const ElectronMainDelegate&) = delete;
 
-  base::StringPiece GetBrowserV8SnapshotFilename() override;
-
  protected:
   // content::ContentMainDelegate:
+  base::StringPiece GetBrowserV8SnapshotFilename() override;
   std::optional<int> BasicStartupComplete() override;
   void PreSandboxStartup() override;
   void SandboxInitialized(const std::string& process_type) override;

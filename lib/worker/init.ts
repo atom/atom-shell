@@ -17,6 +17,14 @@ const { makeRequireFunction } = __non_webpack_require__('internal/modules/helper
 global.module = new Module('electron/js2c/worker_init');
 global.require = makeRequireFunction(global.module);
 
+// See WebWorkerObserver::WorkerScriptReadyForEvaluation.
+if ((globalThis as any).blinkfetch) {
+  const keys = ['fetch', 'Response', 'FormData', 'Request', 'Headers'];
+  for (const key of keys) {
+    (globalThis as any)[key] = (globalThis as any)[`blink${key}`];
+  }
+}
+
 // Set the __filename to the path of html file if it is file: protocol.
 // NB. 'self' isn't defined in an AudioWorklet.
 if (typeof self !== 'undefined' && self.location.protocol === 'file:') {

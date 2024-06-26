@@ -24,10 +24,10 @@ index 69e2a389f9e1480a1a4ba37f5df5356b42f7d52d..0c29b00298b44b97f88a63aa5b89f1c2
        wrap->object()->Has(env->context(), env->handle_onclose_symbol())
        .FromMaybe(false)) {
 diff --git a/src/node_contextify.cc b/src/node_contextify.cc
-index a68f6bb686768e2c5eaa4148741891926156883d..0239c64f80f4fb1870b452ed44e6ac36bfa0e3d2 100644
+index ca8575e9a21b9a0b8089484a04abe702b2fe6d4e..df1d9cb4fd0442ec6ce6164a136b7a5fbcbe5b67 100644
 --- a/src/node_contextify.cc
 +++ b/src/node_contextify.cc
-@@ -472,6 +472,7 @@ bool ContextifyContext::IsStillInitializing(const ContextifyContext* ctx) {
+@@ -460,6 +460,7 @@ bool ContextifyContext::IsStillInitializing(const ContextifyContext* ctx) {
  void ContextifyContext::PropertyGetterCallback(
      Local<Name> property,
      const PropertyCallbackInfo<Value>& args) {
@@ -35,7 +35,7 @@ index a68f6bb686768e2c5eaa4148741891926156883d..0239c64f80f4fb1870b452ed44e6ac36
    ContextifyContext* ctx = ContextifyContext::Get(args);
  
    // Still initializing
-@@ -479,6 +480,8 @@ void ContextifyContext::PropertyGetterCallback(
+@@ -467,6 +468,8 @@ void ContextifyContext::PropertyGetterCallback(
  
    Local<Context> context = ctx->context();
    Local<Object> sandbox = ctx->sandbox();
@@ -44,7 +44,7 @@ index a68f6bb686768e2c5eaa4148741891926156883d..0239c64f80f4fb1870b452ed44e6ac36
    MaybeLocal<Value> maybe_rv =
        sandbox->GetRealNamedProperty(context, property);
    if (maybe_rv.IsEmpty()) {
-@@ -488,6 +491,11 @@ void ContextifyContext::PropertyGetterCallback(
+@@ -476,6 +479,11 @@ void ContextifyContext::PropertyGetterCallback(
  
    Local<Value> rv;
    if (maybe_rv.ToLocal(&rv)) {
@@ -57,7 +57,7 @@ index a68f6bb686768e2c5eaa4148741891926156883d..0239c64f80f4fb1870b452ed44e6ac36
        rv = ctx->global_proxy();
  
 diff --git a/src/node_messaging.cc b/src/node_messaging.cc
-index 6c9a23e669b29d1fdbc4e371d903e77060fd1b74..7c9f6b004295433be6a4ce84621f2005a0b67e14 100644
+index e7d2bfbafef13f04a73dcbefe7d6e90b37b904d1..31b870c5f003b62b848c00d6032ed98eb829778d 100644
 --- a/src/node_messaging.cc
 +++ b/src/node_messaging.cc
 @@ -907,7 +907,7 @@ Maybe<bool> MessagePort::PostMessage(Environment* env,

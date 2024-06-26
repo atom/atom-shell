@@ -21,9 +21,9 @@
 
 namespace electron {
 
-class AutofillAgent : public content::RenderFrameObserver,
-                      public blink::WebAutofillClient,
-                      public mojom::ElectronAutofillAgent {
+class AutofillAgent : private content::RenderFrameObserver,
+                      private blink::WebAutofillClient,
+                      private mojom::ElectronAutofillAgent {
  public:
   explicit AutofillAgent(content::RenderFrame* frame,
                          blink::AssociatedInterfaceRegistry* registry);

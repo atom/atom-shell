@@ -156,35 +156,25 @@ void WinCaptionButtonContainer::UpdateBackground() {
 }
 
 void WinCaptionButtonContainer::UpdateButtons() {
-  const bool is_maximized = frame_view_->frame()->IsMaximized();
-  restore_button_->SetVisible(is_maximized);
-  maximize_button_->SetVisible(!is_maximized);
-
   const bool minimizable = frame_view_->window()->IsMinimizable();
   minimize_button_->SetEnabled(minimizable);
   minimize_button_->SetVisible(minimizable);
 
-  // In touch mode, windows cannot be taken out of fullscreen or tiled mode, so
-  // the maximize/restore button should be disabled.
-  const bool is_touch = ui::TouchUiController::Get()->touch_ui();
-  restore_button_->SetEnabled(!is_touch);
+  const bool is_maximized = frame_view_->frame()->IsMaximized();
+  const bool maximizable = frame_view_->window()->IsMaximizable();
+  restore_button_->SetVisible(is_maximized && maximizable);
+  maximize_button_->SetVisible(!is_maximized && maximizable);
 
   // In touch mode, windows cannot be taken out of fullscreen or tiled mode, so
   // the maximize/restore button should be disabled, unless the window is not
   // maximized.
-  const bool maximizable = frame_view_->window()->IsMaximizable();
-  maximize_button_->SetEnabled(!(is_touch && is_maximized) && maximizable);
+  const bool is_touch = ui::TouchUiController::Get()->touch_ui();
+  restore_button_->SetEnabled(!is_touch);
+  maximize_button_->SetEnabled(!is_touch || !is_maximized);
 
+  // If the window isn't closable, the close button should be disabled.
   const bool closable = frame_view_->window()->IsClosable();
   close_button_->SetEnabled(closable);
-
-  // If all three of closable, maximizable, and minimizable are disabled,
-  // Windows natively only shows the disabled closable button. Copy that
-  // behavior here.
-  if (!maximizable && !closable && !minimizable) {
-    minimize_button_->SetVisible(false);
-    maximize_button_->SetVisible(false);
-  }
 
   InvalidateLayout();
 }

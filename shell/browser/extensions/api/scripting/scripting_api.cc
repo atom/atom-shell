@@ -22,6 +22,7 @@
 #include "extensions/browser/api/scripting/scripting_utils.h"
 #include "extensions/browser/extension_api_frame_id_map.h"
 #include "extensions/browser/extension_file_task_runner.h"
+#include "extensions/browser/extension_registry.h"
 #include "extensions/browser/extension_system.h"
 #include "extensions/browser/extension_user_script_loader.h"
 #include "extensions/browser/extension_util.h"
@@ -698,7 +699,7 @@ bool ScriptingExecuteScriptFunction::Execute(
   script_executor->ExecuteScript(
       mojom::HostID(mojom::HostID::HostType::kExtensions, extension()->id()),
       mojom::CodeInjection::NewJs(mojom::JSInjection::New(
-          std::move(sources), execution_world,
+          std::move(sources), execution_world, /*world_id=*/std::nullopt,
           blink::mojom::WantResultOption::kWantResult,
           user_gesture() ? blink::mojom::UserActivationOption::kActivate
                          : blink::mojom::UserActivationOption::kDoNotActivate,
@@ -1061,6 +1062,17 @@ void ScriptingRegisterContentScriptsFunction::OnContentScriptFilesValidated(
     return;
   }
 
+  // We cannot proceed if the extension is uninstalled or unloaded in the middle
+  // of validating its script files.
+  ExtensionRegistry* registry = ExtensionRegistry::Get(browser_context());
+  if (!extension() ||
+      !registry->enabled_extensions().Contains(extension_id())) {
+    // Note: a Respond() is not needed if the system is shutting down or if the
+    // extension is no longer enabled.
+    Release();  // Matches the `AddRef()` in `Run()`.
+    return;
+  }
+
   auto error = std::move(result.second);
   auto scripts = std::move(result.first);
   ExtensionUserScriptLoader* loader =
@@ -1302,6 +1314,17 @@ void ScriptingUpdateContentScriptsFunction::OnContentScriptFilesValidated(
   // We cannot proceed if the `browser_context` is not valid as the
   // `ExtensionSystem` will not exist.
   if (!browser_context()) {
+    Release();  // Matches the `AddRef()` in `Run()`.
+    return;
+  }
+
+  // We cannot proceed if the extension is uninstalled or unloaded in the middle
+  // of validating its script files.
+  ExtensionRegistry* registry = ExtensionRegistry::Get(browser_context());
+  if (!extension() ||
+      !registry->enabled_extensions().Contains(extension_id())) {
+    // Note: a Respond() is not needed if the system is shutting down or if the
+    // extension is no longer enabled.
     Release();  // Matches the `AddRef()` in `Run()`.
     return;
   }

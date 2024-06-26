@@ -77,8 +77,8 @@ def set_mtimes(patches_config, mtime):
 
         mtime_cache[file_path] = mtime
 
-    for file_path in mtime_cache:
-        os.utime(file_path, (mtime_cache[file_path], mtime_cache[file_path]))
+    for file_path, file_mtime in mtime_cache.items():
+        os.utime(file_path, (file_mtime, file_mtime))
 
 
 def main():
@@ -131,17 +131,17 @@ def main():
     if args.operation == "generate":
         try:
             # Cache file may exist from a previously aborted sync. Reuse it.
-            with open(args.cache_file, mode="r") as f:
-                json.load(f)  # Make sure it's not an empty file
+            with open(args.cache_file, mode='r', encoding='utf-8') as fin:
+                json.load(fin)  # Make sure it's not an empty file
                 print("Using existing mtime cache for patches")
                 return 0
         except Exception:
             pass
 
         try:
-            with open(args.cache_file, mode="w") as f:
+            with open(args.cache_file, mode="w", encoding='utf-8') as fin:
                 mtime_cache = generate_cache(json.load(args.patches_config))
-                json.dump(mtime_cache, f, indent=2)
+                json.dump(mtime_cache, fin, indent=2)
         except Exception:
             print(
                 "ERROR: failed to generate mtime cache for patches",
@@ -155,8 +155,8 @@ def main():
             return 0  # Cache file may not exist, fail more gracefully
 
         try:
-            with open(args.cache_file, mode="r") as f:
-                apply_mtimes(json.load(f))
+            with open(args.cache_file, mode='r', encoding='utf-8') as file_in:
+                apply_mtimes(json.load(file_in))
 
             if not args.preserve_cache:
                 os.remove(args.cache_file)

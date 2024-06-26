@@ -48,6 +48,9 @@ Objects created with `new View` have the following instance methods:
 * `index` Integer (optional) - Index at which to insert the child view.
   Defaults to adding the child at the end of the child list.
 
+If the same View is added to a parent which already contains it, it will be reordered such that
+it becomes the topmost view.
+
 #### `view.removeChildView(view)`
 
 * `view` View - Child view to remove.

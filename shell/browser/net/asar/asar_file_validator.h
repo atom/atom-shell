@@ -25,6 +25,7 @@ class AsarFileValidator : public mojo::FilteredDataSource::Filter {
   AsarFileValidator(const AsarFileValidator&) = delete;
   AsarFileValidator& operator=(const AsarFileValidator&) = delete;
 
+  // mojo::FilteredDataSource::Filter
   void OnRead(base::span<char> buffer,
               mojo::FileDataSource::ReadResult* result) override;
 

@@ -184,8 +184,6 @@ const char kHiddenPage[] = "hiddenPage";
 const char kSpellcheck[] = "spellcheck";
 #endif
 
-const char kEnableWebSQL[] = "enableWebSQL";
-
 const char kEnablePreferredSizeMode[] = "enablePreferredSizeMode";
 
 const char ktitleBarOverlay[] = "titleBarOverlay";
@@ -266,8 +264,6 @@ const char kEnableAuthNegotiatePort[] = "enable-auth-negotiate-port";
 
 // If set, NTLM v2 is disabled for POSIX platforms.
 const char kDisableNTLMv2[] = "disable-ntlm-v2";
-
-const char kEnableWebSQL[] = "enable-websql";
 
 }  // namespace switches
 

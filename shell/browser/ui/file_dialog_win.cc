@@ -78,7 +78,6 @@ static HRESULT GetFileNameFromShellItem(IShellItem* pShellItem,
       wcscpy_s(lpstr, cchLength, lpstrName);
     } else {
       NOTREACHED();
-      hRet = DISP_E_BUFFERTOOSMALL;
     }
 
     ::CoTaskMemFree(lpstrName);

@@ -121,32 +121,6 @@ function getUserMediaError (error: Error) {
   console.log('getUserMediaError', error);
 }
 
-// File object
-// https://github.com/electron/electron/blob/main/docs/api/file-object.md
-
-/*
-<div id="holder">
-  Drag your file here
-</div>
-*/
-
-const holder = document.getElementById('holder');
-
-holder.ondragover = function () {
-  return false;
-};
-
-holder.ondragleave = holder.ondragend = function () {
-  return false;
-};
-
-holder.ondrop = function (e) {
-  e.preventDefault();
-  const file = e.dataTransfer.files[0];
-  console.log('File you dragged here is', file.path);
-  return false;
-};
-
 // nativeImage
 // https://github.com/electron/electron/blob/main/docs/api/native-image.md
 

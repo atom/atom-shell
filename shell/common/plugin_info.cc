@@ -6,7 +6,7 @@
 
 #if BUILDFLAG(ENABLE_PDF_VIEWER)
 #include "base/strings/utf_string_conversions.h"
-#include "chrome/common/pdf_util.h"
+#include "components/pdf/common/constants.h"
 #include "extensions/common/constants.h"
 #include "shell/common/electron_constants.h"
 #endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
@@ -31,7 +31,8 @@ content::WebPluginInfo GetPDFPluginInfo() {
   // This isn't a real file path; it's just used as a unique identifier.
   info.path = base::FilePath::FromUTF8Unsafe(extension_misc::kPdfExtensionId);
   info.background_color = content::WebPluginInfo::kDefaultBackgroundColor;
-  info.mime_types.emplace_back(kPDFMimeType, "pdf", "Portable Document Format");
+  info.mime_types.emplace_back(pdf::kPDFMimeType, "pdf",
+                               "Portable Document Format");
   return info;
 }
 #endif  // BUILDFLAG(ENABLE_PDF_VIEWER)

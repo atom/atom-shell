@@ -1,13 +1,14 @@
 import { expect } from 'chai';
 import * as childProcess from 'node:child_process';
-import * as fs from 'fs-extra';
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as util from 'node:util';
 import { getRemoteContext, ifdescribe, ifit, itremote, useRemoteContext } from './lib/spec-helpers';
-import { copyApp, getCodesignIdentity, shouldRunCodesignTests, signApp, spawn, withTempDirectory } from './lib/codesign-helpers';
+import { copyMacOSFixtureApp, getCodesignIdentity, shouldRunCodesignTests, signApp, spawn } from './lib/codesign-helpers';
 import { webContents } from 'electron/main';
 import { EventEmitter } from 'node:stream';
 import { once } from 'node:events';
+import { withTempDirectory } from './lib/fs-helpers';
 
 const mainFixturesPath = path.resolve(__dirname, 'fixtures');
 
@@ -156,6 +157,38 @@ describe('node feature', () => {
         expect(stdout).to.not.be.empty();
       });
     });
+  });
+
+  describe('fetch', () => {
+    itremote('works correctly when nodeIntegration is enabled in the renderer', async (fixtures: string) => {
+      const file = require('node:path').join(fixtures, 'hello.txt');
+      expect(() => {
+        fetch('file://' + file);
+      }).to.not.throw();
+
+      expect(() => {
+        const formData = new FormData();
+        formData.append('username', 'Groucho');
+      }).not.to.throw();
+
+      expect(() => {
+        const request = new Request('https://example.com', {
+          method: 'POST',
+          body: JSON.stringify({ foo: 'bar' })
+        });
+        expect(request.method).to.equal('POST');
+      }).not.to.throw();
+
+      expect(() => {
+        const response = new Response('Hello, world!');
+        expect(response.status).to.equal(200);
+      }).not.to.throw();
+
+      expect(() => {
+        const headers = new Headers();
+        headers.append('Content-Type', 'text/xml');
+      }).not.to.throw();
+    }, [fixtures]);
   });
 
   it('does not hang when using the fs module in the renderer process', async () => {
@@ -683,7 +716,7 @@ describe('node feature', () => {
 
     it('is disabled when invoked by other apps in ELECTRON_RUN_AS_NODE mode', async () => {
       await withTempDirectory(async (dir) => {
-        const appPath = await copyApp(dir);
+        const appPath = await copyMacOSFixtureApp(dir);
         await signApp(appPath, identity);
         // Invoke Electron by using the system node binary as middle layer, so
         // the check of NODE_OPTIONS will think the process is started by other
@@ -696,7 +729,7 @@ describe('node feature', () => {
 
     it('is disabled when invoked by alien binary in app bundle in ELECTRON_RUN_AS_NODE mode', async function () {
       await withTempDirectory(async (dir) => {
-        const appPath = await copyApp(dir);
+        const appPath = await copyMacOSFixtureApp(dir);
         await signApp(appPath, identity);
         // Find system node and copy it to app bundle.
         const nodePath = process.env.PATH?.split(path.delimiter).find(dir => fs.existsSync(path.join(dir, 'node')));
@@ -705,7 +738,7 @@ describe('node feature', () => {
           return;
         }
         const alienBinary = path.join(appPath, 'Contents/MacOS/node');
-        await fs.copy(path.join(nodePath, 'node'), alienBinary);
+        await fs.promises.cp(path.join(nodePath, 'node'), alienBinary, { recursive: true });
         // Try to execute electron app from the alien node in app bundle.
         const { code, out } = await spawn(alienBinary, [script, path.join(appPath, 'Contents/MacOS/Electron')]);
         expect(code).to.equal(0);
@@ -715,7 +748,7 @@ describe('node feature', () => {
 
     it('is respected when invoked from self', async () => {
       await withTempDirectory(async (dir) => {
-        const appPath = await copyApp(dir, null);
+        const appPath = await copyMacOSFixtureApp(dir, null);
         await signApp(appPath, identity);
         const appExePath = path.join(appPath, 'Contents/MacOS/Electron');
         const { code, out } = await spawn(appExePath, [script, appExePath]);

@@ -31,6 +31,7 @@ class Event : public gin::Wrappable<Event>,
 
   // gin::Wrappable
   static gin::WrapperInfo kWrapperInfo;
+  const char* GetTypeName() override;
 
   ~Event() override;
 

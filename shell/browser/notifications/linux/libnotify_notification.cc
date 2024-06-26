@@ -159,21 +159,21 @@ void LibnotifyNotification::Show(const NotificationOptions& options) {
 
 void LibnotifyNotification::Dismiss() {
   if (!notification_) {
-    Destroy();
     return;
   }
 
   GError* error = nullptr;
+  on_dismissing_ = true;
   libnotify_loader_.notify_notification_close(notification_, &error);
   if (error) {
     log_and_clear_error(error, "notify_notification_close");
-    Destroy();
   }
+  on_dismissing_ = false;
 }
 
 void LibnotifyNotification::OnNotificationClosed(
     NotifyNotification* notification) {
-  NotificationDismissed();
+  NotificationDismissed(!on_dismissing_);
 }
 
 void LibnotifyNotification::OnNotificationView(NotifyNotification* notification,

@@ -49,6 +49,7 @@ class DeleteFileProgressSink : public IFileOperationProgressSink {
   virtual ~DeleteFileProgressSink() = default;
 
  private:
+  // IFileOperationProgressSink
   ULONG STDMETHODCALLTYPE AddRef(void) override;
   ULONG STDMETHODCALLTYPE Release(void) override;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid,
@@ -336,7 +337,8 @@ void ShowItemInFolder(const base::FilePath& full_path) {
   base::ThreadPool::CreateCOMSTATaskRunner(
       {base::MayBlock(), base::TaskPriority::USER_BLOCKING})
       ->PostTask(FROM_HERE,
-                 base::BindOnce(&ShowItemInFolderOnWorkerThread, full_path));
+                 base::BindOnce(&ShowItemInFolderOnWorkerThread,
+                                full_path.NormalizePathSeparators()));
 }
 
 void OpenPath(const base::FilePath& full_path, OpenCallback callback) {
@@ -344,9 +346,11 @@ void OpenPath(const base::FilePath& full_path, OpenCallback callback) {
 
   base::ThreadPool::CreateCOMSTATaskRunner(
       {base::MayBlock(), base::TaskPriority::USER_BLOCKING})
-      ->PostTaskAndReplyWithResult(FROM_HERE,
-                                   base::BindOnce(&OpenPathOnThread, full_path),
-                                   std::move(callback));
+      ->PostTaskAndReplyWithResult(
+          FROM_HERE,
+          base::BindOnce(&OpenPathOnThread,
+                         full_path.NormalizePathSeparators()),
+          std::move(callback));
 }
 
 void OpenExternal(const GURL& url,

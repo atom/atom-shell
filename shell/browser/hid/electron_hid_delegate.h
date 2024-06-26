@@ -43,10 +43,12 @@ class ElectronHidDelegate : public content::HidDelegate {
   bool CanRequestDevicePermission(content::BrowserContext* browser_context,
                                   const url::Origin& origin) override;
   bool HasDevicePermission(content::BrowserContext* browser_context,
+                           content::RenderFrameHost* render_frame_host,
                            const url::Origin& origin,
                            const device::mojom::HidDeviceInfo& device) override;
   void RevokeDevicePermission(
       content::BrowserContext* browser_context,
+      content::RenderFrameHost* render_frame_host,
       const url::Origin& origin,
       const device::mojom::HidDeviceInfo& device) override;
   device::mojom::HidManager* GetHidManager(

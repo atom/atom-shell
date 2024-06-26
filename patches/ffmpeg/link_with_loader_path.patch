@@ -15,15 +15,15 @@ include the out dir, and the linker won't be able to find ffmpeg.dylib
 because of so.
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 91e2f508c38b711dd517346e0e2b520879940f50..f270c07f81bf72481f029a1e791dfec9f899cb48 100644
+index 3cce79931d8416196acd165cde7003806ed5a529..557df069027eaddcc7baa9ebc8f1b1b9dcc50f3e 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -453,7 +453,7 @@ if (is_component_ffmpeg) {
+@@ -441,7 +441,7 @@ if (is_component_ffmpeg) {
  
      if (!is_component_build) {
        if (is_mac) {
 -        ldflags += [ "-Wl,-install_name,@rpath/libffmpeg.dylib" ]
 +        ldflags += [ "-Wl,-install_name,@loader_path/libffmpeg.dylib" ]
        } else if (is_linux) {
-         all_dependent_configs = [
-           "//build/config/gcc:rpath_for_built_shared_libraries",
+         all_dependent_configs =
+             [ "//build/config/gcc:rpath_for_built_shared_libraries" ]

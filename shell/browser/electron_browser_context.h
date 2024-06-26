@@ -20,11 +20,11 @@
 #include "content/public/browser/media_stream_request.h"
 #include "content/public/browser/resource_context.h"
 #include "electron/buildflags/buildflags.h"
+#include "electron/shell/browser/media/media_device_id_salt.h"
 #include "gin/arguments.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "services/network/public/mojom/network_context.mojom.h"
 #include "services/network/public/mojom/url_loader_factory.mojom.h"
-#include "shell/browser/media/media_device_id_salt.h"
 #include "third_party/blink/public/common/permissions/permission_utils.h"
 
 class PrefService;
@@ -150,6 +150,8 @@ class ElectronBrowserContext : public content::BrowserContext {
   content::StorageNotificationService* GetStorageNotificationService() override;
   content::ReduceAcceptLanguageControllerDelegate*
   GetReduceAcceptLanguageControllerDelegate() override;
+  content::FileSystemAccessPermissionContext*
+  GetFileSystemAccessPermissionContext() override;
 
   CookieChangeNotifier* cookie_change_notifier() const {
     return cookie_change_notifier_.get();
@@ -218,10 +220,6 @@ class ElectronBrowserContext : public content::BrowserContext {
 
   // Initialize pref registry.
   void InitPrefs();
-
-  bool DoesDeviceMatch(const base::Value& device,
-                       const base::Value* device_to_compare,
-                       blink::PermissionType permission_type);
 
   scoped_refptr<ValueMapPrefStore> in_memory_pref_store_;
   std::unique_ptr<CookieChangeNotifier> cookie_change_notifier_;

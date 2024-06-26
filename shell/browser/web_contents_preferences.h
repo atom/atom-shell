@@ -110,7 +110,6 @@ class WebContentsPreferences
   bool images_;
   bool text_areas_are_resizable_;
   bool webgl_;
-  bool enable_websql_;
   bool enable_preferred_size_mode_;
   bool web_security_;
   bool allow_running_insecure_content_;

@@ -18,7 +18,7 @@ class WebContentsZoomObserver;
 
 // Manages the zoom changes of WebContents.
 class WebContentsZoomController
-    : public content::WebContentsObserver,
+    : private content::WebContentsObserver,
       public content::WebContentsUserData<WebContentsZoomController> {
  public:
   // Defines how zoom changes are handled.

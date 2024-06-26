@@ -10,11 +10,19 @@
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
+#include "electron/buildflags/buildflags.h"
 #include "extensions/browser/extension_registry.h"
 #include "extensions/browser/guest_view/mime_handler_view/mime_handler_stream_manager.h"
 #include "extensions/browser/guest_view/mime_handler_view/mime_handler_view_guest.h"
 #include "extensions/common/manifest_handlers/mime_types_handler.h"
 #include "shell/browser/api/electron_api_web_contents.h"
+
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+#include "base/feature_list.h"
+#include "chrome/browser/pdf/pdf_viewer_stream_manager.h"
+#include "extensions/common/constants.h"
+#include "pdf/pdf_features.h"
+#endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
 
 namespace extensions {
 
@@ -51,13 +59,27 @@ void StreamsPrivateAPI::SendExecuteMimeTypeHandlerEvent(
   GURL handler_url(
       extensions::Extension::GetBaseURLFromExtensionId(extension_id).spec() +
       handler->handler_url());
+
   int tab_id = -1;
   auto* api_contents = electron::api::WebContents::From(web_contents);
   if (api_contents)
     tab_id = api_contents->ID();
+
   auto stream_container = std::make_unique<extensions::StreamContainer>(
       tab_id, embedded, handler_url, extension_id,
       std::move(transferrable_loader), original_url);
+
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+  if (base::FeatureList::IsEnabled(chrome_pdf::features::kPdfOopif) &&
+      extension_id == extension_misc::kPdfExtensionId) {
+    pdf::PdfViewerStreamManager::Create(web_contents);
+    pdf::PdfViewerStreamManager::FromWebContents(web_contents)
+        ->AddStreamContainer(frame_tree_node_id, internal_id,
+                             std::move(stream_container));
+    return;
+  }
+#endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
+
   extensions::MimeHandlerStreamManager::Get(browser_context)
       ->AddStream(stream_id, std::move(stream_container), frame_tree_node_id);
 }

@@ -7,6 +7,6 @@ target = sys.argv[2]
 
 os.chdir(os.path.dirname(source))
 
-tarball = tarfile.open(name=os.path.basename(target), mode='w:gz')
-tarball.add(os.path.relpath(source))
-tarball.close()
+with tarfile.open(name=os.path.basename(target), mode='w:gz') as tarball:
+    tarball.add(os.path.relpath(source))
+    tarball.close()

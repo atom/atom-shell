@@ -24,8 +24,8 @@ You can run `npm run lint` to show any style issues detected by `cpplint` and
 
 ## C++ and Python
 
-For C++ and Python, we follow Chromium's [Coding
-Style](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/styleguide/styleguide.md).
+For C++ and Python, we follow Chromium's
+[Coding Style](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/styleguide/styleguide.md).
 There is also a script `script/cpplint.py` to check whether all files conform.
 
 The Python version we are using now is Python 3.9.
@@ -41,7 +41,7 @@ etc.
 
 * Write [remark](https://github.com/remarkjs/remark) markdown style.
 
-You can run `npm run lint-docs` to ensure that your documentation changes are
+You can run `npm run lint:docs` to ensure that your documentation changes are
 formatted correctly.
 
 ## JavaScript

@@ -16,7 +16,7 @@ namespace electron {
 class ElectronBrowserContext;
 
 // Sends cookie-change notifications on the UI thread.
-class CookieChangeNotifier : public network::mojom::CookieChangeListener {
+class CookieChangeNotifier : private network::mojom::CookieChangeListener {
  public:
   explicit CookieChangeNotifier(ElectronBrowserContext* browser_context);
   ~CookieChangeNotifier() override;

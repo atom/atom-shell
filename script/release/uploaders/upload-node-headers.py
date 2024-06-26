@@ -45,9 +45,9 @@ def upload_node(version):
       versioned_header_tar = header_tar.format(version)
       shutil.copy2(generated_tar, os.path.join(GEN_DIR, versioned_header_tar))
 
-    store_artifact(GEN_DIR, 'headers/dist/{0}'.format(version),
+    store_artifact(GEN_DIR, f'headers/dist/{version}',
                    glob.glob('node-*.tar.gz'))
-    store_artifact(GEN_DIR, 'headers/dist/{0}'.format(version),
+    store_artifact(GEN_DIR, f'headers/dist/{version}',
                    glob.glob('iojs-*.tar.gz'))
 
   if PLATFORM == 'win32':
@@ -73,13 +73,13 @@ def upload_node(version):
     shutil.copy2(electron_lib, v4_node_lib)
 
     # Upload the node.lib.
-    store_artifact(DIST_DIR, 'headers/dist/{0}'.format(version), [node_lib])
+    store_artifact(DIST_DIR, f'headers/dist/{version}', [node_lib])
 
     # Upload the iojs.lib.
-    store_artifact(DIST_DIR, 'headers/dist/{0}'.format(version), [iojs_lib])
+    store_artifact(DIST_DIR, f'headers/dist/{version}', [iojs_lib])
 
     # Upload the v4 node.lib.
-    store_artifact(DIST_DIR, 'headers/dist/{0}'.format(version),
+    store_artifact(DIST_DIR, f'headers/dist/{version}',
                    [v4_node_lib])
 
 

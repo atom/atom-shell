@@ -10,7 +10,6 @@
 #include "content/browser/web_contents/web_contents_impl.h"  // nogncheck
 #include "content/public/browser/render_process_host.h"
 #include "content/public/browser/render_view_host.h"
-#include "content/public/common/color_parser.h"
 #include "shell/browser/api/electron_api_web_contents_view.h"
 #include "shell/browser/browser.h"
 #include "shell/browser/web_contents_preferences.h"
@@ -25,10 +24,6 @@
 
 #if defined(TOOLKIT_VIEWS)
 #include "shell/browser/native_window_views.h"
-#endif
-
-#if BUILDFLAG(IS_WIN)
-#include "shell/browser/ui/views/win_frame_view.h"
 #endif
 
 namespace electron::api {
@@ -77,6 +72,7 @@ BrowserWindow::BrowserWindow(gin::Arguments* args,
       WebContentsView::Create(isolate, web_preferences);
   DCHECK(web_contents_view.get());
   window_->AddDraggableRegionProvider(web_contents_view.get());
+  web_contents_view_.Reset(isolate, web_contents_view.ToV8());
 
   // Save a reference of the WebContents.
   gin::Handle<WebContents> web_contents =
@@ -92,7 +88,14 @@ BrowserWindow::BrowserWindow(gin::Arguments* args,
   InitWithArgs(args);
 
   // Install the content view after BaseWindow's JS code is initialized.
-  SetContentView(gin::CreateHandle<View>(isolate, web_contents_view.get()));
+  // The WebContentsView is added a sibling of BaseWindow's contentView (before
+  // it in the paint order) so that any views added to BrowserWindow's
+  // contentView will be painted on top of the BrowserWindow's WebContentsView.
+  // See https://github.com/electron/electron/pull/41256.
+  // Note that |GetContentsView|, confusingly, does not refer to the same thing
+  // as |BaseWindow::GetContentView|.
+  window()->GetContentsView()->AddChildViewAt(web_contents_view->view(), 0);
+  window()->GetContentsView()->DeprecatedLayoutImmediately();
 
   // Init window after everything has been setup.
   window()->InitFromOptions(options);
@@ -109,29 +112,11 @@ BrowserWindow::~BrowserWindow() {
 
 void BrowserWindow::BeforeUnloadDialogCancelled() {
   WindowList::WindowCloseCancelled(window());
-  // Cancel unresponsive event when window close is cancelled.
-  window_unresponsive_closure_.Cancel();
-}
-
-void BrowserWindow::OnRendererUnresponsive(content::RenderProcessHost*) {
-  // Schedule the unresponsive shortly later, since we may receive the
-  // responsive event soon. This could happen after the whole application had
-  // blocked for a while.
-  // Also notice that when closing this event would be ignored because we have
-  // explicitly started a close timeout counter. This is on purpose because we
-  // don't want the unresponsive event to be sent too early when user is closing
-  // the window.
-  ScheduleUnresponsiveEvent(50);
 }
 
 void BrowserWindow::WebContentsDestroyed() {
   api_web_contents_ = nullptr;
   CloseImmediately();
-}
-
-void BrowserWindow::OnRendererResponsive(content::RenderProcessHost*) {
-  window_unresponsive_closure_.Cancel();
-  Emit("responsive");
 }
 
 void BrowserWindow::OnSetContentBounds(const gfx::Rect& rect) {
@@ -168,13 +153,6 @@ void BrowserWindow::OnCloseButtonClicked(bool* prevent_default) {
   // not close the window immediately, instead we try to close the web page
   // first, and when the web page is closed the window will also be closed.
   *prevent_default = true;
-
-  // Assume the window is not responding if it doesn't cancel the close and is
-  // not closed in 5s, in this way we can quickly show the unresponsive
-  // dialog when the window is busy executing some script without waiting for
-  // the unresponsive timeout.
-  if (window_unresponsive_closure_.IsCancelled())
-    ScheduleUnresponsiveEvent(5000);
 
   // Already closed by renderer.
   if (!web_contents() || !api_web_contents_)
@@ -242,9 +220,6 @@ void BrowserWindow::CloseImmediately() {
   }
 
   BaseWindow::CloseImmediately();
-
-  // Do not sent "unresponsive" event after window is closed.
-  window_unresponsive_closure_.Cancel();
 }
 
 void BrowserWindow::Focus() {
@@ -295,83 +270,6 @@ v8::Local<v8::Value> BrowserWindow::GetWebContents(v8::Isolate* isolate) {
   return v8::Local<v8::Value>::New(isolate, web_contents_);
 }
 
-#if BUILDFLAG(IS_WIN)
-void BrowserWindow::SetTitleBarOverlay(const gin_helper::Dictionary& options,
-                                       gin_helper::Arguments* args) {
-  // Ensure WCO is already enabled on this window
-  if (!window_->titlebar_overlay_enabled()) {
-    args->ThrowError("Titlebar overlay is not enabled");
-    return;
-  }
-
-  auto* window = static_cast<NativeWindowViews*>(window_.get());
-  bool updated = false;
-
-  // Check and update the button color
-  std::string btn_color;
-  if (options.Get(options::kOverlayButtonColor, &btn_color)) {
-    // Parse the string as a CSS color
-    SkColor color;
-    if (!content::ParseCssColorString(btn_color, &color)) {
-      args->ThrowError("Could not parse color as CSS color");
-      return;
-    }
-
-    // Update the view
-    window->set_overlay_button_color(color);
-    updated = true;
-  }
-
-  // Check and update the symbol color
-  std::string symbol_color;
-  if (options.Get(options::kOverlaySymbolColor, &symbol_color)) {
-    // Parse the string as a CSS color
-    SkColor color;
-    if (!content::ParseCssColorString(symbol_color, &color)) {
-      args->ThrowError("Could not parse symbol color as CSS color");
-      return;
-    }
-
-    // Update the view
-    window->set_overlay_symbol_color(color);
-    updated = true;
-  }
-
-  // Check and update the height
-  int height = 0;
-  if (options.Get(options::kOverlayHeight, &height)) {
-    window->set_titlebar_overlay_height(height);
-    updated = true;
-  }
-
-  // If anything was updated, invalidate the layout and schedule a paint of the
-  // window's frame view
-  if (updated) {
-    auto* frame_view = static_cast<WinFrameView*>(
-        window->widget()->non_client_view()->frame_view());
-    frame_view->InvalidateCaptionButtons();
-  }
-}
-#endif
-
-void BrowserWindow::ScheduleUnresponsiveEvent(int ms) {
-  if (!window_unresponsive_closure_.IsCancelled())
-    return;
-
-  window_unresponsive_closure_.Reset(base::BindRepeating(
-      &BrowserWindow::NotifyWindowUnresponsive, GetWeakPtr()));
-  base::SingleThreadTaskRunner::GetCurrentDefault()->PostDelayedTask(
-      FROM_HERE, window_unresponsive_closure_.callback(),
-      base::Milliseconds(ms));
-}
-
-void BrowserWindow::NotifyWindowUnresponsive() {
-  window_unresponsive_closure_.Cancel();
-  if (!window_->IsClosed() && window_->IsEnabled()) {
-    Emit("unresponsive");
-  }
-}
-
 void BrowserWindow::OnWindowShow() {
   web_contents()->WasShown();
   BaseWindow::OnWindowShow();
@@ -411,9 +309,6 @@ void BrowserWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("focusOnWebView", &BrowserWindow::FocusOnWebView)
       .SetMethod("blurWebView", &BrowserWindow::BlurWebView)
       .SetMethod("isWebViewFocused", &BrowserWindow::IsWebViewFocused)
-#if BUILDFLAG(IS_WIN)
-      .SetMethod("setTitleBarOverlay", &BrowserWindow::SetTitleBarOverlay)
-#endif
       .SetProperty("webContents", &BrowserWindow::GetWebContents);
 }
 

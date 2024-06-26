@@ -263,12 +263,10 @@ WebContents.prototype.printToPDF = async function (options) {
 
 // TODO(codebytere): deduplicate argument sanitization by moving rest of
 // print param logic into new file shared between printToPDF and print
-WebContents.prototype.print = function (options: ElectronInternal.WebContentsPrintOptions, callback) {
-  if (typeof options !== 'object') {
+WebContents.prototype.print = function (options: ElectronInternal.WebContentsPrintOptions = {}, callback) {
+  if (typeof options !== 'object' || options == null) {
     throw new TypeError('webContents.print(): Invalid print settings specified.');
   }
-
-  const printSettings: Record<string, any> = { ...options };
 
   const pageSize = options.pageSize ?? 'A4';
   if (typeof pageSize === 'object') {
@@ -283,7 +281,7 @@ WebContents.prototype.print = function (options: ElectronInternal.WebContentsPri
       throw new RangeError('height and width properties must be minimum 352 microns.');
     }
 
-    printSettings.mediaSize = {
+    options.mediaSize = {
       name: 'CUSTOM',
       custom_display_name: 'Custom',
       height_microns: height,
@@ -295,7 +293,7 @@ WebContents.prototype.print = function (options: ElectronInternal.WebContentsPri
     };
   } else if (typeof pageSize === 'string' && PDFPageSizes[pageSize]) {
     const mediaSize = PDFPageSizes[pageSize];
-    printSettings.mediaSize = {
+    options.mediaSize = {
       ...mediaSize,
       imageable_area_left_microns: 0,
       imageable_area_bottom_microns: 0,
@@ -308,9 +306,9 @@ WebContents.prototype.print = function (options: ElectronInternal.WebContentsPri
 
   if (this._print) {
     if (callback) {
-      this._print(printSettings, callback);
+      this._print(options, callback);
     } else {
-      this._print(printSettings);
+      this._print(options);
     }
   } else {
     console.error('Error: Printing feature is disabled.');
@@ -435,14 +433,15 @@ WebContents.prototype.loadURL = function (url, options) {
   return p;
 };
 
-WebContents.prototype.setWindowOpenHandler = function (handler: (details: Electron.HandlerDetails) => ({action: 'deny'} | {action: 'allow', overrideBrowserWindowOptions?: BrowserWindowConstructorOptions, outlivesOpener?: boolean})) {
+WebContents.prototype.setWindowOpenHandler = function (handler: (details: Electron.HandlerDetails) => Electron.WindowOpenHandlerResponse) {
   this._windowOpenHandler = handler;
 };
 
-WebContents.prototype._callWindowOpenHandler = function (event: Electron.Event, details: Electron.HandlerDetails): {browserWindowConstructorOptions: BrowserWindowConstructorOptions | null, outlivesOpener: boolean} {
+WebContents.prototype._callWindowOpenHandler = function (event: Electron.Event, details: Electron.HandlerDetails): {browserWindowConstructorOptions: BrowserWindowConstructorOptions | null, outlivesOpener: boolean, createWindow?: Electron.CreateWindowFunction} {
   const defaultResponse = {
     browserWindowConstructorOptions: null,
-    outlivesOpener: false
+    outlivesOpener: false,
+    createWindow: undefined
   };
   if (!this._windowOpenHandler) {
     return defaultResponse;
@@ -468,7 +467,8 @@ WebContents.prototype._callWindowOpenHandler = function (event: Electron.Event, 
   } else if (response.action === 'allow') {
     return {
       browserWindowConstructorOptions: typeof response.overrideBrowserWindowOptions === 'object' ? response.overrideBrowserWindowOptions : null,
-      outlivesOpener: typeof response.outlivesOpener === 'boolean' ? response.outlivesOpener : false
+      outlivesOpener: typeof response.outlivesOpener === 'boolean' ? response.outlivesOpener : false,
+      createWindow: typeof response.createWindow === 'function' ? response.createWindow : undefined
     };
   } else {
     event.preventDefault();
@@ -510,6 +510,54 @@ const environment = process._linkedBinding('electron_common_environment');
 const loggingEnabled = () => {
   return environment.hasVar('ELECTRON_ENABLE_LOGGING') || commandLine.hasSwitch('enable-logging');
 };
+// Deprecation warnings for navigation related APIs.
+const canGoBackDeprecated = deprecate.warnOnce('webContents.canGoBack', 'webContents.navigationHistory.canGoBack');
+WebContents.prototype.canGoBack = function () {
+  canGoBackDeprecated();
+  return this._canGoBack();
+};
+
+const canGoForwardDeprecated = deprecate.warnOnce('webContents.canGoForward', 'webContents.navigationHistory.canGoForward');
+WebContents.prototype.canGoForward = function () {
+  canGoForwardDeprecated();
+  return this._canGoForward();
+};
+
+const canGoToOffsetDeprecated = deprecate.warnOnce('webContents.canGoToOffset', 'webContents.navigationHistory.canGoToOffset');
+WebContents.prototype.canGoToOffset = function () {
+  canGoToOffsetDeprecated();
+  return this._canGoToOffset();
+};
+
+const clearHistoryDeprecated = deprecate.warnOnce('webContents.clearHistory', 'webContents.navigationHistory.clear');
+WebContents.prototype.clearHistory = function () {
+  clearHistoryDeprecated();
+  return this._clearHistory();
+};
+
+const goBackDeprecated = deprecate.warnOnce('webContents.goBack', 'webContents.navigationHistory.goBack');
+WebContents.prototype.goBack = function () {
+  goBackDeprecated();
+  return this._goBack();
+};
+
+const goForwardDeprecated = deprecate.warnOnce('webContents.goForward', 'webContents.navigationHistory.goForward');
+WebContents.prototype.goForward = function () {
+  goForwardDeprecated();
+  return this._goForward();
+};
+
+const goToIndexDeprecated = deprecate.warnOnce('webContents.goToIndex', 'webContents.navigationHistory.goToIndex');
+WebContents.prototype.goToIndex = function (index: number) {
+  goToIndexDeprecated();
+  return this._goToIndex(index);
+};
+
+const goToOffsetDeprecated = deprecate.warnOnce('webContents.goToOffset', 'webContents.navigationHistory.goToOffset');
+WebContents.prototype.goToOffset = function (index: number) {
+  goToOffsetDeprecated();
+  return this._goToOffset(index);
+};
 
 // Add JavaScript wrappers for WebContents class.
 WebContents.prototype._init = function () {
@@ -530,6 +578,26 @@ WebContents.prototype._init = function () {
   const ipc = new IpcMainImpl();
   Object.defineProperty(this, 'ipc', {
     get () { return ipc; },
+    enumerable: true
+  });
+
+  // Add navigationHistory property which handles session history,
+  // maintaining a list of navigation entries for backward and forward navigation.
+  Object.defineProperty(this, 'navigationHistory', {
+    value: {
+      canGoBack: this._canGoBack.bind(this),
+      canGoForward: this._canGoForward.bind(this),
+      canGoToOffset: this._canGoToOffset.bind(this),
+      clear: this._clearHistory.bind(this),
+      goBack: this._goBack.bind(this),
+      goForward: this._goForward.bind(this),
+      goToIndex: this._goToIndex.bind(this),
+      goToOffset: this._goToOffset.bind(this),
+      getActiveIndex: this._getActiveIndex.bind(this),
+      length: this._historyLength.bind(this),
+      getEntryAtIndex: this._getNavigationEntryAtIndex.bind(this)
+    },
+    writable: false,
     enumerable: true
   });
 
@@ -655,13 +723,16 @@ WebContents.prototype._init = function () {
           postData,
           overrideBrowserWindowOptions: options || {},
           windowOpenArgs: details,
-          outlivesOpener: result.outlivesOpener
+          outlivesOpener: result.outlivesOpener,
+          createWindow: result.createWindow
         });
       }
     });
 
     let windowOpenOverriddenOptions: BrowserWindowConstructorOptions | null = null;
     let windowOpenOutlivesOpenerOption: boolean = false;
+    let createWindow: Electron.CreateWindowFunction | undefined;
+
     this.on('-will-add-new-contents' as any, (event: Electron.Event, url: string, frameName: string, rawFeatures: string, disposition: Electron.HandlerDetails['disposition'], referrer: Electron.Referrer, postData: PostData) => {
       const postBody = postData ? {
         data: postData,
@@ -686,6 +757,7 @@ WebContents.prototype._init = function () {
 
       windowOpenOutlivesOpenerOption = result.outlivesOpener;
       windowOpenOverriddenOptions = result.browserWindowConstructorOptions;
+      createWindow = result.createWindow;
       if (!event.defaultPrevented) {
         const secureOverrideWebPreferences = windowOpenOverriddenOptions ? {
           // Allow setting of backgroundColor as a webPreference even though
@@ -715,6 +787,9 @@ WebContents.prototype._init = function () {
       referrer: Electron.Referrer, rawFeatures: string, postData: PostData) => {
       const overriddenOptions = windowOpenOverriddenOptions || undefined;
       const outlivesOpener = windowOpenOutlivesOpenerOption;
+      const windowOpenFunction = createWindow;
+
+      createWindow = undefined;
       windowOpenOverriddenOptions = null;
       // false is the default
       windowOpenOutlivesOpenerOption = false;
@@ -737,7 +812,8 @@ WebContents.prototype._init = function () {
           frameName,
           features: rawFeatures
         },
-        outlivesOpener
+        outlivesOpener,
+        createWindow: windowOpenFunction
       });
     });
   }

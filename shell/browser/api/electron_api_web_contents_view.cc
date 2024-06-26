@@ -24,29 +24,14 @@
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
 
-#if BUILDFLAG(IS_MAC)
-#include "shell/browser/ui/cocoa/delayed_native_view_host.h"
-#endif
-
 namespace electron::api {
 
 WebContentsView::WebContentsView(v8::Isolate* isolate,
                                  gin::Handle<WebContents> web_contents)
-#if BUILDFLAG(IS_MAC)
-    : View(new DelayedNativeViewHost(web_contents->inspectable_web_contents()
-                                         ->GetView()
-                                         ->GetNativeView())),
-#else
-    : View(web_contents->inspectable_web_contents()->GetView()->GetView()),
-#endif
+    : View(web_contents->inspectable_web_contents()->GetView()),
       web_contents_(isolate, web_contents.ToV8()),
       api_web_contents_(web_contents.get()) {
-#if !BUILDFLAG(IS_MAC)
-  // On macOS the View is a newly-created |DelayedNativeViewHost| and it is our
-  // responsibility to delete it. On other platforms the View is created and
-  // managed by InspectableWebContents.
   set_delete_view(false);
-#endif
   view()->SetProperty(
       views::kFlexBehaviorKey,
       views::FlexSpecification(views::MinimumFlexSizeRule::kScaleToMinimum,
@@ -104,6 +89,9 @@ void WebContentsView::OnViewAddedToWidget(views::View* observed_view) {
       widget->GetNativeWindowProperty(electron::kElectronNativeWindowKey));
   if (!native_window)
     return;
+  // We don't need to call SetOwnerWindow(nullptr) in OnViewRemovedFromWidget
+  // because that's handled in the WebContents dtor called prior.
+  api_web_contents_->SetOwnerWindow(native_window);
   native_window->AddDraggableRegionProvider(this);
 }
 
@@ -150,6 +138,7 @@ v8::Local<v8::Function> WebContentsView::GetConstructor(v8::Isolate* isolate) {
 // static
 gin_helper::WrappableBase* WebContentsView::New(gin_helper::Arguments* args) {
   gin_helper::Dictionary web_preferences;
+  v8::Local<v8::Value> existing_web_contents_value;
   {
     v8::Local<v8::Value> options_value;
     if (args->GetNext(&options_value)) {
@@ -166,12 +155,33 @@ gin_helper::WrappableBase* WebContentsView::New(gin_helper::Arguments* args) {
           return nullptr;
         }
       }
+
+      if (options.Get("webContents", &existing_web_contents_value)) {
+        gin::Handle<WebContents> existing_web_contents;
+        if (!gin::ConvertFromV8(args->isolate(), existing_web_contents_value,
+                                &existing_web_contents)) {
+          args->ThrowError("options.webContents must be a WebContents");
+          return nullptr;
+        }
+
+        if (existing_web_contents->owner_window() != nullptr) {
+          args->ThrowError(
+              "options.webContents is already attached to a window");
+          return nullptr;
+        }
+      }
     }
   }
+
   if (web_preferences.IsEmpty())
     web_preferences = gin_helper::Dictionary::CreateEmpty(args->isolate());
   if (!web_preferences.Has(options::kShow))
     web_preferences.Set(options::kShow, false);
+
+  if (!existing_web_contents_value.IsEmpty()) {
+    web_preferences.SetHidden("webContents", existing_web_contents_value);
+  }
+
   auto web_contents =
       WebContents::CreateFromWebPreferences(args->isolate(), web_preferences);
 

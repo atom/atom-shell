@@ -11,21 +11,31 @@ Several NSKeyedArchiver methods have been deprecated and replaced as of macOS 10
 - archivedDataWithRootObject -> archivedDataWithRootObject:requiringSecureCoding:error:
 
 diff --git a/Squirrel/SQRLInstaller.m b/Squirrel/SQRLInstaller.m
-index f502df2f88424ea902a061adfeb30358daf212e4..8db6406ec7f0cb51140ea2ee39c04f91626f6e18 100644
+index f502df2f88424ea902a061adfeb30358daf212e4..8969cfda03efd5a11bfe0c531e2702ff12a3f610 100644
 --- a/Squirrel/SQRLInstaller.m
 +++ b/Squirrel/SQRLInstaller.m
-@@ -182,14 +182,30 @@ - (SQRLInstallerOwnedBundle *)ownedBundle {
+@@ -182,14 +182,40 @@ - (SQRLInstallerOwnedBundle *)ownedBundle {
  	id archiveData = CFBridgingRelease(CFPreferencesCopyValue((__bridge CFStringRef)SQRLInstallerOwnedBundleKey, (__bridge CFStringRef)self.applicationIdentifier, kCFPreferencesCurrentUser, kCFPreferencesCurrentHost));
  	if (![archiveData isKindOfClass:NSData.class]) return nil;
  
 -	SQRLInstallerOwnedBundle *ownedBundle = [NSKeyedUnarchiver unarchiveObjectWithData:archiveData];
 -	if (![ownedBundle isKindOfClass:SQRLInstallerOwnedBundle.class]) return nil;
++	// unarchivedObjectOfClass:fromData:error: sets secureCoding to true and we don't
++	// archive data with secureCoding enabled - use our own unarchiver to work around that.
 +	NSError *error;
-+	SQRLInstallerOwnedBundle *ownedBundle = [NSKeyedUnarchiver unarchivedObjectOfClass:[SQRLInstallerOwnedBundle class]
-+																																						fromData:archiveData
-+																																						  error:&error];
++	NSKeyedUnarchiver *unarchiver = [[NSKeyedUnarchiver alloc] initForReadingFromData:archiveData
++                                                                              error:&error];
++	unarchiver.requiresSecureCoding = NO;
++	SQRLInstallerOwnedBundle *ownedBundle = [unarchiver decodeObjectForKey:NSKeyedArchiveRootObjectKey];
++	[unarchiver finishDecoding];
++
 +	if (error) {
-+		NSLog(@"Couldn't unarchive ownedBundle - %@", error.localizedDescription);
++		NSLog(@"Error while unarchiving ownedBundle - %@", error.localizedDescription);
++		return nil;
++	}
++
++	if (!ownedBundle || ![ownedBundle isKindOfClass:SQRLInstallerOwnedBundle.class]) {
++		NSLog(@"Unknown error while unarchiving ownedBundle - did not conform to SQRLInstallerOwnedBundle");
 +		return nil;
 +	}
  

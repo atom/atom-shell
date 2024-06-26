@@ -17,7 +17,7 @@ class ElectronKioskDelegate : public extensions::KioskDelegate {
   ElectronKioskDelegate();
   ~ElectronKioskDelegate() override;
 
-  // KioskDelegate overrides:
+  // extensions::KioskDelegate
   bool IsAutoLaunchedKioskApp(const extensions::ExtensionId& id) const override;
 };
 

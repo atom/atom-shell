@@ -22,13 +22,13 @@ However, the patch would need to be reviewed by the security team, as it
 does touch a security-sensitive class.
 
 diff --git a/content/browser/renderer_host/render_process_host_impl.cc b/content/browser/renderer_host/render_process_host_impl.cc
-index d3a234958bfb7c821447770d8d0c13e8886cef6c..0ae8c954897474f75d4a809a550b3cc0476d3a53 100644
+index 84fec9a7d7d013c8f9c30144179a154a2d6b6078..639f7c4704c4f91630d75badc27589e205153fba 100644
 --- a/content/browser/renderer_host/render_process_host_impl.cc
 +++ b/content/browser/renderer_host/render_process_host_impl.cc
-@@ -1723,9 +1723,15 @@ bool RenderProcessHostImpl::Init() {
+@@ -1740,9 +1740,15 @@ bool RenderProcessHostImpl::Init() {
      std::unique_ptr<SandboxedProcessLauncherDelegate> sandbox_delegate =
          std::make_unique<RendererSandboxedProcessLauncherDelegateWin>(
-             *cmd_line, IsPdf(), IsJitDisabled());
+             *cmd_line, IsPdf(), /*is_jit_disabled=*/IsPdf());
 +#else
 +#if BUILDFLAG(USE_ZYGOTE)
 +    bool use_zygote = !cmd_line->HasSwitch(switches::kNoZygote);
@@ -42,10 +42,10 @@ index d3a234958bfb7c821447770d8d0c13e8886cef6c..0ae8c954897474f75d4a809a550b3cc0
  
      auto file_data = std::make_unique<ChildProcessLauncherFileData>();
 diff --git a/content/browser/renderer_host/renderer_sandboxed_process_launcher_delegate.cc b/content/browser/renderer_host/renderer_sandboxed_process_launcher_delegate.cc
-index e5a087e3e26253901a84d509d8a4f1268a2569fe..7dab0443f8897553830f1f4cc98457839b354264 100644
+index dce5ba05c3ba1d476e1dfecb27942fd5e913ff88..f77ac77e9942a567a47c229838150385975f0756 100644
 --- a/content/browser/renderer_host/renderer_sandboxed_process_launcher_delegate.cc
 +++ b/content/browser/renderer_host/renderer_sandboxed_process_launcher_delegate.cc
-@@ -33,6 +33,9 @@ namespace content {
+@@ -35,6 +35,9 @@ namespace content {
  
  #if BUILDFLAG(USE_ZYGOTE)
  ZygoteCommunication* RendererSandboxedProcessLauncherDelegate::GetZygote() {
@@ -55,7 +55,7 @@ index e5a087e3e26253901a84d509d8a4f1268a2569fe..7dab0443f8897553830f1f4cc9845783
    const base::CommandLine& browser_command_line =
        *base::CommandLine::ForCurrentProcess();
    base::CommandLine::StringType renderer_prefix =
-@@ -67,6 +70,9 @@ RendererSandboxedProcessLauncherDelegateWin::
+@@ -69,6 +72,9 @@ RendererSandboxedProcessLauncherDelegateWin::
        is_pdf_renderer_(is_pdf_renderer) {
    // PDF renderers must be jitless.
    CHECK(!is_pdf_renderer || is_jit_disabled);

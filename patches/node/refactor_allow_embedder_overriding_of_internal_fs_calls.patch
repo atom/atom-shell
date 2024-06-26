@@ -7,7 +7,7 @@ We use this to allow node's 'fs' module to read from ASAR files as if they were
 a real filesystem.
 
 diff --git a/lib/internal/bootstrap/node.js b/lib/internal/bootstrap/node.js
-index 7a773d5208e250abd8b0efb6dde66c45060bbee4..45e38ca0a122e3b1c5d8d59865f9610c19bdbd54 100644
+index d42e766555a83ec7421b13c2bf75bfd28f086102..57125a271394dda0d3aa3a261ba087c978582c29 100644
 --- a/lib/internal/bootstrap/node.js
 +++ b/lib/internal/bootstrap/node.js
 @@ -134,6 +134,10 @@ process.domain = null;
@@ -22,18 +22,19 @@ index 7a773d5208e250abd8b0efb6dde66c45060bbee4..45e38ca0a122e3b1c5d8d59865f9610c
  const binding = internalBinding('builtins');
  
 diff --git a/lib/internal/modules/cjs/loader.js b/lib/internal/modules/cjs/loader.js
-index d4b70bab5e89300bfe6305263d556c986380e2e0..1f3b719048f2477de183e2856b9b8eee8502f708 100644
+index 276ab42c22b796ee07ce66744187adca6a8b8da4..155485dbab0d46bb225fa40e99f555d805659c4f 100644
 --- a/lib/internal/modules/cjs/loader.js
 +++ b/lib/internal/modules/cjs/loader.js
-@@ -96,6 +96,7 @@ const assert = require('internal/assert');
+@@ -102,7 +102,7 @@ const {
+ const assert = require('internal/assert');
  const fs = require('fs');
  const path = require('path');
- const { internalModuleStat } = internalBinding('fs');
+-const { internalModuleStat } = internalBinding('fs');
 +const internalFsBinding = internalBinding('fs');
  const { safeGetenv } = internalBinding('credentials');
  const {
    privateSymbols: {
-@@ -195,7 +196,7 @@ function stat(filename) {
+@@ -196,7 +196,7 @@ function stat(filename) {
      const result = statCache.get(filename);
      if (result !== undefined) { return result; }
    }
@@ -43,18 +44,19 @@ index d4b70bab5e89300bfe6305263d556c986380e2e0..1f3b719048f2477de183e2856b9b8eee
      // Only set cache when `internalModuleStat(filename)` succeeds.
      statCache.set(filename, result);
 diff --git a/lib/internal/modules/package_json_reader.js b/lib/internal/modules/package_json_reader.js
-index 88c079d10d116107aa34dc9281f64c799c48c0b5..146e2e49dc46c7f5302638f75cca4af548509d77 100644
+index 88c079d10d116107aa34dc9281f64c799c48c0b5..069f922612777f226127dc44f4091eed30416925 100644
 --- a/lib/internal/modules/package_json_reader.js
 +++ b/lib/internal/modules/package_json_reader.js
-@@ -13,6 +13,7 @@ const {
+@@ -12,7 +12,7 @@ const {
+ const {
    ERR_INVALID_PACKAGE_CONFIG,
  } = require('internal/errors').codes;
- const { internalModuleReadJSON } = internalBinding('fs');
+-const { internalModuleReadJSON } = internalBinding('fs');
 +const internalFsBinding = internalBinding('fs');
  const { resolve, sep, toNamespacedPath } = require('path');
  const permission = require('internal/process/permission');
  const { kEmptyObject } = require('internal/util');
-@@ -53,7 +54,7 @@ function read(jsonPath, { base, specifier, isESM } = kEmptyObject) {
+@@ -53,7 +53,7 @@ function read(jsonPath, { base, specifier, isESM } = kEmptyObject) {
    const {
      0: string,
      1: containsKeys,

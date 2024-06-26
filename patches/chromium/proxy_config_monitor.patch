@@ -6,7 +6,7 @@ Subject: proxy_config_monitor.patch
 Allow monitoring proxy config changes for a pref service.
 
 diff --git a/chrome/browser/net/proxy_config_monitor.cc b/chrome/browser/net/proxy_config_monitor.cc
-index c9281f7abfbdeaa4f0d9fe3c199b34fcb5acaf2c..10c008a225d7f88bc2cc39ae0a84580f8ef10a7d 100644
+index c2adfa2bd0f79038cb50c69607827aef8fecca59..3db9b93e7c98544de7488ab97ad4a5addefdd2cd 100644
 --- a/chrome/browser/net/proxy_config_monitor.cc
 +++ b/chrome/browser/net/proxy_config_monitor.cc
 @@ -11,7 +11,9 @@

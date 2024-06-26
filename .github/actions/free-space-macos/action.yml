@@ -1,0 +1,65 @@
+name: 'Free Space macOS'
+description: 'Checks out Electron and stores it in the AKS Cache'
+runs:
+  using: "composite"
+  steps:
+    - name: Free Space on MacOS
+      shell: bash
+      run: |
+        sudo mkdir -p $TMPDIR/del-target
+
+        tmpify() {
+          if [ -d "$1" ]; then
+            sudo mv "$1" $TMPDIR/del-target/$(echo $1|shasum -a 256|head -n1|cut -d " " -f1)
+          fi
+        }
+
+        strip_universal_deep() {
+          opwd=$(pwd)
+          cd $1
+          f=$(find . -perm +111 -type f)
+          for fp in $f
+          do
+            if [[ $(file "$fp") == *"universal binary"* ]]; then
+              if [ "`arch`" == "arm64" ]; then
+                if [[ $(file "$fp") == *"x86_64"* ]]; then
+                  sudo lipo -remove x86_64 "$fp" -o "$fp" || true
+                fi
+              else
+                if [[ $(file "$fp") == *"arm64e)"* ]]; then
+                  sudo lipo -remove arm64e "$fp" -o "$fp" || true
+                fi
+                if [[ $(file "$fp") == *"arm64)"* ]]; then
+                  sudo lipo -remove arm64 "$fp" -o "$fp" || true
+                fi
+              fi
+            fi
+          done
+
+          cd $opwd
+        }
+
+        tmpify /Library/Developer/CoreSimulator
+        tmpify ~/Library/Developer/CoreSimulator
+        tmpify $(xcode-select -p)/Platforms/AppleTVOS.platform
+        tmpify $(xcode-select -p)/Platforms/iPhoneOS.platform
+        tmpify $(xcode-select -p)/Platforms/WatchOS.platform
+        tmpify $(xcode-select -p)/Platforms/WatchSimulator.platform
+        tmpify $(xcode-select -p)/Platforms/AppleTVSimulator.platform
+        tmpify $(xcode-select -p)/Platforms/iPhoneSimulator.platform
+        tmpify $(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/metal/ios
+        tmpify $(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift
+        tmpify $(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0
+        tmpify ~/.rubies
+        tmpify ~/Library/Caches/Homebrew
+        tmpify /usr/local/Homebrew
+
+        sudo rm -rf $TMPDIR/del-target
+
+        sudo rm -rf /Applications/Safari.app
+        sudo rm -rf ~/project/src/third_party/catapult/tracing/test_data
+        sudo rm -rf ~/project/src/third_party/angle/third_party/VK-GL-CTS
+
+        # lipo off some huge binaries arm64 versions to save space
+        strip_universal_deep $(xcode-select -p)/../SharedFrameworks
+        # strip_arm_deep /System/Volumes/Data/Library/Developer/CommandLineTools/usr

@@ -21,6 +21,7 @@ class ElectronExtensionsBrowserAPIProvider
   ElectronExtensionsBrowserAPIProvider& operator=(
       const ElectronExtensionsBrowserAPIProvider&) = delete;
 
+  // ExtensionsBrowserAPIProvider
   void RegisterExtensionFunctions(ExtensionFunctionRegistry* registry) override;
 };
 

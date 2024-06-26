@@ -4,7 +4,7 @@ import zipfile
 import sys
 
 def main(zip_path, manifest_in):
-  with open(manifest_in, 'r') as manifest, \
+  with open(manifest_in, 'r', encoding='utf-8') as manifest, \
       zipfile.ZipFile(zip_path, 'r', allowZip64=True) as z:
     files_in_zip = set(z.namelist())
     files_in_manifest = {l.strip() for l in manifest.readlines()}

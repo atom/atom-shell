@@ -19,7 +19,7 @@ class WebContents;
 }
 
 class WebViewGuestDelegate : public content::BrowserPluginGuestDelegate,
-                             public WebContentsZoomObserver {
+                             private WebContentsZoomObserver {
  public:
   WebViewGuestDelegate(content::WebContents* embedder,
                        api::WebContents* api_web_contents);

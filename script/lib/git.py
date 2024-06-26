@@ -13,6 +13,12 @@ import re
 import subprocess
 import sys
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(SCRIPT_DIR)
+
+from patches import PATCH_FILENAME_PREFIX, is_patch_location_line
+
+UPSTREAM_HEAD='refs/patches/upstream-head'
 
 def is_repo_root(path):
   path_exists = os.path.exists(path)
@@ -66,23 +72,16 @@ def am(repo, patch_data, threeway=False, directory=None, exclude=None,
     root_args += ['-c', 'user.email=' + committer_email]
   root_args += ['-c', 'commit.gpgsign=false']
   command = ['git'] + root_args + ['am'] + args
-  proc = subprocess.Popen(
-      command,
-      stdin=subprocess.PIPE)
-  proc.communicate(patch_data.encode('utf-8'))
-  if proc.returncode != 0:
-    raise RuntimeError("Command {} returned {}".format(command,
-      proc.returncode))
+  with subprocess.Popen(command, stdin=subprocess.PIPE) as proc:
+    proc.communicate(patch_data.encode('utf-8'))
+    if proc.returncode != 0:
+      raise RuntimeError(f"Command {command} returned {proc.returncode}")
 
 
-def import_patches(repo, **kwargs):
+def import_patches(repo, ref=UPSTREAM_HEAD, **kwargs):
   """same as am(), but we save the upstream HEAD so we can refer to it when we
   later export patches"""
-  update_ref(
-      repo=repo,
-      ref='refs/patches/upstream-head',
-      newvalue='HEAD'
-  )
+  update_ref(repo=repo, ref=ref, newvalue='HEAD')
   am(repo=repo, **kwargs)
 
 
@@ -92,32 +91,18 @@ def update_ref(repo, ref, newvalue):
   return subprocess.check_call(args)
 
 
-def get_upstream_head(repo):
-  args = [
-    'git',
-    '-C',
-    repo,
-    'rev-parse',
-    '--verify',
-    'refs/patches/upstream-head',
-  ]
+def get_commit_for_ref(repo, ref):
+  args = ['git', '-C', repo, 'rev-parse', '--verify', ref]
   return subprocess.check_output(args).decode('utf-8').strip()
 
 def get_commit_count(repo, commit_range):
-  args = [
-    'git',
-    '-C',
-    repo,
-    'rev-list',
-    '--count',
-    commit_range
-  ]
+  args = ['git', '-C', repo, 'rev-list', '--count', commit_range]
   return int(subprocess.check_output(args).decode('utf-8').strip())
 
-def guess_base_commit(repo):
+def guess_base_commit(repo, ref):
   """Guess which commit the patches might be based on"""
   try:
-    upstream_head = get_upstream_head(repo)
+    upstream_head = get_commit_for_ref(repo, ref)
     num_commits = get_commit_count(repo, upstream_head + '..')
     return [upstream_head, num_commits]
   except subprocess.CalledProcessError:
@@ -149,7 +134,6 @@ def format_patch(repo, since):
     'format-patch',
     '--keep-subject',
     '--no-stat',
-    '--notes',
     '--stdout',
 
     # Per RFC 3676 the signature is separated from the body by a line with
@@ -204,8 +188,8 @@ def get_file_name(patch):
   """Return the name of the file to which the patch should be written"""
   file_name = None
   for line in patch:
-    if line.startswith('Patch-Filename: '):
-      file_name = line[len('Patch-Filename: '):]
+    if line.startswith(PATCH_FILENAME_PREFIX):
+      file_name = line[len(PATCH_FILENAME_PREFIX):]
       break
   # If no patch-filename header, munge the subject.
   if not file_name:
@@ -218,19 +202,18 @@ def get_file_name(patch):
 
 def join_patch(patch):
   """Joins and formats patch contents"""
-  return ''.join(remove_patch_filename(patch)).rstrip('\n') + '\n'
+  return ''.join(remove_patch_location(patch)).rstrip('\n') + '\n'
 
 
-def remove_patch_filename(patch):
-  """Strip out the Patch-Filename trailer from a patch's message body"""
+def remove_patch_location(patch):
+  """Strip out the patch location lines from a patch's message body"""
   force_keep_next_line = False
+  n = len(patch)
   for i, l in enumerate(patch):
-    is_patchfilename = l.startswith('Patch-Filename: ')
-    next_is_patchfilename = i < len(patch) - 1 and patch[i + 1].startswith(
-      'Patch-Filename: '
-    )
+    skip_line = is_patch_location_line(l)
+    skip_next = i < n - 1 and is_patch_location_line(patch[i + 1])
     if not force_keep_next_line and (
-      is_patchfilename or (next_is_patchfilename and len(l.rstrip()) == 0)
+      skip_line or (skip_next and len(l.rstrip()) == 0)
     ):
       pass  # drop this line
     else:
@@ -238,20 +221,24 @@ def remove_patch_filename(patch):
     force_keep_next_line = l.startswith('Subject: ')
 
 
-def export_patches(repo, out_dir, patch_range=None, dry_run=False, grep=None):
+def export_patches(repo, out_dir,
+                   patch_range=None, ref=UPSTREAM_HEAD,
+                   dry_run=False, grep=None):
   if not os.path.exists(repo):
     sys.stderr.write(
-      "Skipping patches in {} because it does not exist.\n".format(repo)
+      f"Skipping patches in {repo} because it does not exist.\n"
     )
     return
   if patch_range is None:
-    patch_range, num_patches = guess_base_commit(repo)
-    sys.stderr.write("Exporting {} patches in {} since {}\n".format(
-        num_patches, repo, patch_range[0:7]))
+    patch_range, n_patches = guess_base_commit(repo, ref)
+    msg = f"Exporting {n_patches} patches in {repo} since {patch_range[0:7]}\n"
+    sys.stderr.write(msg)
   patch_data = format_patch(repo, patch_range)
   patches = split_patches(patch_data)
   if grep:
+    olen = len(patches)
     patches = filter_patches(patches, grep)
+    sys.stderr.write(f"Exporting {len(patches)} of {olen} patches\n")
 
   try:
     os.mkdir(out_dir)
@@ -266,7 +253,8 @@ def export_patches(repo, out_dir, patch_range=None, dry_run=False, grep=None):
     for patch in patches:
       filename = get_file_name(patch)
       filepath = posixpath.join(out_dir, filename)
-      existing_patch = str(io.open(filepath, 'rb').read(), 'utf-8')
+      with io.open(filepath, 'rb') as inp:
+        existing_patch = str(inp.read(), 'utf-8')
       formatted_patch = join_patch(patch)
       if formatted_patch != existing_patch:
         bad_patches.append(filename)

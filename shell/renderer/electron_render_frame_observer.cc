@@ -23,6 +23,7 @@
 #include "shell/renderer/renderer_client_base.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
+#include "third_party/blink/public/platform/scheduler/web_agent_group_scheduler.h"
 #include "third_party/blink/public/platform/web_isolated_world_info.h"
 #include "third_party/blink/public/web/blink.h"
 #include "third_party/blink/public/web/web_document.h"
@@ -46,6 +47,14 @@ scoped_refptr<base::RefCountedMemory> NetResourceProvider(int key) {
   return nullptr;
 }
 
+[[nodiscard]] constexpr bool is_main_world(int world_id) {
+  return world_id == WorldIDs::MAIN_WORLD_ID;
+}
+
+[[nodiscard]] constexpr bool is_isolated_world(int world_id) {
+  return world_id == WorldIDs::ISOLATED_WORLD_ID;
+}
+
 }  // namespace
 
 ElectronRenderFrameObserver::ElectronRenderFrameObserver(
@@ -57,10 +66,10 @@ ElectronRenderFrameObserver::ElectronRenderFrameObserver(
   // Initialise resource for directory listing.
   net::NetModule::SetResourceProvider(NetResourceProvider);
 
-  // App regions are only supported in the main frame.
-  auto* main_frame = frame->GetMainRenderFrame();
-  if (main_frame && main_frame == frame)
-    render_frame_->GetWebView()->SetSupportsAppRegion(true);
+  // In Chrome, app regions are only supported in the main frame.
+  // However, we need to support draggable regions on other
+  // local frames/windows, so extend support beyond the main frame.
+  render_frame_->GetWebView()->SetSupportsDraggableRegions(true);
 }
 
 void ElectronRenderFrameObserver::DidClearWindowObject() {
@@ -70,8 +79,8 @@ void ElectronRenderFrameObserver::DidClearWindowObject() {
       static_cast<blink::WebLocalFrameImpl*>(render_frame_->GetWebFrame());
   if (has_delayed_node_initialization_ &&
       !web_frame->IsOnInitialEmptyDocument()) {
-    v8::Isolate* isolate = blink::MainThreadIsolate();
-    v8::HandleScope handle_scope(isolate);
+    v8::Isolate* isolate = web_frame->GetAgentGroupScheduler()->Isolate();
+    v8::HandleScope handle_scope{isolate};
     v8::Handle<v8::Context> context = web_frame->MainWorldScriptContext();
     v8::MicrotasksScope microtasks_scope(
         isolate, context->GetMicrotaskQueue(),
@@ -129,7 +138,7 @@ void ElectronRenderFrameObserver::DidInstallConditionalFeatures(
   // This logic matches the EXPLAINED logic in electron_renderer_client.cc
   // to avoid explaining it twice go check that implementation in
   // DidCreateScriptContext();
-  bool is_main_world = IsMainWorld(world_id);
+  bool is_main_world = electron::is_main_world(world_id);
   bool is_main_frame = render_frame_->IsMainFrame();
   bool allow_node_in_sub_frames = prefs.node_integration_in_sub_frames;
 
@@ -142,25 +151,6 @@ void ElectronRenderFrameObserver::DidInstallConditionalFeatures(
     if (!renderer_client_->IsWebViewFrame(context, render_frame_))
       renderer_client_->SetupMainWorldOverrides(context, render_frame_);
   }
-}
-
-void ElectronRenderFrameObserver::DraggableRegionsChanged() {
-  blink::WebVector<blink::WebDraggableRegion> webregions =
-      render_frame_->GetWebFrame()->GetDocument().DraggableRegions();
-  std::vector<mojom::DraggableRegionPtr> regions;
-  for (auto& webregion : webregions) {
-    auto region = mojom::DraggableRegion::New();
-    render_frame_->ConvertViewportToWindow(&webregion.bounds);
-    region->bounds = webregion.bounds;
-    region->draggable = webregion.draggable;
-    regions.push_back(std::move(region));
-  }
-
-  mojo::AssociatedRemote<mojom::ElectronWebContentsUtility>
-      web_contents_utility_remote;
-  render_frame_->GetRemoteAssociatedInterfaces()->GetInterface(
-      &web_contents_utility_remote);
-  web_contents_utility_remote->UpdateDraggableRegions(std::move(regions));
 }
 
 void ElectronRenderFrameObserver::WillReleaseScriptContext(
@@ -203,16 +193,8 @@ void ElectronRenderFrameObserver::CreateIsolatedWorldContext() {
       blink::BackForwardCacheAware::kPossiblyDisallow);
 }
 
-bool ElectronRenderFrameObserver::IsMainWorld(int world_id) {
-  return world_id == WorldIDs::MAIN_WORLD_ID;
-}
-
-bool ElectronRenderFrameObserver::IsIsolatedWorld(int world_id) {
-  return world_id == WorldIDs::ISOLATED_WORLD_ID;
-}
-
-bool ElectronRenderFrameObserver::ShouldNotifyClient(int world_id) {
-  auto prefs = render_frame_->GetBlinkPreferences();
+bool ElectronRenderFrameObserver::ShouldNotifyClient(int world_id) const {
+  const auto& prefs = render_frame_->GetBlinkPreferences();
 
   // This is necessary because if an iframe is created and a source is not
   // set, the iframe loads about:blank and creates a script context for the
@@ -220,17 +202,17 @@ bool ElectronRenderFrameObserver::ShouldNotifyClient(int world_id) {
   // is later set, the JS necessary to do that triggers illegal access errors
   // when the initial about:blank Node.js environment is cleaned up. See:
   // https://source.chromium.org/chromium/chromium/src/+/main:content/renderer/render_frame_impl.h;l=870-892;drc=4b6001440a18740b76a1c63fa2a002cc941db394
-  GURL url = render_frame_->GetWebFrame()->GetDocument().Url();
-  bool allow_node_in_sub_frames = prefs.node_integration_in_sub_frames;
-  if (allow_node_in_sub_frames && url.IsAboutBlank() &&
-      !render_frame_->IsMainFrame())
-    return false;
+  const bool allow_node_in_sub_frames = prefs.node_integration_in_sub_frames;
+  if (allow_node_in_sub_frames && !render_frame_->IsMainFrame()) {
+    if (GURL{render_frame_->GetWebFrame()->GetDocument().Url()}.IsAboutBlank())
+      return false;
+  }
 
   if (prefs.context_isolation &&
       (render_frame_->IsMainFrame() || allow_node_in_sub_frames))
-    return IsIsolatedWorld(world_id);
+    return is_isolated_world(world_id);
 
-  return IsMainWorld(world_id);
+  return is_main_world(world_id);
 }
 
 }  // namespace electron

@@ -1,0 +1,24 @@
+name: Auto Close Pull Request
+
+on:
+  pull_request_target:
+    paths:
+      - 'yarn.lock'
+      - 'spec/yarn.lock'
+
+permissions: {}
+
+jobs:
+  auto-close-dependency-pull-request:
+    name: Auto close non-maintainer dependency pull request
+    if: ${{ !contains(fromJSON('["MEMBER", "OWNER"]'), github.event.pull_request.author_association) && github.event.pull_request.user.type != 'Bot' && !github.event.pull_request.draft }}
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close pull request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr close $PR_URL --comment 'Hello @${{ github.event.pull_request.user.login }}! It looks like this pull request touches one of our dependency files, and per [our contribution policy](https://github.com/electron/electron/blob/main/CONTRIBUTING.md#dependencies-upgrades-policy) we do not accept these types of PRs, so this PR will be closed.'

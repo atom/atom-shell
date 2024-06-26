@@ -36,10 +36,8 @@ struct Converter<base::TerminationStatus> {
 #endif
       case base::TERMINATION_STATUS_MAX_ENUM:
         NOTREACHED();
-        return gin::ConvertToV8(isolate, "");
     }
     NOTREACHED();
-    return gin::ConvertToV8(isolate, "");
   }
 };
 

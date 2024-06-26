@@ -5,8 +5,12 @@
 #ifndef ELECTRON_SHELL_BROWSER_USB_USB_CHOOSER_CONTEXT_FACTORY_H_
 #define ELECTRON_SHELL_BROWSER_USB_USB_CHOOSER_CONTEXT_FACTORY_H_
 
-#include "base/memory/singleton.h"
 #include "components/keyed_service/content/browser_context_keyed_service_factory.h"
+
+namespace base {
+template <typename T>
+class NoDestructor;
+}  // namespace base
 
 namespace electron {
 
@@ -24,7 +28,7 @@ class UsbChooserContextFactory : public BrowserContextKeyedServiceFactory {
   UsbChooserContextFactory& operator=(const UsbChooserContextFactory&) = delete;
 
  private:
-  friend struct base::DefaultSingletonTraits<UsbChooserContextFactory>;
+  friend base::NoDestructor<UsbChooserContextFactory>;
 
   UsbChooserContextFactory();
   ~UsbChooserContextFactory() override;

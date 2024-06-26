@@ -21,7 +21,8 @@ BadgeManager* BadgeManagerFactory::GetForBrowserContext(
 
 // static
 BadgeManagerFactory* BadgeManagerFactory::GetInstance() {
-  return base::Singleton<BadgeManagerFactory>::get();
+  static base::NoDestructor<BadgeManagerFactory> instance;
+  return instance.get();
 }
 
 BadgeManagerFactory::BadgeManagerFactory()

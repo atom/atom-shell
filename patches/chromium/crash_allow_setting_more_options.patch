@@ -63,10 +63,10 @@ index a604df7a5ea6a1f5613acc032a65668364aadf89..93a8bf787bdaa0e4251a41453eb22062
    // Used by WebView to sample crashes without generating the unwanted dumps. If
    // the returned value is less than 100, crash dumping will be sampled to that
 diff --git a/components/crash/core/app/crashpad_linux.cc b/components/crash/core/app/crashpad_linux.cc
-index bc7cf959e087c7facde72854fce7429655c276be..8107bf4c9ae972de44d0d480cf50f62b85f0a1aa 100644
+index 171095381e8acff07ae29531537cdadf76b2c462..8963eade0da26f1494ed26e4b6001f37aca82410 100644
 --- a/components/crash/core/app/crashpad_linux.cc
 +++ b/components/crash/core/app/crashpad_linux.cc
-@@ -236,6 +236,7 @@ bool PlatformCrashpadInitialization(
+@@ -231,6 +231,7 @@ bool PlatformCrashpadInitialization(
      // where crash_reporter provides it's own values for lsb-release.
      annotations["lsb-release"] = base::GetLinuxDistro();
  #endif
@@ -74,7 +74,7 @@ index bc7cf959e087c7facde72854fce7429655c276be..8107bf4c9ae972de44d0d480cf50f62b
  
      std::vector<std::string> arguments;
      if (crash_reporter_client->ShouldMonitorCrashHandlerExpensively()) {
-@@ -257,6 +258,13 @@ bool PlatformCrashpadInitialization(
+@@ -252,6 +253,13 @@ bool PlatformCrashpadInitialization(
      }
  #endif
  
@@ -89,10 +89,10 @@ index bc7cf959e087c7facde72854fce7429655c276be..8107bf4c9ae972de44d0d480cf50f62b
                                annotations, arguments, false, false));
    } else {
 diff --git a/components/crash/core/app/crashpad_mac.mm b/components/crash/core/app/crashpad_mac.mm
-index eb5bcfe0234c39526d6d162434476fe9e32d8184..8480d07e2607eb3c8c16b54a02077c0454d11fce 100644
+index 42fe73aefe44f218d6a5e8cb1550ff48859c4b70..a1235f0c7ad44ae9c9fdc805af5b9dc5669f5aad 100644
 --- a/components/crash/core/app/crashpad_mac.mm
 +++ b/components/crash/core/app/crashpad_mac.mm
-@@ -87,6 +87,8 @@
+@@ -86,6 +86,8 @@
      }  // @autoreleasepool
      return process_annotations;
    }();
@@ -101,7 +101,7 @@ index eb5bcfe0234c39526d6d162434476fe9e32d8184..8480d07e2607eb3c8c16b54a02077c04
    return annotations;
  }
  
-@@ -157,6 +159,13 @@ bool PlatformCrashpadInitialization(
+@@ -156,6 +158,13 @@ bool PlatformCrashpadInitialization(
  
        std::vector<std::string> arguments;
  
@@ -116,10 +116,10 @@ index eb5bcfe0234c39526d6d162434476fe9e32d8184..8480d07e2607eb3c8c16b54a02077c04
          arguments.push_back("--monitor-self");
        }
 diff --git a/components/crash/core/app/crashpad_win.cc b/components/crash/core/app/crashpad_win.cc
-index 15addd5c5e6635ad3b5797d5986c79353590a583..f31ae6b9e8bfdcc32239d0f6859e29ea6b4112b1 100644
+index 0e00d26f79231a01e88981b30ff950e427cd31f4..70f014c75031f9529501e102f97e0e1adadb8ffb 100644
 --- a/components/crash/core/app/crashpad_win.cc
 +++ b/components/crash/core/app/crashpad_win.cc
-@@ -91,6 +91,7 @@ bool PlatformCrashpadInitialization(
+@@ -92,6 +92,7 @@ bool PlatformCrashpadInitialization(
  
      std::map<std::string, std::string> process_annotations;
      GetPlatformCrashpadAnnotations(&process_annotations);

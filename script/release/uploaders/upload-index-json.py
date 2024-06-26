@@ -32,9 +32,8 @@ def get_content(retry_count = 5):
       headers={"Authorization" : authToken}
     )
 
-    proposed_content = urlopen(
-      request
-    ).read()
+    with urlopen(request) as resp:
+      proposed_content = resp.read()
 
     if is_json(proposed_content):
       return proposed_content
