@@ -2315,72 +2315,66 @@ describe('BrowserWindow module', () => {
     });
 
     describe('when `outputSize` is provided', () => {
-      describe('when both dimensions of`outputSize` are smaller than dimensions of the captured area', () => {
-        it('returns image with requested size', async () => {
-          const w = new BrowserWindow({ show: false });
-          w.loadFile(path.join(fixtures, 'pages', 'a.html'));
-          await once(w, 'ready-to-show');
-          w.show();
-          const image = await w.capturePage({
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100
-          }, {
-            outputSize: {
-              width: 20,
-              height: 20
-            }
-          });
-
-          expect(image.getSize()).to.deep.equal({ width: 20, height: 20 });
+      it('returns image with requested size when both dimensions of`outputSize` are smaller than dimensions of the captured area', async () => {
+        const w = new BrowserWindow({ show: false });
+        w.loadFile(path.join(fixtures, 'pages', 'a.html'));
+        await once(w, 'ready-to-show');
+        w.show();
+        const image = await w.capturePage({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100
+        }, {
+          outputSize: {
+            width: 20,
+            height: 20
+          }
         });
+
+        expect(image.getSize()).to.deep.equal({ width: 20, height: 20 });
       });
 
-      describe('when one dimension of `outputSize` is bigger than one dimension of the captured area', () => {
-        it('returns image with requested size', async () => {
-          const w = new BrowserWindow({ show: false });
-          w.loadFile(path.join(fixtures, 'pages', 'a.html'));
-          await once(w, 'ready-to-show');
-          w.show();
-          w.setBounds({ width: 200, height: 200 });
-          const image = await w.capturePage({
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100
-          }, {
-            outputSize: {
-              width: 150,
-              height: 1500
-            }
-          });
-
-          expect(image.getSize()).to.deep.equal({ width: 150, height: 1500 });
+      it('returns image with requested size when one dimension of `outputSize` is bigger than one dimension of the captured area', async () => {
+        const w = new BrowserWindow({ show: false });
+        w.loadFile(path.join(fixtures, 'pages', 'a.html'));
+        await once(w, 'ready-to-show');
+        w.show();
+        w.setBounds({ width: 200, height: 200 });
+        const image = await w.capturePage({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100
+        }, {
+          outputSize: {
+            width: 150,
+            height: 1500
+          }
         });
+
+        expect(image.getSize()).to.deep.equal({ width: 150, height: 1500 });
       });
 
-      describe('when both dimensions of `outputSize` are bigger than both dimensions of the captured area', () => {
-        it('returns image with requested size', async () => {
-          const w = new BrowserWindow({ show: false });
-          w.loadFile(path.join(fixtures, 'pages', 'a.html'));
-          await once(w, 'ready-to-show');
-          w.show();
-          w.setBounds({ width: 200, height: 200 });
-          const image = await w.capturePage({
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100
-          }, {
-            outputSize: {
-              width: 1500,
-              height: 1500
-            }
-          });
-
-          expect(image.getSize()).to.deep.equal({ width: 1500, height: 1500 });
+      it('returns image with requested size when both dimensions of `outputSize` are bigger than both dimensions of the captured area', async () => {
+        const w = new BrowserWindow({ show: false });
+        w.loadFile(path.join(fixtures, 'pages', 'a.html'));
+        await once(w, 'ready-to-show');
+        w.show();
+        w.setBounds({ width: 200, height: 200 });
+        const image = await w.capturePage({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100
+        }, {
+          outputSize: {
+            width: 1500,
+            height: 1500
+          }
         });
+
+        expect(image.getSize()).to.deep.equal({ width: 1500, height: 1500 });
       });
     });
 

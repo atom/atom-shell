@@ -670,99 +670,93 @@ describe('BrowserView module', () => {
     });
 
     describe('when `outputSize is provided`', () => {
-      describe('when both dimensions of `outputSize` are smaller than captured area', () => {
-        it('returns image with requested size', async () => {
-          const w = new BrowserWindow({ show: true });
-          view = new BrowserView({
-            webPreferences: {
-              backgroundThrottling: false
-            }
-          });
-          w.setBrowserView(view);
-          view.setBounds({
-            ...w.getBounds(),
-            x: 0,
-            y: 0
-          });
-          await view.webContents.loadFile(path.join(fixtures, 'pages', 'a.html'));
-          const image = await view.webContents.capturePage({
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100
-          }, {
-            outputSize: {
-              width: 20,
-              height: 20
-            }
-          });
-
-          expect(image.getSize()).to.deep.equal({ width: 20, height: 20 });
+      it('returns image with requested size when both dimensions of `outputSize` are smaller than captured area', async () => {
+        const w = new BrowserWindow({ show: true });
+        view = new BrowserView({
+          webPreferences: {
+            backgroundThrottling: false
+          }
         });
+        w.setBrowserView(view);
+        view.setBounds({
+          ...w.getBounds(),
+          x: 0,
+          y: 0
+        });
+        await view.webContents.loadFile(path.join(fixtures, 'pages', 'a.html'));
+        const image = await view.webContents.capturePage({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100
+        }, {
+          outputSize: {
+            width: 20,
+            height: 20
+          }
+        });
+
+        expect(image.getSize()).to.deep.equal({ width: 20, height: 20 });
       });
 
-      describe('when one dimension of `outputSize` is bigger than one dimension of the captured area', () => {
-        it('returns image with requested size', async () => {
-          const w = new BrowserWindow({ show: true });
-          w.setBounds({ width: 200, height: 250 });
-          view = new BrowserView({
-            webPreferences: {
-              backgroundThrottling: false
-            }
-          });
-          w.setBrowserView(view);
-          view.setBounds({
-            ...w.getBounds(),
-            x: 0,
-            y: 0
-          });
-          await view.webContents.loadFile(path.join(fixtures, 'pages', 'a.html'));
-          const image = await view.webContents.capturePage({
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100
-          }, {
-            outputSize: {
-              width: 1500,
-              height: 150
-            }
-          });
-
-          expect(image.getSize()).to.deep.equal({ width: 1500, height: 150 });
+      it('returns image with requested size when one dimension of `outputSize` is bigger than one dimension of the captured area', async () => {
+        const w = new BrowserWindow({ show: true });
+        w.setBounds({ width: 200, height: 250 });
+        view = new BrowserView({
+          webPreferences: {
+            backgroundThrottling: false
+          }
         });
+        w.setBrowserView(view);
+        view.setBounds({
+          ...w.getBounds(),
+          x: 0,
+          y: 0
+        });
+        await view.webContents.loadFile(path.join(fixtures, 'pages', 'a.html'));
+        const image = await view.webContents.capturePage({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100
+        }, {
+          outputSize: {
+            width: 1500,
+            height: 150
+          }
+        });
+
+        expect(image.getSize()).to.deep.equal({ width: 1500, height: 150 });
       });
 
-      describe('when both dimensions of `outputSize` are bigger than both dimensions of the captured area', () => {
-        it('returns image with requested size', async () => {
-          const w = new BrowserWindow({ show: true });
-          w.setBounds({ width: 200, height: 200 });
-          view = new BrowserView({
-            webPreferences: {
-              backgroundThrottling: false
-            }
-          });
-          w.setBrowserView(view);
-          view.setBounds({
-            ...w.getBounds(),
-            x: 0,
-            y: 0
-          });
-          await view.webContents.loadFile(path.join(fixtures, 'pages', 'a.html'));
-          const image = await view.webContents.capturePage({
-            x: 0,
-            y: 0,
-            width: 100,
-            height: 100
-          }, {
-            outputSize: {
-              width: 1500,
-              height: 1500
-            }
-          });
-
-          expect(image.getSize()).to.deep.equal({ width: 1500, height: 1500 });
+      it('returns image with requested size when both dimensions of `outputSize` are bigger than both dimensions of the captured area', async () => {
+        const w = new BrowserWindow({ show: true });
+        w.setBounds({ width: 200, height: 200 });
+        view = new BrowserView({
+          webPreferences: {
+            backgroundThrottling: false
+          }
         });
+        w.setBrowserView(view);
+        view.setBounds({
+          ...w.getBounds(),
+          x: 0,
+          y: 0
+        });
+        await view.webContents.loadFile(path.join(fixtures, 'pages', 'a.html'));
+        const image = await view.webContents.capturePage({
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100
+        }, {
+          outputSize: {
+            width: 1500,
+            height: 1500
+          }
+        });
+
+        expect(image.getSize()).to.deep.equal({ width: 1500, height: 1500 });
       });
     });
 
