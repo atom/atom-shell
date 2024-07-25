@@ -269,8 +269,8 @@ NativeWindowViews::NativeWindowViews(const gin_helper::Dictionary& options,
   widget()->AddObserver(this);
 
   using InitParams = views::Widget::InitParams;
-  auto params = InitParams{InitParams::WIDGET_OWNS_NATIVE_WIDGET,
-                           InitParams::TYPE_WINDOW};
+  auto params =
+      InitParams{InitParams::CLIENT_OWNS_WIDGET, InitParams::TYPE_WINDOW};
   params.bounds = bounds;
   params.delegate = this;
   params.remove_standard_frame = !has_frame() || has_client_frame();
