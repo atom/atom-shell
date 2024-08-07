@@ -250,6 +250,10 @@ see our dedicated [Context Isolation](context-isolation.md) document.
 
 ### 4. Enable process sandboxing
 
+:::info
+This recommendation is the default behavior in Electron since 20.0.0.
+:::
+
 [Sandboxing](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/design/sandbox.md)
 is a Chromium feature that uses the operating system to
 significantly limit what renderer processes have access to. You should enable
