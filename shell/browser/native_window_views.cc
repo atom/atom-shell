@@ -993,8 +993,6 @@ bool NativeWindowViews::IsMaximizable() const {
 #endif
 }
 
-void NativeWindowViews::SetExcludedFromShownWindowsMenu(bool excluded) {}
-
 bool NativeWindowViews::IsExcludedFromShownWindowsMenu() const {
   // return false on unsupported platforms
   return false;

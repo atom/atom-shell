@@ -12,19 +12,6 @@ TrayIcon::TrayIcon() = default;
 
 TrayIcon::~TrayIcon() = default;
 
-void TrayIcon::SetPressedImage(ImageType image) {}
-
-void TrayIcon::DisplayBalloon(const BalloonOptions& options) {}
-
-void TrayIcon::RemoveBalloon() {}
-
-void TrayIcon::Focus() {}
-
-void TrayIcon::PopUpContextMenu(const gfx::Point& pos,
-                                base::WeakPtr<ElectronMenuModel> menu_model) {}
-
-void TrayIcon::CloseContextMenu() {}
-
 gfx::Rect TrayIcon::GetBounds() {
   return gfx::Rect();
 }

@@ -91,7 +91,7 @@ class InspectableWebContents
   void CloseWindow() override;
   void LoadCompleted() override;
   void SetInspectedPageBounds(const gfx::Rect& rect) override;
-  void InspectElementCompleted() override;
+  void InspectElementCompleted() override {}
   void InspectedURLChanged(const std::string& url) override;
   void LoadNetworkResource(DispatchCallback callback,
                            const std::string& url,
@@ -111,7 +111,7 @@ class InspectableWebContents
   void AddFileSystem(const std::string& type) override;
   void RemoveFileSystem(const std::string& file_system_path) override;
   void UpgradeDraggedFileSystemPermissions(
-      const std::string& file_system_url) override;
+      const std::string& file_system_url) override {}
   void IndexPath(int index_request_id,
                  const std::string& file_system_path,
                  const std::string& excluded_folders) override;
@@ -119,9 +119,9 @@ class InspectableWebContents
   void SearchInPath(int search_request_id,
                     const std::string& file_system_path,
                     const std::string& query) override;
-  void SetWhitelistedShortcuts(const std::string& message) override;
+  void SetWhitelistedShortcuts(const std::string& message) override {}
   void SetEyeDropperActive(bool active) override;
-  void ShowCertificateViewer(const std::string& cert_chain) override;
+  void ShowCertificateViewer(const std::string& cert_chain) override {}
   void ZoomIn() override;
   void ZoomOut() override;
   void ResetZoom() override;
@@ -130,11 +130,11 @@ class InspectableWebContents
       bool port_forwarding_enabled,
       const std::string& port_forwarding_config,
       bool network_discovery_enabled,
-      const std::string& network_discovery_config) override;
-  void SetDevicesUpdatesEnabled(bool enabled) override;
+      const std::string& network_discovery_config) override {}
+  void SetDevicesUpdatesEnabled(bool enabled) override {}
   void OpenRemotePage(const std::string& browser_id,
-                      const std::string& url) override;
-  void OpenNodeFrontend() override;
+                      const std::string& url) override {}
+  void OpenNodeFrontend() override {}
   void DispatchProtocolMessageFromDevToolsFrontend(
       const std::string& message) override;
   void RecordCountHistogram(const std::string& name,
@@ -156,7 +156,7 @@ class InspectableWebContents
   void ClearPreferences() override;
   void GetSyncInformation(DispatchCallback callback) override;
   void GetHostConfig(DispatchCallback callback) override;
-  void ConnectionReady() override;
+  void ConnectionReady() override {}
   void RegisterExtensionsAPI(const std::string& origin,
                              const std::string& script) override;
   void Reattach(DispatchCallback callback) override;
@@ -191,7 +191,7 @@ class InspectableWebContents
   // content::DevToolsAgentHostClient:
   void DispatchProtocolMessage(content::DevToolsAgentHost* agent_host,
                                base::span<const uint8_t> message) override;
-  void AgentHostClosed(content::DevToolsAgentHost* agent_host) override;
+  void AgentHostClosed(content::DevToolsAgentHost* agent_host) override {}
 
   // content::WebContentsObserver:
   void RenderFrameHostChanged(content::RenderFrameHost* old_host,

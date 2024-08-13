@@ -64,14 +64,6 @@ bool ShouldExposeDevice(const device::mojom::UsbDeviceInfo& device_info) {
 
 namespace electron {
 
-void UsbChooserContext::DeviceObserver::OnDeviceAdded(
-    const device::mojom::UsbDeviceInfo& device_info) {}
-
-void UsbChooserContext::DeviceObserver::OnDeviceRemoved(
-    const device::mojom::UsbDeviceInfo& device_info) {}
-
-void UsbChooserContext::DeviceObserver::OnDeviceManagerConnectionError() {}
-
 UsbChooserContext::UsbChooserContext(ElectronBrowserContext* context)
     : browser_context_(context) {}
 

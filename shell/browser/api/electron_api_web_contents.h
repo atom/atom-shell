@@ -724,11 +724,11 @@ class WebContents : public ExclusiveAccessContext,
   void EnterFullscreen(const GURL& url,
                        ExclusiveAccessBubbleType bubble_type,
                        const int64_t display_id) override;
-  void ExitFullscreen() override;
+  void ExitFullscreen() override {}
   void UpdateExclusiveAccessBubble(
       const ExclusiveAccessBubbleParams& params,
-      ExclusiveAccessBubbleHideCallback bubble_first_hide_callback) override;
-  void OnExclusiveAccessUserInput() override;
+      ExclusiveAccessBubbleHideCallback bubble_first_hide_callback) override {}
+  void OnExclusiveAccessUserInput() override {}
   content::WebContents* GetWebContentsForExclusiveAccess() override;
   bool CanUserExitFullscreen() const override;
   bool IsExclusiveAccessBubbleDisplayed() const override;

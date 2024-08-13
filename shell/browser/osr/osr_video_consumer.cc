@@ -138,15 +138,6 @@ void OffScreenVideoConsumer::OnFrameCaptured(
   callback_.Run(*update_rect, bitmap);
 }
 
-void OffScreenVideoConsumer::OnNewSubCaptureTargetVersion(
-    uint32_t crop_version) {}
-
-void OffScreenVideoConsumer::OnFrameWithEmptyRegionCapture() {}
-
-void OffScreenVideoConsumer::OnStopped() {}
-
-void OffScreenVideoConsumer::OnLog(const std::string& message) {}
-
 bool OffScreenVideoConsumer::CheckContentRect(const gfx::Rect& content_rect) {
   gfx::Size view_size = view_->SizeInPixels();
   gfx::Size content_size = content_rect.size();

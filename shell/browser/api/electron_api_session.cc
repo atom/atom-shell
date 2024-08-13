@@ -48,6 +48,7 @@
 #include "net/base/completion_repeating_callback.h"
 #include "net/base/load_flags.h"
 #include "net/base/network_anonymization_key.h"
+#include "net/base/registry_controlled_domains/registry_controlled_domain.h"
 #include "net/http/http_auth_handler_factory.h"
 #include "net/http/http_auth_preferences.h"
 #include "net/http/http_cache.h"

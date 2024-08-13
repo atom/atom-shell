@@ -38,6 +38,7 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/options_switches.h"
+#include "shell/common/process_util.h"
 #include "skia/ext/skia_utils_mac.h"
 #include "third_party/webrtc/modules/desktop_capture/mac/window_list_utils.h"
 #include "ui/base/hit_test.h"
@@ -154,14 +155,6 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
   bool hiddenInMissionControl = false;
   options.Get(options::kHiddenInMissionControl, &hiddenInMissionControl);
 
-  bool useStandardWindow = true;
-  // eventually deprecate separate "standardWindow" option in favor of
-  // standard / textured window types
-  options.Get(options::kStandardWindow, &useStandardWindow);
-  if (windowType == "textured") {
-    useStandardWindow = false;
-  }
-
   // The window without titlebar is treated the same with frameless window.
   if (title_bar_style_ != TitleBarStyle::kNormal)
     set_has_frame(false);
@@ -186,8 +179,18 @@ NativeWindowMac::NativeWindowMac(const gin_helper::Dictionary& options,
     styleMask |= NSWindowStyleMaskClosable;
   if (resizable)
     styleMask |= NSWindowStyleMaskResizable;
-  if (!useStandardWindow || transparent() || !has_frame())
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+  if (windowType == "textured" || transparent() || !has_frame()) {
+    node::Environment* env =
+        node::Environment::GetCurrent(JavascriptEnvironment::GetIsolate());
+    EmitWarning(env,
+                "The 'textured' window type is deprecated and will be removed",
+                "DeprecationWarning");
     styleMask |= NSWindowStyleMaskTexturedBackground;
+  }
+#pragma clang diagnostic pop
 
 // -Wdeprecated-declarations
 #pragma clang diagnostic pop

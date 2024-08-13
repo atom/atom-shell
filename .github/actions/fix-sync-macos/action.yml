@@ -46,7 +46,7 @@ runs:
         fi
         python3 src/third_party/depot_tools/download_from_google_storage.py --no_resume --no_auth --bucket chromium-browser-clang -s $DSYM_SHA_FILE -o src/tools/clang/dsymutil/bin/dsymutil
 
-        echo 'infra/3pp/build_support/ninja-1_11_1/${platform}' `gclient getdep --deps-file=src/DEPS -r 'src/third_party/ninja:infra/3pp/build_support/ninja-1_11_1/${platform}'` > ninja_ensure_file
+        echo 'infra/3pp/tools/ninja/${platform}' `gclient getdep --deps-file=src/DEPS -r 'src/third_party/ninja:infra/3pp/tools/ninja/${platform}'` > ninja_ensure_file
         sed $SEDOPTION "s/Updating depot_tools... //g" ninja_ensure_file
         cipd ensure --root src/third_party/ninja -ensure-file ninja_ensure_file
 

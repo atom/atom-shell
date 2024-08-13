@@ -171,20 +171,21 @@ class NativeWindow : public base::SupportsUserData,
   virtual bool IsTabletMode() const;
   virtual void SetBackgroundColor(SkColor color) = 0;
   virtual SkColor GetBackgroundColor() const = 0;
-  virtual void InvalidateShadow();
+  virtual void InvalidateShadow() {}
+
   virtual void SetHasShadow(bool has_shadow) = 0;
   virtual bool HasShadow() const = 0;
   virtual void SetOpacity(const double opacity) = 0;
   virtual double GetOpacity() const = 0;
-  virtual void SetRepresentedFilename(const std::string& filename);
+  virtual void SetRepresentedFilename(const std::string& filename) {}
   virtual std::string GetRepresentedFilename() const;
-  virtual void SetDocumentEdited(bool edited);
+  virtual void SetDocumentEdited(bool edited) {}
   virtual bool IsDocumentEdited() const;
   virtual void SetIgnoreMouseEvents(bool ignore, bool forward) = 0;
   virtual void SetContentProtection(bool enable) = 0;
-  virtual void SetFocusable(bool focusable);
+  virtual void SetFocusable(bool focusable) {}
   virtual bool IsFocusable() const;
-  virtual void SetMenu(ElectronMenuModel* menu);
+  virtual void SetMenu(ElectronMenuModel* menu) {}
   virtual void SetParentWindow(NativeWindow* parent);
   virtual content::DesktopMediaID GetDesktopMediaID() const = 0;
   virtual gfx::NativeView GetNativeView() const = 0;
@@ -213,7 +214,7 @@ class NativeWindow : public base::SupportsUserData,
 
   virtual bool IsVisibleOnAllWorkspaces() const = 0;
 
-  virtual void SetAutoHideCursor(bool auto_hide);
+  virtual void SetAutoHideCursor(bool auto_hide) {}
 
   // Vibrancy API
   const std::string& vibrancy() const { return vibrancy_; }
@@ -242,23 +243,23 @@ class NativeWindow : public base::SupportsUserData,
 
   // Touchbar API
   virtual void SetTouchBar(std::vector<gin_helper::PersistentDictionary> items);
-  virtual void RefreshTouchBarItem(const std::string& item_id);
+  virtual void RefreshTouchBarItem(const std::string& item_id) {}
   virtual void SetEscapeTouchBarItem(gin_helper::PersistentDictionary item);
 
   // Native Tab API
-  virtual void SelectPreviousTab();
-  virtual void SelectNextTab();
-  virtual void ShowAllTabs();
-  virtual void MergeAllWindows();
-  virtual void MoveTabToNewWindow();
-  virtual void ToggleTabBar();
+  virtual void SelectPreviousTab() {}
+  virtual void SelectNextTab() {}
+  virtual void ShowAllTabs() {}
+  virtual void MergeAllWindows() {}
+  virtual void MoveTabToNewWindow() {}
+  virtual void ToggleTabBar() {}
   virtual bool AddTabbedWindow(NativeWindow* window);
   virtual std::optional<std::string> GetTabbingIdentifier() const;
 
   // Toggle the menu bar.
-  virtual void SetAutoHideMenuBar(bool auto_hide);
+  virtual void SetAutoHideMenuBar(bool auto_hide) {}
   virtual bool IsMenuBarAutoHide() const;
-  virtual void SetMenuBarVisibility(bool visible);
+  virtual void SetMenuBarVisibility(bool visible) {}
   virtual bool IsMenuBarVisible() const;
 
   // Set the aspect ratio when resizing window.
@@ -270,8 +271,8 @@ class NativeWindow : public base::SupportsUserData,
 
   // File preview APIs.
   virtual void PreviewFile(const std::string& path,
-                           const std::string& display_name);
-  virtual void CloseFilePreview();
+                           const std::string& display_name) {}
+  virtual void CloseFilePreview() {}
 
   virtual void SetGTKDarkThemeEnabled(bool use_dark_theme) {}
 

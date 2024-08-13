@@ -1,0 +1,20 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: deepak1556 <hop2deep@gmail.com>
+Date: Fri, 9 Aug 2024 22:39:47 +0900
+Subject: build: expose webplugininfo interface to electron
+
+Allows implementing electron::mojom::ElectronPluginInfoHost interface
+which provides plugin details between browser<->renderer.
+
+diff --git a/content/public/common/BUILD.gn b/content/public/common/BUILD.gn
+index 0b7e43edf99ce901141ca9271f7130658525fd23..88dbc54c6b7d857cc0c572eb831d457348af236c 100644
+--- a/content/public/common/BUILD.gn
++++ b/content/public/common/BUILD.gn
+@@ -370,6 +370,7 @@ mojom("interfaces") {
+     "//content/common/*",
+     "//extensions/common:mojom",
+     "//extensions/common:mojom_blink",
++    "//electron/shell/common:plugin",
+   ]
+ 
+   sources = [

@@ -51,26 +51,26 @@ class OffScreenWebContentsView : public content::WebContentsView,
   gfx::NativeView GetContentNativeView() const override;
   gfx::NativeWindow GetTopLevelNativeWindow() const override;
   gfx::Rect GetContainerBounds() const override;
-  void Focus() override;
-  void SetInitialFocus() override;
-  void StoreFocus() override;
-  void RestoreFocus() override;
-  void FocusThroughTabTraversal(bool reverse) override;
+  void Focus() override {}
+  void SetInitialFocus() override {}
+  void StoreFocus() override {}
+  void RestoreFocus() override {}
+  void FocusThroughTabTraversal(bool reverse) override {}
   content::DropData* GetDropData() const override;
   gfx::Rect GetViewBounds() const override;
-  void CreateView(gfx::NativeView context) override;
+  void CreateView(gfx::NativeView context) override {}
   content::RenderWidgetHostViewBase* CreateViewForWidget(
       content::RenderWidgetHost* render_widget_host) override;
   content::RenderWidgetHostViewBase* CreateViewForChildWidget(
       content::RenderWidgetHost* render_widget_host) override;
-  void SetPageTitle(const std::u16string& title) override;
+  void SetPageTitle(const std::u16string& title) override {}
   void RenderViewReady() override;
   void RenderViewHostChanged(content::RenderViewHost* old_host,
-                             content::RenderViewHost* new_host) override;
-  void SetOverscrollControllerEnabled(bool enabled) override;
-  void OnCapturerCountChanged() override;
-  void FullscreenStateChanged(bool is_fullscreen) override;
-  void UpdateWindowControlsOverlay(const gfx::Rect& bounding_rect) override;
+                             content::RenderViewHost* new_host) override {}
+  void SetOverscrollControllerEnabled(bool enabled) override {}
+  void OnCapturerCountChanged() override {}
+  void FullscreenStateChanged(bool is_fullscreen) override {}
+  void UpdateWindowControlsOverlay(const gfx::Rect& bounding_rect) override {}
   content::BackForwardTransitionAnimationManager*
   GetBackForwardTransitionAnimationManager() override;
 
@@ -88,7 +88,7 @@ class OffScreenWebContentsView : public content::WebContentsView,
                      const blink::mojom::DragEventSourceInfo& event_info,
                      content::RenderWidgetHostImpl* source_rwh) override;
   void UpdateDragOperation(ui::mojom::DragOperation operation,
-                           bool document_is_handling_drag) override;
+                           bool document_is_handling_drag) override {}
   void SetPainting(bool painting);
   bool IsPainting() const;
   void SetFrameRate(int frame_rate);

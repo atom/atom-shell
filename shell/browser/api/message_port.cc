@@ -9,6 +9,7 @@
 #include <utility>
 
 #include "base/containers/contains.h"
+#include "base/containers/to_vector.h"
 #include "base/strings/string_number_conversions.h"
 #include "base/task/single_thread_task_runner.h"
 #include "gin/arguments.h"
@@ -250,11 +251,7 @@ std::vector<blink::MessagePortChannel> MessagePort::DisentanglePorts(
   }
 
   // Passed-in ports passed validity checks, so we can disentangle them.
-  std::vector<blink::MessagePortChannel> channels;
-  channels.reserve(ports.size());
-  for (auto port : ports)
-    channels.push_back(port->Disentangle());
-  return channels;
+  return base::ToVector(ports, [](auto& port) { return port->Disentangle(); });
 }
 
 void MessagePort::Pin() {

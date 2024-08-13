@@ -21,21 +21,21 @@ class MediaCaptureDevicesDispatcher
   static MediaCaptureDevicesDispatcher* GetInstance();
 
   // Overridden from content::MediaObserver:
-  void OnAudioCaptureDevicesChanged() override;
-  void OnVideoCaptureDevicesChanged() override;
+  void OnAudioCaptureDevicesChanged() override {}
+  void OnVideoCaptureDevicesChanged() override {}
   void OnMediaRequestStateChanged(int render_process_id,
                                   int render_view_id,
                                   int page_request_id,
                                   const GURL& security_origin,
                                   blink::mojom::MediaStreamType stream_type,
-                                  content::MediaRequestState state) override;
+                                  content::MediaRequestState state) override {}
   void OnCreatingAudioStream(int render_process_id,
-                             int render_view_id) override;
+                             int render_view_id) override {}
   void OnSetCapturingLinkSecured(int render_process_id,
                                  int render_frame_id,
                                  int page_request_id,
                                  blink::mojom::MediaStreamType stream_type,
-                                 bool is_secure) override;
+                                 bool is_secure) override {}
   const std::optional<blink::MediaStreamDevice>
   GetPreferredAudioDeviceForBrowserContext(
       content::BrowserContext* browser_context,

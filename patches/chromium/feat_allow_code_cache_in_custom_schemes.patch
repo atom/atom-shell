@@ -140,17 +140,20 @@ index e0cdc785d2557bc79bde98728c23c239ed8d0961..74e0acbea1e0c18a6ac8971170efc945
  
      // JavaScript from chrome and chrome-untrusted pages. The resource URLs are
 diff --git a/content/browser/code_cache/generated_code_cache_browsertest.cc b/content/browser/code_cache/generated_code_cache_browsertest.cc
-index b6dd7405a5c9275ab699d4b347759427b30ef594..253918a2e54c98ce0075bce4e1a52134032ce367 100644
+index 61c8b54bc5a9ea59c90e8627ab01745e0c328382..f9521b7aac19bf3994517906b85fc92800b18003 100644
 --- a/content/browser/code_cache/generated_code_cache_browsertest.cc
 +++ b/content/browser/code_cache/generated_code_cache_browsertest.cc
-@@ -8,13 +8,18 @@
- #include "content/browser/code_cache/generated_code_cache.h"
+@@ -11,17 +11,22 @@
+ #include "base/time/time.h"
  #include "content/browser/code_cache/generated_code_cache_context.h"
  #include "content/browser/renderer_host/code_cache_host_impl.h"
 +#include "content/browser/storage_partition_impl.h"
+ #include "content/browser/web_contents/web_contents_impl.h"
+ #include "content/common/renderer.mojom.h"
 +#include "content/common/url_schemes.h"
  #include "content/public/browser/browser_context.h"
 +#include "content/public/browser/browser_thread.h"
+ #include "content/public/browser/render_process_host.h"
  #include "content/public/browser/storage_partition.h"
  #include "content/public/test/browser_test.h"
  #include "content/public/test/browser_test_utils.h"
@@ -158,11 +161,12 @@ index b6dd7405a5c9275ab699d4b347759427b30ef594..253918a2e54c98ce0075bce4e1a52134
  #include "content/public/test/content_browser_test_utils.h"
 +#include "content/public/test/test_browser_context.h"
  #include "content/shell/browser/shell.h"
+ #include "content/test/content_browser_test_utils_internal.h"
 +#include "content/test/test_content_client.h"
  #include "net/dns/mock_host_resolver.h"
  #include "third_party/blink/public/common/features.h"
  #include "third_party/blink/public/common/page/v8_compile_hints_histograms.h"
-@@ -23,6 +28,8 @@ namespace content {
+@@ -30,6 +35,8 @@ namespace content {
  
  namespace {
  
@@ -171,7 +175,7 @@ index b6dd7405a5c9275ab699d4b347759427b30ef594..253918a2e54c98ce0075bce4e1a52134
  bool SupportsSharedWorker() {
  #if BUILDFLAG(IS_ANDROID)
    // SharedWorkers are not enabled on Android. https://crbug.com/154571
-@@ -714,4 +721,82 @@ IN_PROC_BROWSER_TEST_F(LocalCompileHintsBrowserTest, LocalCompileHints) {
+@@ -875,4 +882,82 @@ IN_PROC_BROWSER_TEST_F(LocalCompileHintsBrowserTest, LocalCompileHints) {
    }
  }
  

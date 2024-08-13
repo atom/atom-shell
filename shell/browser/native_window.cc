@@ -439,45 +439,21 @@ bool NativeWindow::IsTabletMode() const {
   return false;
 }
 
-void NativeWindow::SetRepresentedFilename(const std::string& filename) {}
-
 std::string NativeWindow::GetRepresentedFilename() const {
   return "";
 }
-
-void NativeWindow::SetDocumentEdited(bool edited) {}
 
 bool NativeWindow::IsDocumentEdited() const {
   return false;
 }
 
-void NativeWindow::SetFocusable(bool focusable) {}
-
 bool NativeWindow::IsFocusable() const {
   return false;
 }
 
-void NativeWindow::SetMenu(ElectronMenuModel* menu) {}
-
 void NativeWindow::SetParentWindow(NativeWindow* parent) {
   parent_ = parent;
 }
-
-void NativeWindow::InvalidateShadow() {}
-
-void NativeWindow::SetAutoHideCursor(bool auto_hide) {}
-
-void NativeWindow::SelectPreviousTab() {}
-
-void NativeWindow::SelectNextTab() {}
-
-void NativeWindow::ShowAllTabs() {}
-
-void NativeWindow::MergeAllWindows() {}
-
-void NativeWindow::MoveTabToNewWindow() {}
-
-void NativeWindow::ToggleTabBar() {}
 
 bool NativeWindow::AddTabbedWindow(NativeWindow* window) {
   return true;  // for non-Mac platforms
@@ -498,18 +474,12 @@ void NativeWindow::SetBackgroundMaterial(const std::string& type) {
 void NativeWindow::SetTouchBar(
     std::vector<gin_helper::PersistentDictionary> items) {}
 
-void NativeWindow::RefreshTouchBarItem(const std::string& item_id) {}
-
 void NativeWindow::SetEscapeTouchBarItem(
     gin_helper::PersistentDictionary item) {}
-
-void NativeWindow::SetAutoHideMenuBar(bool auto_hide) {}
 
 bool NativeWindow::IsMenuBarAutoHide() const {
   return false;
 }
-
-void NativeWindow::SetMenuBarVisibility(bool visible) {}
 
 bool NativeWindow::IsMenuBarVisible() const {
   return true;
@@ -520,11 +490,6 @@ void NativeWindow::SetAspectRatio(double aspect_ratio,
   aspect_ratio_ = aspect_ratio;
   aspect_ratio_extraSize_ = extra_size;
 }
-
-void NativeWindow::PreviewFile(const std::string& path,
-                               const std::string& display_name) {}
-
-void NativeWindow::CloseFilePreview() {}
 
 std::optional<gfx::Rect> NativeWindow::GetWindowControlsOverlayRect() {
   return overlay_rect_;

@@ -127,7 +127,8 @@ jobs:
         cd src
         gn check out/Default //electron:electron_lib
         gn check out/Default //electron:electron_app
-        gn check out/Default //electron/shell/common/api:mojo
+        gn check out/Default //electron/shell/common:mojo
+        gn check out/Default //electron/shell/common:plugin
 
         # Check the hunspell filenames
         node electron/script/gen-hunspell-filenames.js --check

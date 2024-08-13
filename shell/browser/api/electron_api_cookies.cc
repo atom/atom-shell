@@ -30,6 +30,7 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/gin_helper/promise.h"
+#include "url/url_util.h"
 
 namespace gin {
 
@@ -100,25 +101,12 @@ namespace electron::api {
 
 namespace {
 
-// Returns whether |domain| matches |filter|.
-bool MatchesDomain(std::string filter, const std::string& domain) {
-  // Add a leading '.' character to the filter domain if it doesn't exist.
-  if (net::cookie_util::DomainIsHostOnly(filter))
-    filter.insert(0, ".");
-
-  std::string sub_domain(domain);
+bool DomainIs(std::string_view host, const std::string_view domain) {
   // Strip any leading '.' character from the input cookie domain.
-  if (!net::cookie_util::DomainIsHostOnly(sub_domain))
-    sub_domain = sub_domain.substr(1);
+  if (host.starts_with('.'))
+    host.remove_prefix(1);
 
-  // Now check whether the domain argument is a subdomain of the filter domain.
-  for (sub_domain.insert(0, "."); sub_domain.length() >= filter.length();) {
-    if (sub_domain == filter)
-      return true;
-    const size_t next_dot = sub_domain.find('.', 1);  // Skip over leading dot.
-    sub_domain.erase(0, next_dot);
-  }
-  return false;
+  return url::DomainIs(host, domain);
 }
 
 // Returns whether |cookie| matches |filter|.
@@ -129,8 +117,7 @@ bool MatchesCookie(const base::Value::Dict& filter,
     return false;
   if ((str = filter.FindString("path")) && *str != cookie.Path())
     return false;
-  if ((str = filter.FindString("domain")) &&
-      !MatchesDomain(*str, cookie.Domain()))
+  if ((str = filter.FindString("domain")) && !DomainIs(cookie.Domain(), *str))
     return false;
   std::optional<bool> secure_filter = filter.FindBool("secure");
   if (secure_filter && *secure_filter != cookie.SecureAttribute())

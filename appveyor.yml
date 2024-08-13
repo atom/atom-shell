@@ -29,7 +29,7 @@
 
 version: 1.0.{build}
 build_cloud: electronhq-16-core
-image: e-129.0.6636.0
+image: e-129.0.6644.0
 environment:
   GIT_CACHE_PATH: C:\Users\appveyor\libcc_cache
   ELECTRON_OUT_DIR: Default
@@ -138,7 +138,8 @@ for:
       - gn gen out/Default "--args=import(\"%BUILD_CONFIG_PATH%\") use_remoteexec=true %GN_EXTRA_ARGS% "
       - gn check out/Default //electron:electron_lib
       - gn check out/Default //electron:electron_app
-      - gn check out/Default //electron/shell/common/api:mojo
+      - gn check out/Default //electron/shell/common:mojo
+      - gn check out/Default //electron/shell/common:plugin
       - if DEFINED ELECTRON_RBE_JWT (autoninja -j 300 -C out/Default electron:electron_app) else (autoninja -C out/Default electron:electron_app)
       - if "%GN_CONFIG%"=="testing" ( python C:\depot_tools\post_build_ninja_summary.py -C out\Default )
       - gn gen out/ffmpeg "--args=import(\"//electron/build/args/ffmpeg.gn\") use_remoteexec=true %GN_EXTRA_ARGS%"

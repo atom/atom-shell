@@ -14,10 +14,10 @@ This patch likely can't be upstreamed as-is, as Chromium doesn't have
 this use case in mind currently.
 
 diff --git a/ui/views/win/hwnd_message_handler.cc b/ui/views/win/hwnd_message_handler.cc
-index 16b2e484757c686f6cfb5b2b014b406c3e0d21ae..ff9770991c6d1ceec19ce2e2f199475f5eaddada 100644
+index 04b1419df5769716de7669b67e7a7f32546813c6..78c39f1659fed684dcaa3abcca9bd8592f4ed94f 100644
 --- a/ui/views/win/hwnd_message_handler.cc
 +++ b/ui/views/win/hwnd_message_handler.cc
-@@ -906,13 +906,13 @@ void HWNDMessageHandler::FrameTypeChanged() {
+@@ -907,13 +907,13 @@ void HWNDMessageHandler::FrameTypeChanged() {
  
  void HWNDMessageHandler::PaintAsActiveChanged() {
    if (!delegate_->HasNonClientView() || !delegate_->CanActivate() ||
@@ -33,7 +33,7 @@ index 16b2e484757c686f6cfb5b2b014b406c3e0d21ae..ff9770991c6d1ceec19ce2e2f199475f
  }
  
  void HWNDMessageHandler::SetWindowIcons(const gfx::ImageSkia& window_icon,
-@@ -2251,17 +2251,18 @@ LRESULT HWNDMessageHandler::OnNCActivate(UINT message,
+@@ -2252,17 +2252,18 @@ LRESULT HWNDMessageHandler::OnNCActivate(UINT message,
    if (IsVisible())
      delegate_->SchedulePaint();
  

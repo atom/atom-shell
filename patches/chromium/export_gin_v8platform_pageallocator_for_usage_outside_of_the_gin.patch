@@ -9,7 +9,7 @@ correctly tagged with MAP_JIT we need to use gins page allocator instead
 of the default V8 allocator.  This probably can't be usptreamed.
 
 diff --git a/gin/public/v8_platform.h b/gin/public/v8_platform.h
-index 4a7725f038b00f6a7e2ba8edcda711a4c5b42628..addc8683b12eeef9deb5b7e0e816fdaca53511aa 100644
+index c34f34146d0aab681318b64ac33081bdc21ce7d6..11cdf6c34d8f79fcf293f59785e586dc8363b983 100644
 --- a/gin/public/v8_platform.h
 +++ b/gin/public/v8_platform.h
 @@ -32,6 +32,7 @@ class GIN_EXPORT V8Platform : public v8::Platform {
@@ -21,10 +21,10 @@ index 4a7725f038b00f6a7e2ba8edcda711a4c5b42628..addc8683b12eeef9deb5b7e0e816fdac
    ThreadIsolatedAllocator* GetThreadIsolatedAllocator() override;
  #endif
 diff --git a/gin/v8_platform.cc b/gin/v8_platform.cc
-index 9d9b8cbc6088be42beefd251ed86c64145b56eba..e3364349f371488428bec3a707bba17e5fa4eda0 100644
+index 05dcdd46bfc63f0aba85425df4f7d9fbe4d4a94f..0519c41803dbe03fdee4eee3765bc5abb60debd2 100644
 --- a/gin/v8_platform.cc
 +++ b/gin/v8_platform.cc
-@@ -205,6 +205,10 @@ ThreadIsolatedAllocator* V8Platform::GetThreadIsolatedAllocator() {
+@@ -204,6 +204,10 @@ ThreadIsolatedAllocator* V8Platform::GetThreadIsolatedAllocator() {
  }
  #endif  // PA_BUILDFLAG(ENABLE_THREAD_ISOLATION)
  

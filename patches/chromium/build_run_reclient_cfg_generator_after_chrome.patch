@@ -9,6 +9,16 @@ their generator to run ours immediately after.
 This can't be upstreamed though may be replaceable later with some upstream refactors
 around reclient config generation.
 
+diff --git a/buildtools/reclient_cfgs/.gitignore b/buildtools/reclient_cfgs/.gitignore
+index 17103061c4752e6fcac07413dbf574e0c6fd6d39..848be71fa6dc81a64b7274b31d461f9dcc4697fc 100644
+--- a/buildtools/reclient_cfgs/.gitignore
++++ b/buildtools/reclient_cfgs/.gitignore
+@@ -1,4 +1,5 @@
+ /chromium-browser-clang/
+ /python/
++/nacl/
+ /win-cross/
+ reproxy.cfg
 diff --git a/buildtools/reclient_cfgs/configure_reclient_cfgs.py b/buildtools/reclient_cfgs/configure_reclient_cfgs.py
 index ba44640480e758d4ed8c9115497a2c09074918b4..837158cbbeb9120b7456aefc516eb3db6a38558c 100755
 --- a/buildtools/reclient_cfgs/configure_reclient_cfgs.py
@@ -28,3 +38,19 @@ index ba44640480e758d4ed8c9115497a2c09074918b4..837158cbbeb9120b7456aefc516eb3db
 +        sys.exit(r)
 +
 +    print('done')
+diff --git a/buildtools/reclient_cfgs/nacl/rewrapper_linux.cfg b/buildtools/reclient_cfgs/nacl/rewrapper_linux.cfg
+deleted file mode 100644
+index f4690257587ee8a83111abc39039c3d552da0979..0000000000000000000000000000000000000000
+--- a/buildtools/reclient_cfgs/nacl/rewrapper_linux.cfg
++++ /dev/null
+@@ -1,10 +0,0 @@
+-# use the same platform container image as build/config/siso/main.star
+-platform=container-image=docker://gcr.io/chops-public-images-prod/rbe/siso-chromium/linux@sha256:912808c295e578ccde53b0685bcd0d56c15d7a03e819dcce70694bfe3fdab35e,label:action_default=1
+-server_address=unix:///tmp/reproxy.sock
+-labels=type=compile,compiler=nacl,lang=cpp
+-exec_strategy=racing
+-inputs=native_client/toolchain/linux_x86/saigo_newlib/lib
+-dial_timeout=10m
+-canonicalize_working_dir=true
+-exec_timeout=2m
+-reclient_timeout=4m

@@ -6,7 +6,6 @@ import("//build/config/ozone.gni")
 import("//build/config/ui.gni")
 import("//components/spellcheck/spellcheck_build_features.gni")
 import("//electron/buildflags/buildflags.gni")
-import("//ppapi/buildflags/buildflags.gni")
 import("//printing/buildflags/buildflags.gni")
 import("//third_party/widevine/cdm/widevine.gni")
 
@@ -418,46 +417,6 @@ static_library("chrome") {
     } else {
       sources += [ "//chrome/browser/hang_monitor/hang_crash_dump.cc" ]
     }
-  }
-}
-
-source_set("plugins") {
-  sources = []
-  deps = []
-  frameworks = []
-
-  # browser side
-  sources += [
-    "//chrome/browser/renderer_host/pepper/chrome_browser_pepper_host_factory.cc",
-    "//chrome/browser/renderer_host/pepper/chrome_browser_pepper_host_factory.h",
-    "//chrome/browser/renderer_host/pepper/pepper_isolated_file_system_message_filter.cc",
-    "//chrome/browser/renderer_host/pepper/pepper_isolated_file_system_message_filter.h",
-  ]
-
-  # renderer side
-  sources += [
-    "//chrome/renderer/pepper/chrome_renderer_pepper_host_factory.cc",
-    "//chrome/renderer/pepper/chrome_renderer_pepper_host_factory.h",
-    "//chrome/renderer/pepper/pepper_shared_memory_message_filter.cc",
-    "//chrome/renderer/pepper/pepper_shared_memory_message_filter.h",
-  ]
-
-  deps += [
-    "//components/strings",
-    "//media:media_buildflags",
-    "//services/device/public/mojom",
-    "//skia",
-    "//storage/browser",
-  ]
-
-  if (enable_ppapi) {
-    deps += [
-      "//ppapi/buildflags",
-      "//ppapi/host",
-      "//ppapi/proxy",
-      "//ppapi/proxy:ipc",
-      "//ppapi/shared_impl",
-    ]
   }
 }
 

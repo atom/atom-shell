@@ -118,14 +118,9 @@ bool SpellCheckClient::IsSpellCheckingEnabled() const {
   return true;
 }
 
-void SpellCheckClient::ShowSpellingUI(bool show) {}
-
 bool SpellCheckClient::IsShowingSpellingUI() {
   return false;
 }
-
-void SpellCheckClient::UpdateSpellingUIWithMisspelledWord(
-    const blink::WebString& word) {}
 
 void SpellCheckClient::SpellCheckText() {
   const auto& text = pending_request_param_->text();

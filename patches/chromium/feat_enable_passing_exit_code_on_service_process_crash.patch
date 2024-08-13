@@ -76,10 +76,10 @@ index 45cf31157c535a0cdc9236a07e2ffffd166ba412..9c89cdb3a290a7b0e68539ccd5383f2a
  void ServiceProcessHost::RemoveObserver(Observer* observer) {
    GetServiceProcessTracker().RemoveObserver(observer);
 diff --git a/content/browser/utility_process_host.cc b/content/browser/utility_process_host.cc
-index 6f5984fe4b555cd581fb8fd677213b1ddc0720fa..61d57482e244e32bc86c74574f0e77a0b39d72f2 100644
+index 8550dbc7209c1ac2b6a4b6d493167cfc05d8adbc..3645f00d581d075fd9944c55de0c044b01945867 100644
 --- a/content/browser/utility_process_host.cc
 +++ b/content/browser/utility_process_host.cc
-@@ -509,7 +509,7 @@ void UtilityProcessHost::OnProcessCrashed(int exit_code) {
+@@ -510,7 +510,7 @@ void UtilityProcessHost::OnProcessCrashed(int exit_code) {
    // Take ownership of |client_| so the destructor doesn't notify it of
    // termination.
    auto client = std::move(client_);

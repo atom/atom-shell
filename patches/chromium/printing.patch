@@ -11,10 +11,10 @@ majority of changes originally come from these PRs:
 This patch also fixes callback for manual user cancellation and success.
 
 diff --git a/BUILD.gn b/BUILD.gn
-index e9fdcaea286437d0ad32efceb3860a75da39e270..132ca4c31a19e90cc4f65ce666cf95637f702dab 100644
+index 1845333d12696aaabc798b3c58e34f8ef3f77e4e..664a43872d8016be7744bcf8d09f7b436862b949 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
-@@ -1001,7 +1001,6 @@ if (is_win) {
+@@ -998,7 +998,6 @@ if (is_win) {
        "//media:media_unittests",
        "//media/midi:midi_unittests",
        "//net:net_unittests",
@@ -22,7 +22,7 @@ index e9fdcaea286437d0ad32efceb3860a75da39e270..132ca4c31a19e90cc4f65ce666cf9563
        "//sql:sql_unittests",
        "//third_party/breakpad:symupload",
        "//ui/base:ui_base_unittests",
-@@ -1010,6 +1009,10 @@ if (is_win) {
+@@ -1007,6 +1006,10 @@ if (is_win) {
        "//ui/views:views_unittests",
        "//url:url_unittests",
      ]
@@ -873,10 +873,10 @@ index 14de029740ffbebe06d309651c1a2c007d9fb96b..e9bf9c5bef2a9235260e7d6c8d26d415
    ScriptingThrottler scripting_throttler_;
  
 diff --git a/content/browser/BUILD.gn b/content/browser/BUILD.gn
-index 68b325f7d504571b81a13877654d1b1852057417..5120a7f0a9511ac2d8851f644ef02b59fb03a10e 100644
+index 091a8e4cac4fab9a5980f64ec226df0363eff8fb..0c3137df842e340a2060e2d175ff84cf753c3daf 100644
 --- a/content/browser/BUILD.gn
 +++ b/content/browser/BUILD.gn
-@@ -2987,8 +2987,9 @@ source_set("browser") {
+@@ -3012,8 +3012,9 @@ source_set("browser") {
        "//ppapi/shared_impl",
      ]
  
@@ -925,10 +925,10 @@ index 63f170c95050416c595e62f4c460c4cd6b7dbd1c..157e3d046889f9c63fdf0fd5d503890f
    virtual mojom::ResultCode OnError();
  
 diff --git a/sandbox/policy/mac/sandbox_mac.mm b/sandbox/policy/mac/sandbox_mac.mm
-index e89fd87753bad3c5663fa53f8dcc4542e7e307e5..2b433a0705234af6f9808ee741a9795d5e251785 100644
+index 8bb26f3212d406419d957250adbaf4cb682df801..2345917c71ddf7fda171672b736724087fc873e8 100644
 --- a/sandbox/policy/mac/sandbox_mac.mm
 +++ b/sandbox/policy/mac/sandbox_mac.mm
-@@ -38,6 +38,10 @@
+@@ -35,6 +35,10 @@
  #include "sandbox/policy/mac/utility.sb.h"
  #include "sandbox/policy/mojom/sandbox.mojom.h"
  

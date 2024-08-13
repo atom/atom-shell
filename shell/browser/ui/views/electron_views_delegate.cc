@@ -64,10 +64,6 @@ ViewsDelegate::CreateDefaultNonClientFrameView(views::Widget* widget) {
   return nullptr;
 }
 
-void ViewsDelegate::AddRef() {}
-
-void ViewsDelegate::ReleaseRef() {}
-
 void ViewsDelegate::OnBeforeWidgetInit(
     views::Widget::InitParams* params,
     views::internal::NativeWidgetDelegate* delegate) {

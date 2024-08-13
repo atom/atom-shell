@@ -34,7 +34,6 @@
 #include "content/browser/keyboard_lock/keyboard_lock_service_impl.h"  // nogncheck
 #include "content/browser/site_instance_impl.h"  // nogncheck
 #include "content/public/browser/browser_main_runner.h"
-#include "content/public/browser/browser_ppapi_host.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/browser/client_certificate_delegate.h"
 #include "content/public/browser/login_delegate.h"
@@ -59,10 +58,9 @@
 #include "extensions/browser/extension_navigation_ui_data.h"
 #include "extensions/common/extension_id.h"
 #include "mojo/public/cpp/bindings/binder_map.h"
+#include "mojo/public/cpp/bindings/self_owned_associated_receiver.h"
 #include "net/ssl/ssl_cert_request_info.h"
 #include "net/ssl/ssl_private_key.h"
-#include "ppapi/buildflags/buildflags.h"
-#include "ppapi/host/ppapi_host.h"
 #include "printing/buildflags/buildflags.h"
 #include "services/device/public/cpp/geolocation/geolocation_system_permission_manager.h"
 #include "services/device/public/cpp/geolocation/location_provider.h"
@@ -86,6 +84,7 @@
 #include "shell/browser/electron_browser_context.h"
 #include "shell/browser/electron_browser_main_parts.h"
 #include "shell/browser/electron_navigation_throttle.h"
+#include "shell/browser/electron_plugin_info_host_impl.h"
 #include "shell/browser/electron_speech_recognition_manager_delegate.h"
 #include "shell/browser/electron_web_contents_utility_handler_impl.h"
 #include "shell/browser/font_defaults.h"
@@ -117,6 +116,7 @@
 #include "shell/common/logging.h"
 #include "shell/common/options_switches.h"
 #include "shell/common/platform_util.h"
+#include "shell/common/plugin.mojom.h"
 #include "shell/common/thread_restrictions.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
 #include "third_party/blink/public/common/loader/url_loader_throttle.h"
@@ -579,9 +579,6 @@ void ElectronBrowserClient::AppendExtraCommandLineSwitches(
     }
   }
 }
-
-void ElectronBrowserClient::DidCreatePpapiPlugin(
-    content::BrowserPpapiHost* host) {}
 
 // attempt to get api key from env
 std::string ElectronBrowserClient::GetGeolocationApiKey() {
@@ -1458,6 +1455,16 @@ void ElectronBrowserClient::
                  receiver) {
             AutofillDriverFactory::BindAutofillDriver(std::move(receiver),
                                                       render_frame_host);
+          },
+          &render_frame_host));
+  associated_registry.AddInterface<mojom::ElectronPluginInfoHost>(
+      base::BindRepeating(
+          [](content::RenderFrameHost* render_frame_host,
+             mojo::PendingAssociatedReceiver<mojom::ElectronPluginInfoHost>
+                 receiver) {
+            mojo::MakeSelfOwnedAssociatedReceiver(
+                std::make_unique<ElectronPluginInfoHostImpl>(),
+                std::move(receiver));
           },
           &render_frame_host));
 #if BUILDFLAG(ENABLE_PRINTING)

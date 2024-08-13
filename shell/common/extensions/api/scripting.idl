@@ -4,7 +4,6 @@
 
 // Use the <code>chrome.scripting</code> API to execute script in different
 // contexts.
-[modernised_enums]
 namespace scripting {
   callback InjectedFunction = void();
 
@@ -49,11 +48,11 @@ namespace scripting {
     // A JavaScript function to inject. This function will be serialized, and
     // then deserialized for injection. This means that any bound parameters
     // and execution context will be lost.
-    // Exactly one of <code>files</code> and <code>func</code> must be
+    // Exactly one of <code>files</code> or <code>func</code> must be
     // specified.
     [serializableFunction]InjectedFunction? func;
 
-    // The arguments to curry into a provided function. This is only valid if
+    // The arguments to pass to the provided function. This is only valid if
     // the <code>func</code> parameter is specified. These arguments must be
     // JSON-serializable.
     any[]? args;
@@ -67,7 +66,7 @@ namespace scripting {
 
     // The path of the JS or CSS files to inject, relative to the extension's
     // root directory.
-    // Exactly one of <code>files</code> and <code>func</code> must be
+    // Exactly one of <code>files</code> or <code>func</code> must be
     // specified.
     DOMString[]? files;
 
@@ -122,13 +121,13 @@ namespace scripting {
     // with a '_' as it's reserved as a prefix for generated script IDs.
     DOMString id;
     // Specifies which pages this content script will be injected into. See
-    // <a href="match_patterns">Match Patterns</a> for more details on the
-    // syntax of these strings. Must be specified for
+    // <a href="develop/concepts/match-patterns">Match Patterns</a> for more
+    // details on the syntax of these strings. Must be specified for
     // $(ref:registerContentScripts).
     DOMString[]? matches;
     // Excludes pages that this content script would otherwise be injected into.
-    // See <a href="match_patterns">Match Patterns</a> for more details on the
-    // syntax of these strings.
+    // See <a href="develop/concepts/match-patterns">Match Patterns</a> for
+    // more details on the syntax of these strings.
     DOMString[]? excludeMatches;
     // The list of CSS files to be injected into matching pages. These are
     // injected in the order they appear in this array, before any DOM is
@@ -143,15 +142,13 @@ namespace scripting {
     // requirements are not met. Defaults to false, meaning that only the top
     // frame is matched.
     boolean? allFrames;
-    // Whether the script should inject into any frames where the URL belongs to
-    // a scheme that would never match a specified Match Pattern, including
-    // about:, data:, blob:, and filesystem: schemes. In these cases, in order
-    // to determine if the script should inject, the origin of the URL is
-    // checked. If the origin is `null` (as is the case for data: URLs), then
-    // the "initiator" or "creator" origin is used (i.e., the origin of the
-    // frame that created or navigated this frame). Note that this may not
-    // be the parent frame, if the frame was navigated by another frame in the
-    // document hierarchy.
+    // Indicates whether the script can be injected into frames where the URL
+    // contains an unsupported scheme; specifically: about:, data:, blob:, or
+    // filesystem:. In these cases, the URL's origin is checked to determine if
+    // the script should be injected. If the origin is `null` (as is the case
+    // for data: URLs) then the used origin is either the frame that created
+    // the current frame or the frame that initiated the navigation to this
+    // frame. Note that this may not be the parent frame.
     boolean? matchOriginAsFallback;
     // Specifies when JavaScript files are injected into the web page. The
     // preferred and default value is <code>document_idle</code>.
@@ -190,20 +187,22 @@ namespace scripting {
     // and modify as a JS object. One instance exists per frame and is shared
     // between all content scripts for a given extension. This object is
     // initialized when the frame is created, before document_start.
-    // TODO(crbug.com/1054624): Enable this once implementation is complete.
+    // TODO(crbug.com/40119604): Enable this once implementation is complete.
     [nodoc, nocompile] static long globalParams();
   };
 
   interface Functions {
-    // Injects a script into a target context. The script will be run at
-    // <code>document_idle</code>. If the script evaluates to a promise,
-    // the browser will wait for the promise to settle and return the
-    // resulting value.
+    // Injects a script into a target context. By default, the script will be run
+    // at <code>document_idle</code>, or immediately if the page has already
+    // loaded. If the <code>injectImmediately</code> property is set, the script
+    // will inject without waiting, even if the page has not finished loading. If
+    // the script evaluates to a promise, the browser will wait for the promise to
+    // settle and return the resulting value.
     // |injection|: The details of the script which to inject.
     // |callback|: Invoked upon completion of the injection. The resulting
     // array contains the result of execution for each frame where the
     // injection succeeded.
-    [supportsPromises] static void executeScript(
+    static void executeScript(
         ScriptInjection injection,
         optional ScriptInjectionCallback callback);
 
@@ -211,7 +210,7 @@ namespace scripting {
     // If multiple frames are specified, unsuccessful injections are ignored.
     // |injection|: The details of the styles to insert.
     // |callback|: Invoked upon completion of the insertion.
-    [supportsPromises] static void insertCSS(
+    static void insertCSS(
         CSSInjection injection,
         optional CSSInjectionCallback callback);
 
@@ -222,7 +221,7 @@ namespace scripting {
     // must exactly match the stylesheet inserted through $(ref:insertCSS).
     // Attempting to remove a non-existent stylesheet is a no-op.
     // |callback|: A callback to be invoked upon the completion of the removal.
-    [supportsPromises] static void removeCSS(
+    static void removeCSS(
         CSSInjection injection,
         optional CSSInjectionCallback callback);
 
@@ -232,7 +231,7 @@ namespace scripting {
     // already exist, then no scripts are registered.
     // |callback|: A callback to be invoked once scripts have been fully
     // registered or if an error has occurred.
-    [supportsPromises] static void registerContentScripts(
+    static void registerContentScripts(
         RegisteredContentScript[] scripts,
         optional RegisterContentScriptsCallback callback);
 
@@ -240,7 +239,7 @@ namespace scripting {
     // that match the given filter.
     // |filter|: An object to filter the extension's dynamically registered
     // scripts.
-    [supportsPromises] static void getRegisteredContentScripts(
+    static void getRegisteredContentScripts(
         optional ContentScriptFilter filter,
         GetRegisteredContentScriptsCallback callback);
 
@@ -250,7 +249,7 @@ namespace scripting {
     // scripts are unregistered.
     // |callback|: A callback to be invoked once scripts have been unregistered
     // or if an error has occurred.
-    [supportsPromises] static void unregisterContentScripts(
+    static void unregisterContentScripts(
         optional ContentScriptFilter filter,
         optional UnregisterContentScriptsCallback callback);
 
@@ -262,7 +261,7 @@ namespace scripting {
     // are updated.
     // |callback|: A callback to be invoked once scripts have been updated or
     // if an error has occurred.
-    [supportsPromises] static void updateContentScripts(
+    static void updateContentScripts(
         RegisteredContentScript[] scripts,
         optional RegisterContentScriptsCallback callback);
   };

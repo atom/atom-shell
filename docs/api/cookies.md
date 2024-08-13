@@ -74,7 +74,7 @@ The following methods are available on instances of `Cookies`:
     `url`. Empty implies retrieving cookies of all URLs.
   * `name` string (optional) - Filters cookies by name.
   * `domain` string (optional) - Retrieves cookies whose domains match or are
-    subdomains of `domains`.
+    subdomains of `domain`.
   * `path` string (optional) - Retrieves cookies whose path matches `path`.
   * `secure` boolean (optional) - Filters cookies by their Secure property.
   * `session` boolean (optional) - Filters out session or persistent cookies.

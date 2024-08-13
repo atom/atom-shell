@@ -42,6 +42,10 @@
 #include "ui/gfx/x/randr.h"
 #endif
 
+#if BUILDFLAG(IS_MAC)
+#include "ui/base/cocoa/permissions_utils.h"
+#endif
+
 #if BUILDFLAG(IS_LINUX)
 // Private function in ui/base/x/x11_display_util.cc
 base::flat_map<x11::RandR::Output, int> GetMonitors(
@@ -305,6 +309,13 @@ void DesktopCapturer::StartHandling(bool capture_window,
   capture_window_ = capture_window;
   capture_screen_ = capture_screen;
 
+#if BUILDFLAG(IS_MAC)
+  if (!ui::TryPromptUserForScreenCapture()) {
+    HandleFailure();
+    return;
+  }
+#endif
+
   {
     // Initialize the source list.
     // Apply the new thumbnail size and restart capture.
@@ -456,21 +467,25 @@ void DesktopCapturer::UpdateSourcesList(DesktopMediaList* list) {
               std::back_inserter(captured_sources_));
   }
 
-  if (!capture_window_ && !capture_screen_) {
-    v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
-    v8::HandleScope scope(isolate);
-    gin_helper::CallMethod(this, "_onfinished", captured_sources_);
+  if (!capture_window_ && !capture_screen_)
+    HandleSuccess();
+}
 
-    screen_capturer_.reset();
-    window_capturer_.reset();
+void DesktopCapturer::HandleSuccess() {
+  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
+  v8::HandleScope scope(isolate);
+  gin_helper::CallMethod(this, "_onfinished", captured_sources_);
 
-    Unpin();
-  }
+  screen_capturer_.reset();
+  window_capturer_.reset();
+
+  Unpin();
 }
 
 void DesktopCapturer::HandleFailure() {
   v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
   v8::HandleScope scope(isolate);
+
   gin_helper::CallMethod(this, "_onerror", "Failed to get sources.");
 
   screen_capturer_.reset();

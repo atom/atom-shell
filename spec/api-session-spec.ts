@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import * as crypto from 'node:crypto';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as path from 'node:path';
@@ -124,6 +125,54 @@ describe('session module', () => {
       await cookies.set({ url, name, value, expirationDate: (Date.now()) / 1000 + 120 });
       const cs = await cookies.get({ domain: '127.0.0.1' });
       expect(cs.some(c => c.name === name && c.value === value)).to.equal(true);
+    });
+
+    it('does not match on empty domain filter strings', async () => {
+      const { cookies } = session.defaultSession;
+      const name = crypto.randomBytes(20).toString('hex');
+      const value = '1';
+      const url = 'https://microsoft.com/';
+
+      await cookies.set({ url, name, value });
+      const cs = await cookies.get({ domain: '' });
+      expect(cs.some(c => c.name === name && c.value === value)).to.equal(false);
+      cookies.remove(url, name);
+    });
+
+    it('gets domain-equal cookies', async () => {
+      const { cookies } = session.defaultSession;
+      const name = crypto.randomBytes(20).toString('hex');
+      const value = '1';
+      const url = 'https://microsoft.com/';
+
+      await cookies.set({ url, name, value });
+      const cs = await cookies.get({ domain: 'microsoft.com' });
+      expect(cs.some(c => c.name === name && c.value === value)).to.equal(true);
+      cookies.remove(url, name);
+    });
+
+    it('gets domain-inclusive cookies', async () => {
+      const { cookies } = session.defaultSession;
+      const name = crypto.randomBytes(20).toString('hex');
+      const value = '1';
+      const url = 'https://subdomain.microsoft.com/';
+
+      await cookies.set({ url, name, value });
+      const cs = await cookies.get({ domain: 'microsoft.com' });
+      expect(cs.some(c => c.name === name && c.value === value)).to.equal(true);
+      cookies.remove(url, name);
+    });
+
+    it('omits domain-exclusive cookies', async () => {
+      const { cookies } = session.defaultSession;
+      const name = crypto.randomBytes(20).toString('hex');
+      const value = '1';
+      const url = 'https://microsoft.com';
+
+      await cookies.set({ url, name, value });
+      const cs = await cookies.get({ domain: 'subdomain.microsoft.com' });
+      expect(cs.some(c => c.name === name && c.value === value)).to.equal(false);
+      cookies.remove(url, name);
     });
 
     it('rejects when setting a cookie with missing required fields', async () => {

@@ -90,8 +90,8 @@ class OffScreenRenderWidgetHostView
   gfx::NativeView GetNativeView(void) override;
   gfx::NativeViewAccessible GetNativeViewAccessible(void) override;
   ui::TextInputClient* GetTextInputClient() override;
-  void Focus(void) override;
-  bool HasFocus(void) override;
+  void Focus() override {}
+  bool HasFocus() override;
   uint32_t GetCaptureSequenceNumber() const override;
   bool IsSurfaceAvailableForCopy(void) override;
   void Hide(void) override;
@@ -99,27 +99,27 @@ class OffScreenRenderWidgetHostView
   void EnsureSurfaceSynchronizedForWebTest() override;
   gfx::Rect GetViewBounds(void) override;
   gfx::Size GetVisibleViewportSize() override;
-  void SetInsets(const gfx::Insets&) override;
+  void SetInsets(const gfx::Insets&) override {}
   void SetBackgroundColor(SkColor color) override;
   std::optional<SkColor> GetBackgroundColor() override;
-  void UpdateBackgroundColor() override;
+  void UpdateBackgroundColor() override {}
   blink::mojom::PointerLockResult LockPointer(
       bool request_unadjusted_movement) override;
   blink::mojom::PointerLockResult ChangePointerLock(
       bool request_unadjusted_movement) override;
-  void UnlockPointer(void) override;
+  void UnlockPointer(void) override {}
   void TakeFallbackContentFrom(content::RenderWidgetHostView* view) override;
 #if BUILDFLAG(IS_MAC)
-  void SetActive(bool active) override;
-  void ShowDefinitionForSelection() override;
-  void SpeakSelection() override;
-  void SetWindowFrameInScreen(const gfx::Rect& rect) override;
+  void SetActive(bool active) override {}
+  void ShowDefinitionForSelection() override {}
+  void SpeakSelection() override {}
+  void SetWindowFrameInScreen(const gfx::Rect& rect) override {}
   void ShowSharePicker(
       const std::string& title,
       const std::string& text,
       const std::string& url,
       const std::vector<std::string>& file_paths,
-      blink::mojom::ShareService::ShareCallback callback) override;
+      blink::mojom::ShareService::ShareCallback callback) override {}
   uint64_t GetNSViewId() const override;
   bool UpdateNSViewAndDisplay();
 #endif  // BUILDFLAG(IS_MAC)
@@ -131,25 +131,26 @@ class OffScreenRenderWidgetHostView
   void InitAsPopup(content::RenderWidgetHostView* parent_host_view,
                    const gfx::Rect& bounds,
                    const gfx::Rect& anchor_rect) override;
-  void UpdateCursor(const ui::Cursor&) override;
-  void SetIsLoading(bool is_loading) override;
-  void TextInputStateChanged(const ui::mojom::TextInputState& params) override;
-  void ImeCancelComposition(void) override;
+  void UpdateCursor(const ui::Cursor&) override {}
+  void SetIsLoading(bool is_loading) override {}
+  void TextInputStateChanged(const ui::mojom::TextInputState& params) override {
+  }
+  void ImeCancelComposition(void) override {}
   void RenderProcessGone() override;
   void ShowWithVisibility(content::PageVisibilityState page_visibility) final;
   void Destroy(void) override;
-  void UpdateTooltipUnderCursor(const std::u16string&) override;
+  void UpdateTooltipUnderCursor(const std::u16string&) override {}
   input::CursorManager* GetCursorManager() override;
   void CopyFromSurface(
       const gfx::Rect& src_rect,
       const gfx::Size& output_size,
       base::OnceCallback<void(const SkBitmap&)> callback) override;
   display::ScreenInfo GetScreenInfo() const override;
-  void TransformPointToRootSurface(gfx::PointF* point) override;
+  void TransformPointToRootSurface(gfx::PointF* point) override {}
   gfx::Rect GetBoundsInRootWindow(void) override;
   std::optional<content::DisplayFeature> GetDisplayFeature() override;
   void SetDisplayFeatureForTesting(
-      const content::DisplayFeature* display_feature) override;
+      const content::DisplayFeature* display_feature) override {}
   void NotifyHostAndDelegateOnWasShown(
       blink::mojom::RecordContentToVisibleTimeRequestPtr) final;
   void RequestSuccessfulPresentationTimeFromHostOrDelegate(
@@ -161,7 +162,7 @@ class OffScreenRenderWidgetHostView
   void ImeCompositionRangeChanged(
       const gfx::Range&,
       const std::optional<std::vector<gfx::Rect>>& character_bounds,
-      const std::optional<std::vector<gfx::Rect>>& line_bounds) override;
+      const std::optional<std::vector<gfx::Rect>>& line_bounds) override {}
   gfx::Size GetCompositorViewportPixelSize() override;
   ui::Compositor* GetCompositor() override;
 

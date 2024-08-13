@@ -77,7 +77,6 @@
 #include "mojo/public/cpp/bindings/pending_receiver.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "mojo/public/cpp/system/platform_handle.h"
-#include "ppapi/buildflags/buildflags.h"
 #include "printing/buildflags/buildflags.h"
 #include "services/resource_coordinator/public/cpp/memory_instrumentation/memory_instrumentation.h"
 #include "services/service_manager/public/cpp/interface_provider.h"
@@ -1327,14 +1326,6 @@ bool WebContents::IsFullscreen() const {
 void WebContents::EnterFullscreen(const GURL& url,
                                   ExclusiveAccessBubbleType bubble_type,
                                   const int64_t display_id) {}
-
-void WebContents::ExitFullscreen() {}
-
-void WebContents::UpdateExclusiveAccessBubble(
-    const ExclusiveAccessBubbleParams& params,
-    ExclusiveAccessBubbleHideCallback bubble_first_hide_callback) {}
-
-void WebContents::OnExclusiveAccessUserInput() {}
 
 content::WebContents* WebContents::GetWebContentsForExclusiveAccess() {
   return web_contents();

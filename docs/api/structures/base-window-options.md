@@ -139,8 +139,7 @@ Possible values are:
     -webkit-app-region: drag. This type is commonly used for splash screens.
   * The `notification` type creates a window that behaves like a system notification.
 * On macOS, possible types are `desktop`, `textured`, `panel`.
-  * The `textured` type adds metal gradient appearance
-    (`NSWindowStyleMaskTexturedBackground`).
+  * The `textured` type adds metal gradient appearance. This option is **deprecated**.
   * The `desktop` type places the window at the desktop background window level
     (`kCGDesktopWindowLevel - 1`). Note that desktop window will not receive
     focus, keyboard or mouse events, but you can use `globalShortcut` to receive

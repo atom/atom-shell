@@ -1,8 +1,7 @@
 import("//mojo/public/tools/bindings/mojom.gni")
-import("../../../buildflags/buildflags.gni")
 
 mojom("mojo") {
-  sources = [ "api.mojom" ]
+  sources = [ "api/api.mojom" ]
 
   public_deps = [
     "//mojo/public/mojom/base",
@@ -14,4 +13,16 @@ mojom("mojo") {
   # interfaces already included in blink_common.dll
   overridden_deps = [ "//third_party/blink/public/mojom:mojom_core" ]
   component_deps = [ "//third_party/blink/public/common" ]
+}
+
+mojom("plugin") {
+  # We don't want Blink variants of these bindings to be generated.
+  disable_variants = true
+
+  sources = [ "plugin.mojom" ]
+
+  public_deps = [
+    "//content/public/common:interfaces",
+    "//mojo/public/mojom/base",
+  ]
 }

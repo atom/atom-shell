@@ -102,7 +102,7 @@ class NativeWindowViews : public NativeWindow,
   std::string GetTitle() const override;
   void FlashFrame(bool flash) override;
   void SetSkipTaskbar(bool skip) override;
-  void SetExcludedFromShownWindowsMenu(bool excluded) override;
+  void SetExcludedFromShownWindowsMenu(bool excluded) override {}
   bool IsExcludedFromShownWindowsMenu() const override;
   void SetSimpleFullScreen(bool simple_fullscreen) override;
   bool IsSimpleFullScreen() const override;

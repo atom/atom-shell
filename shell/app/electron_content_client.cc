@@ -41,9 +41,7 @@
 
 #if BUILDFLAG(ENABLE_PLUGINS)
 #include "content/public/common/content_plugin_info.h"
-#include "ppapi/shared_impl/ppapi_permissions.h"
-#include "ppapi/shared_impl/ppapi_switches.h"  // nogncheck crbug.com/1125897
-#endif                                         // BUILDFLAG(ENABLE_PLUGINS)
+#endif  // BUILDFLAG(ENABLE_PLUGINS)
 
 namespace electron {
 
@@ -180,7 +178,7 @@ void ElectronContentClient::AddAdditionalSchemes(Schemes* schemes) {
 
 void ElectronContentClient::AddPlugins(
     std::vector<content::ContentPluginInfo>* plugins) {
-#if BUILDFLAG(ENABLE_PLUGINS) && BUILDFLAG(ENABLE_PDF_VIEWER)
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
   static constexpr char kPDFPluginExtension[] = "pdf";
   static constexpr char kPDFPluginDescription[] = "Portable Document Format";
 
@@ -195,7 +193,7 @@ void ElectronContentClient::AddPlugins(
       pdf::kInternalPluginMimeType, kPDFPluginExtension, kPDFPluginDescription);
   pdf_info.mime_types.push_back(pdf_mime_type);
   plugins->push_back(pdf_info);
-#endif  // BUILDFLAG(ENABLE_PLUGINS) && BUILDFLAG(ENABLE_PDF_VIEWER)
+#endif  // BUILDFLAG(ENABLE_PDF_VIEWER)
 }
 
 void ElectronContentClient::AddContentDecryptionModules(

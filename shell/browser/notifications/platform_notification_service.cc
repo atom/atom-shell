@@ -114,16 +114,6 @@ void PlatformNotificationService::DisplayNotification(
   }
 }
 
-void PlatformNotificationService::DisplayPersistentNotification(
-    const std::string& notification_id,
-    const GURL& service_worker_scope,
-    const GURL& origin,
-    const blink::PlatformNotificationData& notification_data,
-    const blink::NotificationResources& notification_resources) {}
-
-void PlatformNotificationService::ClosePersistentNotification(
-    const std::string& notification_id) {}
-
 void PlatformNotificationService::CloseNotification(
     const std::string& notification_id) {
   auto* presenter = browser_client_->GetNotificationPresenter();

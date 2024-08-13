@@ -253,8 +253,4 @@ void ElectronDesktopWindowTreeHostLinux::UpdateFrameHints() {
     SizeConstraintsChanged();
   }
 }
-
-void ElectronDesktopWindowTreeHostLinux::UpdateClientDecorationHints(
-    ClientFrameViewLinux* view) {}
-
 }  // namespace electron

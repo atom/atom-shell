@@ -48,8 +48,8 @@ class ViewsDelegate : public views::ViewsDelegate {
 #endif
   std::unique_ptr<views::NonClientFrameView> CreateDefaultNonClientFrameView(
       views::Widget* widget) override;
-  void AddRef() override;
-  void ReleaseRef() override;
+  void AddRef() override {}
+  void ReleaseRef() override {}
   void OnBeforeWidgetInit(
       views::Widget::InitParams* params,
       views::internal::NativeWidgetDelegate* delegate) override;

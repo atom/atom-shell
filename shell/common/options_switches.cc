@@ -86,9 +86,6 @@ const char kType[] = "type";
 // Disable auto-hiding cursor.
 const char kDisableAutoHideCursor[] = "disableAutoHideCursor";
 
-// Use the macOS' standard window instead of the textured window.
-const char kStandardWindow[] = "standardWindow";
-
 // Default browser window background color.
 const char kBackgroundColor[] = "backgroundColor";
 
@@ -194,12 +191,6 @@ namespace switches {
 
 // Enable chromium sandbox.
 const char kEnableSandbox[] = "enable-sandbox";
-
-// Ppapi Flash path.
-const char kPpapiFlashPath[] = "ppapi-flash-path";
-
-// Ppapi Flash version.
-const char kPpapiFlashVersion[] = "ppapi-flash-version";
 
 // Disable HTTP cache.
 const char kDisableHttpCache[] = "disable-http-cache";

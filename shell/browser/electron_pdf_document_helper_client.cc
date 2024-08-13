@@ -8,14 +8,3 @@
 
 ElectronPDFDocumentHelperClient::ElectronPDFDocumentHelperClient() = default;
 ElectronPDFDocumentHelperClient::~ElectronPDFDocumentHelperClient() = default;
-
-void ElectronPDFDocumentHelperClient::UpdateContentRestrictions(
-    content::RenderFrameHost* render_frame_host,
-    int content_restrictions) {}
-void ElectronPDFDocumentHelperClient::OnPDFHasUnsupportedFeature(
-    content::WebContents* contents) {}
-void ElectronPDFDocumentHelperClient::OnSaveURL(
-    content::WebContents* contents) {}
-void ElectronPDFDocumentHelperClient::SetPluginCanSave(
-    content::RenderFrameHost* render_frame_host,
-    bool can_save) {}

@@ -62,7 +62,6 @@ class ElectronDesktopWindowTreeHostLinux
   void UpdateFrameHints() override;
 
  private:
-  void UpdateClientDecorationHints(ClientFrameViewLinux* view);
   void UpdateWindowState(ui::PlatformWindowState new_state);
 
   raw_ptr<NativeWindowViews> native_window_view_;  // weak ref

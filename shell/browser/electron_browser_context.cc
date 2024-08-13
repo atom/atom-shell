@@ -377,8 +377,10 @@ ElectronBrowserContext::~ElectronBrowserContext() {
   DCHECK_CURRENTLY_ON(BrowserThread::UI);
   NotifyWillBeDestroyed();
 
+#if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
   // the DestroyBrowserContextServices() call below frees this.
   extension_system_ = nullptr;
+#endif
 
   // Notify any keyed services of browser context destruction.
   BrowserContextDependencyManager::GetInstance()->DestroyBrowserContextServices(

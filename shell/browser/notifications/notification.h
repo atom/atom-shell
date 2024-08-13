@@ -58,7 +58,7 @@ class Notification {
 
   // Removes the notification if it was not fully removed during dismissal,
   // as can happen on some platforms including Windows.
-  virtual void Remove();
+  virtual void Remove() {}
 
   // Should be called by derived classes.
   void NotificationClicked();

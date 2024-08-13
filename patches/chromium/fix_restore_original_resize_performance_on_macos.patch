@@ -11,7 +11,7 @@ This patch should be upstreamed as a conditional revert of the logic in desktop
 vs mobile runtimes.  i.e. restore the old logic only on desktop platforms
 
 diff --git a/content/browser/renderer_host/render_widget_host_impl.cc b/content/browser/renderer_host/render_widget_host_impl.cc
-index 0d4057cacf26b1460b34122d8927fd398c8623fb..ba7f92ef873d3a8b38bbb490a50a1ea5d4c74bbe 100644
+index 00046fd1d43246aa1c88f487d76e9ae479228688..0035e0bb387cd28873da58bfbb5cdac830413de2 100644
 --- a/content/browser/renderer_host/render_widget_host_impl.cc
 +++ b/content/browser/renderer_host/render_widget_host_impl.cc
 @@ -2035,9 +2035,8 @@ RenderWidgetHostImpl::GetWidgetInputHandler() {

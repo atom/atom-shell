@@ -10,7 +10,6 @@ webview_cross_drag.patch
 gin_enable_disable_v8_platform.patch
 enable_reset_aspect_ratio.patch
 boringssl_build_gn.patch
-pepper_plugin_support.patch
 gtk_visibility.patch
 resource_file_conflict.patch
 scroll_bounce_flag.patch
@@ -25,7 +24,6 @@ dump_syms.patch
 command-ismediakey.patch
 printing.patch
 support_mixed_sandbox_with_zygote.patch
-unsandboxed_ppapi_processes_skip_zygote.patch
 build_add_electron_tracing_category.patch
 worker_context_will_destroy.patch
 frame_host_manager.patch
@@ -131,3 +129,4 @@ feat_enable_passing_exit_code_on_service_process_crash.patch
 chore_remove_reference_to_chrome_browser_themes.patch
 feat_enable_customizing_symbol_color_in_framecaptionbutton.patch
 fix_potential_draggable_region_crash_when_no_mainframeimpl.patch
+build_expose_webplugininfo_interface_to_electron.patch

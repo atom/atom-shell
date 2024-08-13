@@ -425,7 +425,8 @@ source_set("electron_lib") {
     "buildflags",
     "chromium_src:chrome",
     "chromium_src:chrome_spellchecker",
-    "shell/common/api:mojo",
+    "shell/common:mojo",
+    "shell/common:plugin",
     "shell/services/node/public/mojom",
     "//base:base_static",
     "//base/allocator:buildflags",
@@ -672,22 +673,9 @@ source_set("electron_lib") {
   }
 
   if (enable_plugins) {
-    deps += [ "chromium_src:plugins" ]
     sources += [
       "shell/common/plugin_info.cc",
       "shell/common/plugin_info.h",
-      "shell/renderer/electron_renderer_pepper_host_factory.cc",
-      "shell/renderer/electron_renderer_pepper_host_factory.h",
-      "shell/renderer/pepper_helper.cc",
-      "shell/renderer/pepper_helper.h",
-    ]
-  }
-
-  if (enable_ppapi) {
-    deps += [
-      "//ppapi/host",
-      "//ppapi/proxy",
-      "//ppapi/shared_impl",
     ]
   }
 

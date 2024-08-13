@@ -144,14 +144,6 @@ void FrameSubscriber::OnFrameCaptured(
   Done(content_rect, bitmap);
 }
 
-void FrameSubscriber::OnNewSubCaptureTargetVersion(uint32_t crop_version) {}
-
-void FrameSubscriber::OnFrameWithEmptyRegionCapture() {}
-
-void FrameSubscriber::OnStopped() {}
-
-void FrameSubscriber::OnLog(const std::string& message) {}
-
 void FrameSubscriber::Done(const gfx::Rect& damage, const SkBitmap& frame) {
   if (frame.drawsNothing())
     return;

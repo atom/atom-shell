@@ -97,7 +97,6 @@ bool SubprocessNeedsResourceBundle(const std::string& process_type) {
       // profiles.
       process_type == ::switches::kGpuProcess ||
 #endif
-      process_type == ::switches::kPpapiPluginProcess ||
       process_type == ::switches::kRendererProcess ||
       process_type == ::switches::kUtilityProcess;
 }

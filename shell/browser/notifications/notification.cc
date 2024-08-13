@@ -43,8 +43,6 @@ void Notification::NotificationFailed(const std::string& error) {
   Destroy();
 }
 
-void Notification::Remove() {}
-
 void Notification::Destroy() {
   if (presenter()) {
     presenter()->RemoveNotification(this);

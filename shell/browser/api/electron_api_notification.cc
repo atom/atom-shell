@@ -58,10 +58,7 @@ Notification::Notification(gin::Arguments* args) {
     opts.Get("title", &title_);
     opts.Get("subtitle", &subtitle_);
     opts.Get("body", &body_);
-    has_icon_ = opts.Get("icon", &icon_);
-    if (has_icon_) {
-      opts.Get("icon", &icon_path_);
-    }
+    opts.Get("icon", &icon_);
     opts.Get("silent", &silent_);
     opts.Get("replyPlaceholder", &reply_placeholder_);
     opts.Get("urgency", &urgency_);

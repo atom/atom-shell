@@ -47,7 +47,6 @@ extern const char kDarkTheme[];
 extern const char kTransparent[];
 extern const char kType[];
 extern const char kDisableAutoHideCursor[];
-extern const char kStandardWindow[];
 extern const char kBackgroundColor[];
 extern const char kHasShadow[];
 extern const char kOpacity[];
@@ -102,8 +101,6 @@ extern const char kSpellcheck[];
 namespace switches {
 
 extern const char kEnableSandbox[];
-extern const char kPpapiFlashPath[];
-extern const char kPpapiFlashVersion[];
 extern const char kDisableHttpCache[];
 extern const char kStandardSchemes[];
 extern const char kServiceWorkerSchemes[];

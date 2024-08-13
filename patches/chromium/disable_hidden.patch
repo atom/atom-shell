@@ -6,7 +6,7 @@ Subject: disable_hidden.patch
 Electron uses this to disable background throttling for hidden windows.
 
 diff --git a/content/browser/renderer_host/render_widget_host_impl.cc b/content/browser/renderer_host/render_widget_host_impl.cc
-index 630b7b17066a427c2baefd0f0acfb3abab6123f5..bb5ac504809d0027ed434ddac2766e02f3643c4b 100644
+index d14a4ed491b708fa813ad76f989053b1ca1ca1f0..fe0c408d1a3316a564d77bc6bae6799cbea6e8e6 100644
 --- a/content/browser/renderer_host/render_widget_host_impl.cc
 +++ b/content/browser/renderer_host/render_widget_host_impl.cc
 @@ -787,6 +787,9 @@ void RenderWidgetHostImpl::WasHidden() {
@@ -20,7 +20,7 @@ index 630b7b17066a427c2baefd0f0acfb3abab6123f5..bb5ac504809d0027ed434ddac2766e02
        blink::mojom::PointerLockResult::kWrongDocument);
  
 diff --git a/content/browser/renderer_host/render_widget_host_impl.h b/content/browser/renderer_host/render_widget_host_impl.h
-index e9f357b26b449634a7399f329ac435efa46a5d39..82489872df5efce285d29b9d7492d34f9613c02e 100644
+index d85a56fa4327a01c3f436ebc3305af441a005025..9377f591b9f63664de0c92b9273a68d243e3e46a 100644
 --- a/content/browser/renderer_host/render_widget_host_impl.h
 +++ b/content/browser/renderer_host/render_widget_host_impl.h
 @@ -1001,6 +1001,9 @@ class CONTENT_EXPORT RenderWidgetHostImpl
@@ -34,7 +34,7 @@ index e9f357b26b449634a7399f329ac435efa46a5d39..82489872df5efce285d29b9d7492d34f
    // |routing_id| must not be MSG_ROUTING_NONE.
    // If this object outlives |delegate|, DetachDelegate() must be called when
 diff --git a/content/browser/renderer_host/render_widget_host_view_aura.cc b/content/browser/renderer_host/render_widget_host_view_aura.cc
-index 92ea6fb1bccffe8626f1656a1009cea4419c5602..07a0a672b51fe67083159a4133b0c36991092f00 100644
+index ea5a519007ffd8875540a3045dc6f664751bc2a4..88d3d0e598abfc2a0fa935fb90046c0b420deec1 100644
 --- a/content/browser/renderer_host/render_widget_host_view_aura.cc
 +++ b/content/browser/renderer_host/render_widget_host_view_aura.cc
 @@ -644,7 +644,7 @@ void RenderWidgetHostViewAura::HideImpl() {

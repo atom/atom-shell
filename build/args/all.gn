@@ -73,3 +73,7 @@ clang_unsafe_buffers_paths = ""
 # Disable snapshotting a page when printing for its content to be analyzed for
 # sensitive content by enterprise users.
 enterprise_cloud_content_analysis = false
+
+# TODO: remove dependency on legacy ipc
+# https://issues.chromium.org/issues/40943039
+content_enable_legacy_ipc = true

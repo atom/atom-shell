@@ -10,7 +10,7 @@ usage of BrowserList and Browser as we subclass related methods and use our
 WindowList.
 
 diff --git a/chrome/browser/ui/webui/accessibility/accessibility_ui.cc b/chrome/browser/ui/webui/accessibility/accessibility_ui.cc
-index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7bcb471510 100644
+index 12066e1449141a1d498d6f17d3a18feda94f56b8..0af673fb8c2fcaa37876d1e2c658233e08007056 100644
 --- a/chrome/browser/ui/webui/accessibility/accessibility_ui.cc
 +++ b/chrome/browser/ui/webui/accessibility/accessibility_ui.cc
 @@ -48,6 +48,7 @@
@@ -62,7 +62,7 @@ index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7b
    data.Set(kBrowsersField, std::move(browser_list));
  
    base::Value::List widgets_list;
-@@ -652,7 +653,8 @@ void AccessibilityUIMessageHandler::SetGlobalString(
+@@ -646,7 +647,8 @@ void AccessibilityUIMessageHandler::SetGlobalString(
    const std::string value = CheckJSValue(data.FindString(kValueField));
  
    if (string_name == kApiTypeField) {
@@ -72,7 +72,7 @@ index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7b
      pref->SetString(prefs::kShownAccessibilityApiType, value);
    }
  }
-@@ -705,7 +707,8 @@ void AccessibilityUIMessageHandler::RequestWebContentsTree(
+@@ -699,7 +701,8 @@ void AccessibilityUIMessageHandler::RequestWebContentsTree(
                       AXPropertyFilter::ALLOW_EMPTY);
    AddPropertyFilters(property_filters, deny, AXPropertyFilter::DENY);
  
@@ -82,7 +82,7 @@ index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7b
    ui::AXApiType::Type api_type =
        ui::AXApiType::From(pref->GetString(prefs::kShownAccessibilityApiType));
    std::string accessibility_contents =
-@@ -732,6 +735,7 @@ void AccessibilityUIMessageHandler::RequestNativeUITree(
+@@ -726,6 +729,7 @@ void AccessibilityUIMessageHandler::RequestNativeUITree(
                       AXPropertyFilter::ALLOW_EMPTY);
    AddPropertyFilters(property_filters, deny, AXPropertyFilter::DENY);
  
@@ -90,7 +90,7 @@ index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7b
    for (Browser* browser : *BrowserList::GetInstance()) {
      if (browser->session_id().id() == session_id) {
        base::Value::Dict result = BuildTargetDescriptor(browser);
-@@ -744,6 +748,7 @@ void AccessibilityUIMessageHandler::RequestNativeUITree(
+@@ -738,6 +742,7 @@ void AccessibilityUIMessageHandler::RequestNativeUITree(
        return;
      }
    }
@@ -98,7 +98,7 @@ index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7b
  #endif  // !BUILDFLAG(IS_ANDROID)
    // No browser with the specified |session_id| was found.
    base::Value::Dict result;
-@@ -812,11 +817,13 @@ void AccessibilityUIMessageHandler::StopRecording(
+@@ -806,11 +811,13 @@ void AccessibilityUIMessageHandler::StopRecording(
  }
  
  ui::AXApiType::Type AccessibilityUIMessageHandler::GetRecordingApiType() {
@@ -115,7 +115,7 @@ index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7b
    // Check to see if it is in the supported types list.
    if (std::find(supported_types.begin(), supported_types.end(), api_type) ==
        supported_types.end()) {
-@@ -886,8 +893,11 @@ void AccessibilityUIMessageHandler::RequestAccessibilityEvents(
+@@ -880,8 +887,11 @@ void AccessibilityUIMessageHandler::RequestAccessibilityEvents(
  // static
  void AccessibilityUIMessageHandler::RegisterProfilePrefs(
      user_prefs::PrefRegistrySyncable* registry) {
@@ -128,7 +128,7 @@ index 125316ef23a7d82d778aca9e40c99144a6d29ba1..a2aa6da83f0d77fd0c1cba864578ff7b
 +#endif
  }
 diff --git a/chrome/browser/ui/webui/accessibility/accessibility_ui.h b/chrome/browser/ui/webui/accessibility/accessibility_ui.h
-index 45dead36d71f1c91e1be607180e548854083304c..79a2742e6b95e9ab8257c0f1af75eeebce8566e9 100644
+index d9ae654c8405621925e39f0b28b9288c0ea151f6..ab5b4249b4f5c01be04ed27cf53e8c286548f6db 100644
 --- a/chrome/browser/ui/webui/accessibility/accessibility_ui.h
 +++ b/chrome/browser/ui/webui/accessibility/accessibility_ui.h
 @@ -30,6 +30,8 @@ class ScopedAccessibilityMode;
@@ -140,7 +140,7 @@ index 45dead36d71f1c91e1be607180e548854083304c..79a2742e6b95e9ab8257c0f1af75eeeb
  namespace user_prefs {
  class PrefRegistrySyncable;
  }  // namespace user_prefs
-@@ -82,6 +84,8 @@ class AccessibilityUIMessageHandler : public content::WebUIMessageHandler {
+@@ -80,6 +82,8 @@ class AccessibilityUIMessageHandler : public content::WebUIMessageHandler {
    static void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry);
  
   private:

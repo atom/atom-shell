@@ -719,8 +719,6 @@ void SimpleURLLoaderWrapper::OnComplete(bool success) {
   pinned_chunk_pipe_getter_.Reset();
 }
 
-void SimpleURLLoaderWrapper::OnRetry(base::OnceClosure start_retry) {}
-
 void SimpleURLLoaderWrapper::OnResponseStarted(
     const GURL& final_url,
     const network::mojom::URLResponseHead& response_head) {

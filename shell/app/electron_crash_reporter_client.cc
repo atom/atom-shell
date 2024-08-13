@@ -205,7 +205,6 @@ std::string ElectronCrashReporterClient::GetUploadUrl() {
 bool ElectronCrashReporterClient::EnableBreakpadForProcess(
     const std::string& process_type) {
   return process_type == switches::kRendererProcess ||
-         process_type == switches::kPpapiPluginProcess ||
          process_type == switches::kZygoteProcess ||
          process_type == switches::kGpuProcess ||
          process_type == switches::kUtilityProcess || process_type == "node";

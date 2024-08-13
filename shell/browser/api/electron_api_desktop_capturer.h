@@ -94,6 +94,7 @@ class DesktopCapturer : public gin::Wrappable<DesktopCapturer>,
 
   void UpdateSourcesList(DesktopMediaList* list);
   void HandleFailure();
+  void HandleSuccess();
 
   std::unique_ptr<DesktopListListener> window_listener_;
   std::unique_ptr<DesktopListListener> screen_listener_;

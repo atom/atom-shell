@@ -48,10 +48,10 @@ class SpellCheckClient : public blink::WebSpellCheckPanelHostClient,
   bool IsSpellCheckingEnabled() const override;
 
   // blink::WebSpellCheckPanelHostClient:
-  void ShowSpellingUI(bool show) override;
+  void ShowSpellingUI(bool show) override {}
   bool IsShowingSpellingUI() override;
   void UpdateSpellingUIWithMisspelledWord(
-      const blink::WebString& word) override;
+      const blink::WebString& word) override {}
 
   struct SpellCheckScope {
     v8::HandleScope handle_scope_;

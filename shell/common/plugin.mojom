@@ -1,0 +1,21 @@
+module electron.mojom;
+
+import "content/public/common/webplugininfo.mojom";
+import "mojo/public/mojom/base/string16.mojom";
+import "url/mojom/origin.mojom";
+import "url/mojom/url.mojom";
+
+struct PluginInfo {
+  content.mojom.WebPluginInfo plugin;
+  string actual_mime_type;
+};
+
+interface ElectronPluginInfoHost {
+  // Return information about a plugin for the given URL and MIME type.
+  // Includes specific reasons why a plugin can't be used, for example because
+  // it's disabled.
+  [Sync]
+  GetPluginInfo(url.mojom.Url url,
+                url.mojom.Origin origin,
+                string mime_type) => (PluginInfo plugin_info);
+};

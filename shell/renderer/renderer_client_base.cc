@@ -28,6 +28,7 @@
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
 #include "shell/common/options_switches.h"
+#include "shell/common/plugin.mojom.h"
 #include "shell/common/world_ids.h"
 #include "shell/renderer/api/context_bridge/object_cache.h"
 #include "shell/renderer/api/electron_api_context_bridge.h"
@@ -35,6 +36,7 @@
 #include "shell/renderer/content_settings_observer.h"
 #include "shell/renderer/electron_api_service_impl.h"
 #include "shell/renderer/electron_autofill_agent.h"
+#include "third_party/blink/public/common/associated_interfaces/associated_interface_provider.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
 #include "third_party/blink/public/common/web_preferences/web_preferences.h"
 #include "third_party/blink/public/platform/web_runtime_features.h"
@@ -80,7 +82,6 @@
 
 #if BUILDFLAG(ENABLE_PLUGINS)
 #include "shell/common/plugin_info.h"
-#include "shell/renderer/pepper_helper.h"
 #endif  // BUILDFLAG(ENABLE_PLUGINS)
 
 #if BUILDFLAG(ENABLE_PRINTING)
@@ -333,9 +334,6 @@ void RendererClientBase::RenderFrameCreated(
   new AutofillAgent(render_frame,
                     render_frame->GetAssociatedInterfaceRegistry());
 #endif
-#if BUILDFLAG(ENABLE_PLUGINS)
-  new PepperHelper(render_frame);
-#endif
   new ContentSettingsObserver(render_frame);
 #if BUILDFLAG(ENABLE_PRINTING)
   new printing::PrintRenderFrameHelper(
@@ -423,32 +421,29 @@ bool RendererClientBase::IsPluginHandledExternally(
 #if BUILDFLAG(ENABLE_PDF_VIEWER)
   DCHECK(plugin_element.HasHTMLTagName("object") ||
          plugin_element.HasHTMLTagName("embed"));
-  if (mime_type == pdf::kInternalPluginMimeType) {
+
+  mojo::AssociatedRemote<mojom::ElectronPluginInfoHost> plugin_info_host;
+  render_frame->GetRemoteAssociatedInterfaces()->GetInterface(
+      &plugin_info_host);
+  mojom::PluginInfoPtr plugin_info = mojom::PluginInfo::New();
+  plugin_info_host->GetPluginInfo(
+      original_url, render_frame->GetWebFrame()->Top()->GetSecurityOrigin(),
+      mime_type, &plugin_info);
+
+  if (plugin_info->actual_mime_type == pdf::kInternalPluginMimeType) {
     if (IsPdfInternalPluginAllowedOrigin(
             render_frame->GetWebFrame()->GetSecurityOrigin())) {
       return true;
     }
-
-    content::WebPluginInfo info;
-    info.type = content::WebPluginInfo::PLUGIN_TYPE_PEPPER_OUT_OF_PROCESS;
-    info.name = base::ASCIIToUTF16(kPDFInternalPluginName);
-    info.path = base::FilePath(kPdfPluginPath);
-    info.background_color = content::WebPluginInfo::kDefaultBackgroundColor;
-    info.mime_types.emplace_back(pdf::kInternalPluginMimeType, "pdf",
-                                 "Portable Document Format");
-    return extensions::MimeHandlerViewContainerManager::Get(
-               content::RenderFrame::FromWebFrame(
-                   plugin_element.GetDocument().GetFrame()),
-               true /* create_if_does_not_exist */)
-        ->CreateFrameContainer(plugin_element, original_url, mime_type, info);
   }
 
   return extensions::MimeHandlerViewContainerManager::Get(
              content::RenderFrame::FromWebFrame(
                  plugin_element.GetDocument().GetFrame()),
              true /* create_if_does_not_exist */)
-      ->CreateFrameContainer(plugin_element, original_url, mime_type,
-                             GetPDFPluginInfo());
+      ->CreateFrameContainer(plugin_element, original_url,
+                             plugin_info->actual_mime_type,
+                             plugin_info->plugin);
 #else
   return false;
 #endif

@@ -73,7 +73,7 @@ class SimpleURLLoaderWrapper
   void OnDataReceived(std::string_view string_view,
                       base::OnceClosure resume) override;
   void OnComplete(bool success) override;
-  void OnRetry(base::OnceClosure start_retry) override;
+  void OnRetry(base::OnceClosure start_retry) override {}
 
   // network::mojom::URLLoaderNetworkServiceObserver:
   void OnAuthRequired(

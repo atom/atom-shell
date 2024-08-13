@@ -29,7 +29,8 @@ env.PATH = `${env.PATH}${path.delimiter}${DEPOT_TOOLS}`;
 const gnCheckDirs = [
   '//electron:electron_lib',
   '//electron:electron_app',
-  '//electron/shell/common/api:mojo'
+  '//electron/shell/common:mojo',
+  '//electron/shell/common:plugin'
 ];
 
 for (const dir of gnCheckDirs) {

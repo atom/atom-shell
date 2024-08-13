@@ -114,10 +114,6 @@ void ProxyingWebSocket::ContinueToHeadersReceived() {
   OnHeadersReceivedComplete(net::OK);
 }
 
-void ProxyingWebSocket::OnFailure(const std::string& message,
-                                  int32_t net_error,
-                                  int32_t response_code) {}
-
 void ProxyingWebSocket::OnConnectionEstablished(
     mojo::PendingRemote<network::mojom::WebSocket> websocket,
     mojo::PendingReceiver<network::mojom::WebSocketClient> client_receiver,

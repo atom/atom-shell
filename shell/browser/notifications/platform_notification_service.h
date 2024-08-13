@@ -39,8 +39,9 @@ class PlatformNotificationService
       const GURL& service_worker_scope,
       const GURL& origin,
       const blink::PlatformNotificationData& notification_data,
-      const blink::NotificationResources& notification_resources) override;
-  void ClosePersistentNotification(const std::string& notification_id) override;
+      const blink::NotificationResources& notification_resources) override {}
+  void ClosePersistentNotification(
+      const std::string& notification_id) override {}
   void CloseNotification(const std::string& notification_id) override;
   void GetDisplayedNotifications(
       DisplayedNotificationsCallback callback) override;

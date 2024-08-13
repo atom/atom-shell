@@ -628,8 +628,6 @@ void InspectableWebContents::SetInspectedPageBounds(const gfx::Rect& rect) {
     view_->SetContentsResizingStrategy(DevToolsContentsResizingStrategy{rect});
 }
 
-void InspectableWebContents::InspectElementCompleted() {}
-
 void InspectableWebContents::InspectedURLChanged(const std::string& url) {
   if (managed_devtools_web_contents_) {
     if (devtools_title_.empty()) {
@@ -763,9 +761,6 @@ void InspectableWebContents::RemoveFileSystem(
         base::FilePath::FromUTF8Unsafe(file_system_path));
 }
 
-void InspectableWebContents::UpgradeDraggedFileSystemPermissions(
-    const std::string& file_system_url) {}
-
 void InspectableWebContents::IndexPath(int request_id,
                                        const std::string& file_system_path,
                                        const std::string& excluded_folders) {
@@ -786,16 +781,10 @@ void InspectableWebContents::SearchInPath(int request_id,
     delegate_->DevToolsSearchInPath(request_id, file_system_path, query);
 }
 
-void InspectableWebContents::SetWhitelistedShortcuts(
-    const std::string& message) {}
-
 void InspectableWebContents::SetEyeDropperActive(bool active) {
   if (delegate_)
     delegate_->DevToolsSetEyeDropperActive(active);
 }
-void InspectableWebContents::ShowCertificateViewer(
-    const std::string& cert_chain) {}
-
 void InspectableWebContents::ZoomIn() {
   double new_level = GetNextZoomLevel(GetDevToolsZoomLevel(), false);
   SetZoomLevelForWebContents(GetDevToolsWebContents(), new_level);
@@ -812,20 +801,6 @@ void InspectableWebContents::ResetZoom() {
   SetZoomLevelForWebContents(GetDevToolsWebContents(), 0.);
   UpdateDevToolsZoomLevel(0.);
 }
-
-void InspectableWebContents::SetDevicesDiscoveryConfig(
-    bool discover_usb_devices,
-    bool port_forwarding_enabled,
-    const std::string& port_forwarding_config,
-    bool network_discovery_enabled,
-    const std::string& network_discovery_config) {}
-
-void InspectableWebContents::SetDevicesUpdatesEnabled(bool enabled) {}
-
-void InspectableWebContents::OpenRemotePage(const std::string& browser_id,
-                                            const std::string& url) {}
-
-void InspectableWebContents::OpenNodeFrontend() {}
 
 void InspectableWebContents::DispatchProtocolMessageFromDevToolsFrontend(
     const std::string& message) {
@@ -896,8 +871,6 @@ void InspectableWebContents::GetHostConfig(DispatchCallback callback) {
   std::move(callback).Run(&response);
 }
 
-void InspectableWebContents::ConnectionReady() {}
-
 void InspectableWebContents::RegisterExtensionsAPI(const std::string& origin,
                                                    const std::string& script) {
   extensions_api_[origin + "/"] = script;
@@ -954,9 +927,6 @@ void InspectableWebContents::DispatchProtocolMessage(
     }
   }
 }
-
-void InspectableWebContents::AgentHostClosed(
-    content::DevToolsAgentHost* agent_host) {}
 
 void InspectableWebContents::RenderFrameHostChanged(
     content::RenderFrameHost* old_host,

@@ -48,7 +48,6 @@ tests:
           - SSLClientSocketTest.*
           - UDPSocketTest.ClientGetLocalPeerAddresses
           - UDPSocketTest.ClientSetDoNotFragment
-  - ppapi_unittests
   - printing_unittests
   - skia_unittests
   - sql_unittests

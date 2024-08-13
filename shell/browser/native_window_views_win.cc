@@ -288,6 +288,15 @@ bool NativeWindowViews::PreHandleMSG(UINT message,
 
       return false;
     }
+    case WM_RBUTTONUP: {
+      if (!has_frame()) {
+        bool prevent_default = false;
+        NotifyWindowSystemContextMenu(GET_X_LPARAM(l_param),
+                                      GET_Y_LPARAM(l_param), &prevent_default);
+        return prevent_default;
+      }
+      return false;
+    }
     case WM_GETMINMAXINFO: {
       WINDOWPLACEMENT wp;
       wp.length = sizeof(WINDOWPLACEMENT);

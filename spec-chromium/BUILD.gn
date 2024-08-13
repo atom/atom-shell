@@ -28,7 +28,6 @@ group("chromium_unittests") {
     "//media/mojo:media_mojo_unittests",
     "//mojo:mojo_unittests",
     "//net:net_unittests",
-    "//ppapi:ppapi_unittests",
     "//printing:printing_unittests",
     "//skia:skia_unittests",
     "//sql:sql_unittests",

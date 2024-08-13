@@ -306,8 +306,6 @@ ui::TextInputClient* OffScreenRenderWidgetHostView::GetTextInputClient() {
   return nullptr;
 }
 
-void OffScreenRenderWidgetHostView::Focus() {}
-
 bool OffScreenRenderWidgetHostView::HasFocus() {
   return false;
 }
@@ -377,13 +375,9 @@ std::optional<SkColor> OffScreenRenderWidgetHostView::GetBackgroundColor() {
   return background_color_;
 }
 
-void OffScreenRenderWidgetHostView::UpdateBackgroundColor() {}
-
 gfx::Size OffScreenRenderWidgetHostView::GetVisibleViewportSize() {
   return size_;
 }
-
-void OffScreenRenderWidgetHostView::SetInsets(const gfx::Insets& insets) {}
 
 blink::mojom::PointerLockResult OffScreenRenderWidgetHostView::LockPointer(
     bool request_unadjusted_movement) {
@@ -395,8 +389,6 @@ OffScreenRenderWidgetHostView::ChangePointerLock(
     bool request_unadjusted_movement) {
   return blink::mojom::PointerLockResult::kUnsupportedOptions;
 }
-
-void OffScreenRenderWidgetHostView::UnlockPointer() {}
 
 void OffScreenRenderWidgetHostView::TakeFallbackContentFrom(
     content::RenderWidgetHostView* view) {
@@ -447,18 +439,9 @@ void OffScreenRenderWidgetHostView::InitAsPopup(
   Show();
 }
 
-void OffScreenRenderWidgetHostView::UpdateCursor(const ui::Cursor&) {}
-
 input::CursorManager* OffScreenRenderWidgetHostView::GetCursorManager() {
   return cursor_manager_.get();
 }
-
-void OffScreenRenderWidgetHostView::SetIsLoading(bool loading) {}
-
-void OffScreenRenderWidgetHostView::TextInputStateChanged(
-    const ui::mojom::TextInputState& params) {}
-
-void OffScreenRenderWidgetHostView::ImeCancelComposition() {}
 
 void OffScreenRenderWidgetHostView::RenderProcessGone() {
   Destroy();
@@ -492,9 +475,6 @@ void OffScreenRenderWidgetHostView::Destroy() {
   delete this;
 }
 
-void OffScreenRenderWidgetHostView::UpdateTooltipUnderCursor(
-    const std::u16string&) {}
-
 uint32_t OffScreenRenderWidgetHostView::GetCaptureSequenceNumber() const {
   return latest_capture_sequence_number_;
 }
@@ -520,9 +500,6 @@ display::ScreenInfo OffScreenRenderWidgetHostView::GetScreenInfo() const {
   return screen_info;
 }
 
-void OffScreenRenderWidgetHostView::TransformPointToRootSurface(
-    gfx::PointF* point) {}
-
 gfx::Rect OffScreenRenderWidgetHostView::GetBoundsInRootWindow() {
   return gfx::Rect(size_);
 }
@@ -531,9 +508,6 @@ std::optional<content::DisplayFeature>
 OffScreenRenderWidgetHostView::GetDisplayFeature() {
   return std::nullopt;
 }
-
-void OffScreenRenderWidgetHostView::SetDisplayFeatureForTesting(
-    const content::DisplayFeature* display_feature) {}
 
 viz::SurfaceId OffScreenRenderWidgetHostView::GetCurrentSurfaceId() const {
   return delegated_frame_host() ? delegated_frame_host()->GetCurrentSurfaceId()
@@ -545,11 +519,6 @@ OffScreenRenderWidgetHostView::CreateSyntheticGestureTarget() {
   NOTIMPLEMENTED();
   return nullptr;
 }
-
-void OffScreenRenderWidgetHostView::ImeCompositionRangeChanged(
-    const gfx::Range&,
-    const std::optional<std::vector<gfx::Rect>>& character_bounds,
-    const std::optional<std::vector<gfx::Rect>>& line_bounds) {}
 
 gfx::Size OffScreenRenderWidgetHostView::GetCompositorViewportPixelSize() {
   return gfx::ScaleToCeiledSize(GetRequestedRendererSize(),
@@ -676,22 +645,6 @@ bool OffScreenRenderWidgetHostView::InstallTransparency() {
 }
 
 #if BUILDFLAG(IS_MAC)
-void OffScreenRenderWidgetHostView::SetActive(bool active) {}
-
-void OffScreenRenderWidgetHostView::ShowDefinitionForSelection() {}
-
-void OffScreenRenderWidgetHostView::SpeakSelection() {}
-
-void OffScreenRenderWidgetHostView::SetWindowFrameInScreen(
-    const gfx::Rect& rect) {}
-
-void OffScreenRenderWidgetHostView::ShowSharePicker(
-    const std::string& title,
-    const std::string& text,
-    const std::string& url,
-    const std::vector<std::string>& file_paths,
-    blink::mojom::ShareService::ShareCallback callback) {}
-
 bool OffScreenRenderWidgetHostView::UpdateNSViewAndDisplay() {
   return false;
 }

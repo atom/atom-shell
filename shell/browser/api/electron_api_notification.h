@@ -103,8 +103,6 @@ class Notification : public gin::Wrappable<Notification>,
   std::u16string subtitle_;
   std::u16string body_;
   gfx::Image icon_;
-  std::u16string icon_path_;
-  bool has_icon_ = false;
   bool silent_ = false;
   bool has_reply_ = false;
   std::u16string timeout_type_;
