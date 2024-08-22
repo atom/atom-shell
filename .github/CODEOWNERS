@@ -20,3 +20,9 @@ appveyor-woa.yml                        @electron/wg-releases
 /lib/browser/guest-view-manager.ts      @electron/wg-security
 /lib/browser/rpc-server.ts              @electron/wg-security
 /lib/renderer/security-warnings.ts      @electron/wg-security
+
+# Infra WG
+/.github/actions/                       @electron/wg-infra
+/.github/workflows/*-publish.yml        @electron/wg-infra
+/.github/workflows/build.yml            @electron/wg-infra
+/.github/workflows/pipeline-*.yml       @electron/wg-infra

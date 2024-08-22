@@ -7,10 +7,10 @@ With WCO, allow chromium to handle synthetic mouse events generated for touch
 actions in the non-client caption area.
 
 diff --git a/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc b/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc
-index b1302e587fa2f00c632506cbe3272306c0629dff..9899b5faa573b8fc8d1bdd87aef56e147e554eee 100644
+index 94366475b7f9d128d8208de44d4d8a11096b146b..5867a8ae7e416ddc29a8a251dc6271009f3409db 100644
 --- a/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc
 +++ b/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc
-@@ -1277,6 +1277,10 @@ void DesktopWindowTreeHostWin::HandleHeadlessWindowBoundsChanged(
+@@ -1281,6 +1281,10 @@ void DesktopWindowTreeHostWin::HandleHeadlessWindowBoundsChanged(
    window()->SetProperty(aura::client::kHeadlessBoundsKey, bounds);
  }
  
@@ -22,7 +22,7 @@ index b1302e587fa2f00c632506cbe3272306c0629dff..9899b5faa573b8fc8d1bdd87aef56e14
  DesktopWindowTreeHostWin::GetSingletonDesktopNativeCursorManager() {
    return new DesktopNativeCursorManagerWin();
 diff --git a/ui/views/widget/desktop_aura/desktop_window_tree_host_win.h b/ui/views/widget/desktop_aura/desktop_window_tree_host_win.h
-index 531c73e496ab8ba9078ccbe2ad07fcd7814215ac..fd363fc3de773dfe6775d3ff084ebf8091efbce8 100644
+index 286fcdf651131d231b07a52a53a1945c144c79ea..73d0729784e339b9abc20f7f22bccee1e0393c1c 100644
 --- a/ui/views/widget/desktop_aura/desktop_window_tree_host_win.h
 +++ b/ui/views/widget/desktop_aura/desktop_window_tree_host_win.h
 @@ -264,6 +264,7 @@ class VIEWS_EXPORT DesktopWindowTreeHostWin
@@ -34,7 +34,7 @@ index 531c73e496ab8ba9078ccbe2ad07fcd7814215ac..fd363fc3de773dfe6775d3ff084ebf80
    Widget* GetWidget();
    const Widget* GetWidget() const;
 diff --git a/ui/views/win/hwnd_message_handler.cc b/ui/views/win/hwnd_message_handler.cc
-index 0bfa27046743e0ef92319aa9c8e1ff59e47d2e9b..8f5c3689c2f5dc4803fb0a816143484bf305d189 100644
+index 090daecf36e776ce3e479dd857f9460fefdf433e..a5e0c59a432932ccae4f56f694196ac9635e5af7 100644
 --- a/ui/views/win/hwnd_message_handler.cc
 +++ b/ui/views/win/hwnd_message_handler.cc
 @@ -3123,15 +3123,19 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,

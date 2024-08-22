@@ -63,7 +63,8 @@ UtilityProcessWrapper::UtilityProcessWrapper(
     std::map<IOHandle, IOType> stdio,
     base::EnvironmentMap env_map,
     base::FilePath current_working_directory,
-    bool use_plugin_helper) {
+    bool use_plugin_helper,
+    bool create_network_observer) {
 #if BUILDFLAG(IS_WIN)
   base::win::ScopedHandle stdout_write(nullptr);
   base::win::ScopedHandle stderr_write(nullptr);
@@ -203,6 +204,11 @@ UtilityProcessWrapper::UtilityProcessWrapper(
   loader_params->process_id = pid_;
   loader_params->is_orb_enabled = false;
   loader_params->is_trusted = true;
+  if (create_network_observer) {
+    url_loader_network_observer_.emplace();
+    loader_params->url_loader_network_observer =
+        url_loader_network_observer_->Bind();
+  }
   network::mojom::NetworkContext* network_context =
       g_browser_process->system_network_context_manager()->GetContext();
   network_context->CreateURLLoaderFactory(
@@ -213,6 +219,8 @@ UtilityProcessWrapper::UtilityProcessWrapper(
   network_context->CreateHostResolver(
       {}, host_resolver.InitWithNewPipeAndPassReceiver());
   params->host_resolver = std::move(host_resolver);
+  params->use_network_observer_from_url_loader_factory =
+      create_network_observer;
 
   node_service_remote_->Initialize(std::move(params));
 }
@@ -230,6 +238,9 @@ void UtilityProcessWrapper::OnServiceProcessLaunch(
     EmitWithoutEvent("stdout", stdout_read_fd_);
   if (stderr_read_fd_ != -1)
     EmitWithoutEvent("stderr", stderr_read_fd_);
+  if (url_loader_network_observer_.has_value()) {
+    url_loader_network_observer_->set_process_id(pid_);
+  }
   EmitWithoutEvent("spawn");
 }
 
@@ -378,6 +389,7 @@ gin::Handle<UtilityProcessWrapper> UtilityProcessWrapper::Create(
 
   std::u16string display_name;
   bool use_plugin_helper = false;
+  bool create_network_observer = false;
   std::map<IOHandle, IOType> stdio;
   base::FilePath current_working_directory;
   base::EnvironmentMap env_map;
@@ -403,6 +415,7 @@ gin::Handle<UtilityProcessWrapper> UtilityProcessWrapper::Create(
 
     opts.Get("serviceName", &display_name);
     opts.Get("cwd", &current_working_directory);
+    opts.Get("respondToAuthRequestsFromMainProcess", &create_network_observer);
 
     std::vector<std::string> stdio_arr{"ignore", "inherit", "inherit"};
     opts.Get("stdio", &stdio_arr);
@@ -423,10 +436,10 @@ gin::Handle<UtilityProcessWrapper> UtilityProcessWrapper::Create(
 #endif
   }
   auto handle = gin::CreateHandle(
-      args->isolate(),
-      new UtilityProcessWrapper(std::move(params), display_name,
-                                std::move(stdio), env_map,
-                                current_working_directory, use_plugin_helper));
+      args->isolate(), new UtilityProcessWrapper(
+                           std::move(params), display_name, std::move(stdio),
+                           env_map, current_working_directory,
+                           use_plugin_helper, create_network_observer));
   handle->Pin(args->isolate());
   return handle;
 }

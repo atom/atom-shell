@@ -6,10 +6,10 @@ Subject: fix: disabling compositor recycling
 Compositor recycling is useful for Chrome because there can be many tabs and spinning up a compositor for each one would be costly. In practice, Chrome uses the parent compositor code path of browser_compositor_view_mac.mm; the NSView of each tab is detached when it's hidden and attached when it's shown. For Electron, there is no parent compositor, so we're forced into the "own compositor" code path, which seems to be non-optimal and pretty ruthless in terms of the release of resources. Electron has no real concept of multiple tabs per window, so it should be okay to disable this ruthless recycling altogether in Electron.
 
 diff --git a/content/browser/renderer_host/render_widget_host_view_mac.mm b/content/browser/renderer_host/render_widget_host_view_mac.mm
-index fd3eeb9f52367e0c0fca33b82036290d02d4ca0d..5aa97cc936de10882841c2ea28f0b8bc480ba904 100644
+index 6a595dfebeeb53706b60429bc904095a2ab4cba9..dfed708b59a3b5f8e898e428b98adbc76f55fdf8 100644
 --- a/content/browser/renderer_host/render_widget_host_view_mac.mm
 +++ b/content/browser/renderer_host/render_widget_host_view_mac.mm
-@@ -557,7 +557,11 @@
+@@ -558,7 +558,11 @@
      return;
  
    host()->WasHidden();

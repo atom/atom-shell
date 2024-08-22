@@ -25,66 +25,12 @@
 #include "ui/views/widget/widget.h"
 #include "url/gurl.h"
 
-// platform_util_mac.mm uses a lot of deprecated API.
-// https://github.com/electron/electron/issues/43126
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-
 namespace {
-
-// This may be called from a global dispatch queue, the methods used here are
-// thread safe, including LSGetApplicationForURL (> 10.2) and
-// NSWorkspace#openURLs.
-std::string OpenURL(NSURL* ns_url, bool activate) {
-  CFURLRef cf_url = (__bridge CFURLRef)(ns_url);
-  CFURLRef ref =
-      LSCopyDefaultApplicationURLForURL(cf_url, kLSRolesAll, nullptr);
-
-  // If no application could be found, nullptr is returned and outError
-  // (if not nullptr) is populated with kLSApplicationNotFoundErr.
-  if (ref == nullptr)
-    return "No application in the Launch Services database matches the input "
-           "criteria.";
-
-  NSUInteger launchOptions = NSWorkspaceLaunchDefault;
-  if (!activate)
-    launchOptions |= NSWorkspaceLaunchWithoutActivation;
-
-  bool opened = [[NSWorkspace sharedWorkspace] openURLs:@[ ns_url ]
-                                withAppBundleIdentifier:nil
-                                                options:launchOptions
-                         additionalEventParamDescriptor:nil
-                                      launchIdentifiers:nil];
-  if (!opened)
-    return "Failed to open URL";
-
-  return "";
-}
 
 NSString* GetLoginHelperBundleIdentifier() {
   return [[[NSBundle mainBundle] bundleIdentifier]
       stringByAppendingString:@".loginhelper"];
 }
-
-std::string OpenPathOnThread(const base::FilePath& full_path) {
-  NSString* path_string = base::SysUTF8ToNSString(full_path.value());
-  NSURL* url = [NSURL fileURLWithPath:path_string];
-  if (!url)
-    return "Invalid path";
-
-  const NSWorkspaceLaunchOptions launch_options =
-      NSWorkspaceLaunchAsync | NSWorkspaceLaunchWithErrorPresentation;
-  BOOL success = [[NSWorkspace sharedWorkspace] openURLs:@[ url ]
-                                 withAppBundleIdentifier:nil
-                                                 options:launch_options
-                          additionalEventParamDescriptor:nil
-                                       launchIdentifiers:nil];
-
-  return success ? "" : "Failed to open path";
-}
-
-// -Wdeprecated-declarations
-#pragma clang diagnostic pop
 
 // https://developer.apple.com/documentation/servicemanagement/1561515-service_management_errors?language=objc
 std::string GetLaunchStringForError(NSError* error) {
@@ -179,7 +125,15 @@ void ShowItemInFolder(const base::FilePath& path) {
 }
 
 void OpenPath(const base::FilePath& full_path, OpenCallback callback) {
-  std::move(callback).Run(OpenPathOnThread(full_path));
+  DCHECK([NSThread isMainThread]);
+  NSURL* ns_url = base::apple::FilePathToNSURL(full_path);
+  if (!ns_url) {
+    std::move(callback).Run("Invalid path");
+    return;
+  }
+
+  bool success = [[NSWorkspace sharedWorkspace] openURL:ns_url];
+  std::move(callback).Run(success ? "" : "Failed to open path");
 }
 
 void OpenExternal(const GURL& url,
@@ -192,25 +146,23 @@ void OpenExternal(const GURL& url,
     return;
   }
 
-  base::ThreadPool::PostTaskAndReplyWithResult(
-      FROM_HERE,
-      {base::MayBlock(), base::WithBaseSyncPrimitives(),
-       base::TaskPriority::USER_BLOCKING,
-       base::TaskShutdownBehavior::SKIP_ON_SHUTDOWN},
-      base::BindOnce(&OpenURL, ns_url, options.activate), std::move(callback));
+  bool success = [[NSWorkspace sharedWorkspace] openURL:ns_url];
+  if (success && options.activate)
+    [NSApp activateIgnoringOtherApps:YES];
+
+  std::move(callback).Run(success ? "" : "Failed to open URL");
 }
 
 bool MoveItemToTrashWithError(const base::FilePath& full_path,
                               bool delete_on_fail,
                               std::string* error) {
-  NSString* path_string = base::SysUTF8ToNSString(full_path.value());
-  if (!path_string) {
+  NSURL* url = base::apple::FilePathToNSURL(full_path);
+  if (!url) {
     *error = "Invalid file path: " + full_path.value();
     LOG(WARNING) << *error;
     return false;
   }
 
-  NSURL* url = [NSURL fileURLWithPath:path_string];
   NSError* err = nil;
   BOOL did_trash = [[NSFileManager defaultManager] trashItemAtURL:url
                                                  resultingItemURL:nil

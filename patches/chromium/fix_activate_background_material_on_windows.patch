@@ -14,7 +14,7 @@ This patch likely can't be upstreamed as-is, as Chromium doesn't have
 this use case in mind currently.
 
 diff --git a/ui/views/win/hwnd_message_handler.cc b/ui/views/win/hwnd_message_handler.cc
-index 04b1419df5769716de7669b67e7a7f32546813c6..78c39f1659fed684dcaa3abcca9bd8592f4ed94f 100644
+index 4aae7e22cf10975df4331ad1628f0da6272e67a8..81c0c3cf4f779bcb3f17a6feb4d76452740e41ad 100644
 --- a/ui/views/win/hwnd_message_handler.cc
 +++ b/ui/views/win/hwnd_message_handler.cc
 @@ -907,13 +907,13 @@ void HWNDMessageHandler::FrameTypeChanged() {

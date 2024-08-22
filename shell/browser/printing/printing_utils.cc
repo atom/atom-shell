@@ -10,11 +10,19 @@
 #include "base/task/task_traits.h"
 #include "base/task/thread_pool.h"
 #include "chrome/browser/browser_process.h"
+#include "components/pdf/browser/pdf_frame_util.h"
 #include "content/public/browser/browser_thread.h"
+#include "content/public/browser/render_frame_host.h"
+#include "content/public/browser/web_contents.h"
 #include "electron/buildflags/buildflags.h"
+#include "pdf/pdf_features.h"
 #include "printing/backend/print_backend.h"  // nogncheck
 #include "printing/units.h"
 #include "shell/common/thread_restrictions.h"
+
+#if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
+#include "extensions/browser/guest_view/mime_handler_view/mime_handler_view_guest.h"
+#endif
 
 #if BUILDFLAG(IS_MAC)
 #include <ApplicationServices/ApplicationServices.h>
@@ -66,6 +74,49 @@ bool IsDeviceNameValid(const std::u16string& device_name) {
           g_browser_process->GetApplicationLocale());
   return print_backend->IsValidPrinter(base::UTF16ToUTF8(device_name));
 #endif
+}
+
+// Duplicated from chrome/browser/printing/print_view_manager_common.cc
+content::RenderFrameHost* GetFullPagePlugin(content::WebContents* contents) {
+  content::RenderFrameHost* full_page_plugin = nullptr;
+#if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
+  contents->ForEachRenderFrameHostWithAction(
+      [&full_page_plugin](content::RenderFrameHost* rfh) {
+        auto* guest_view =
+            extensions::MimeHandlerViewGuest::FromRenderFrameHost(rfh);
+        if (guest_view && guest_view->is_full_page_plugin()) {
+          DCHECK_EQ(guest_view->GetGuestMainFrame(), rfh);
+          full_page_plugin = rfh;
+          return content::RenderFrameHost::FrameIterationAction::kStop;
+        }
+        return content::RenderFrameHost::FrameIterationAction::kContinue;
+      });
+#endif  // BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
+  return full_page_plugin;
+}
+
+// Pick the right RenderFrameHost based on the WebContents.
+// Modified from chrome/browser/printing/print_view_manager_common.cc
+content::RenderFrameHost* GetRenderFrameHostToUse(
+    content::WebContents* contents) {
+#if BUILDFLAG(ENABLE_PDF_VIEWER)
+  // Pick the plugin frame host if `contents` is a PDF viewer guest. If using
+  // OOPIF PDF viewer, pick the PDF extension frame host.
+  content::RenderFrameHost* full_page_pdf_embedder_host =
+      chrome_pdf::features::IsOopifPdfEnabled()
+          ? pdf_frame_util::FindFullPagePdfExtensionHost(contents)
+          : GetFullPagePlugin(contents);
+  content::RenderFrameHost* pdf_rfh = pdf_frame_util::FindPdfChildFrame(
+      full_page_pdf_embedder_host ? full_page_pdf_embedder_host
+                                  : contents->GetPrimaryMainFrame());
+  if (pdf_rfh) {
+    return pdf_rfh;
+  }
+#endif  // BUILDFLAG(ENABLE_PDF)
+  auto* focused_frame = contents->GetFocusedFrame();
+  return (focused_frame && focused_frame->HasSelection())
+             ? focused_frame
+             : contents->GetPrimaryMainFrame();
 }
 
 std::pair<std::string, std::u16string> GetDeviceNameToUse(

@@ -33,11 +33,14 @@ URLLoaderBundle* URLLoaderBundle::GetInstance() {
 
 void URLLoaderBundle::SetURLLoaderFactory(
     mojo::PendingRemote<network::mojom::URLLoaderFactory> pending_factory,
-    mojo::Remote<network::mojom::HostResolver> host_resolver) {
+    mojo::Remote<network::mojom::HostResolver> host_resolver,
+    bool use_network_observer_from_url_loader_factory) {
   factory_ = network::SharedURLLoaderFactory::Create(
       std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
           std::move(pending_factory)));
   host_resolver_ = std::move(host_resolver);
+  should_use_network_observer_from_url_loader_factory_ =
+      use_network_observer_from_url_loader_factory;
 }
 
 scoped_refptr<network::SharedURLLoaderFactory>
@@ -48,6 +51,10 @@ URLLoaderBundle::GetSharedURLLoaderFactory() {
 network::mojom::HostResolver* URLLoaderBundle::GetHostResolver() {
   DCHECK(host_resolver_);
   return host_resolver_.get();
+}
+
+bool URLLoaderBundle::ShouldUseNetworkObserverfromURLLoaderFactory() const {
+  return should_use_network_observer_from_url_loader_factory_;
 }
 
 NodeService::NodeService(
@@ -76,7 +83,8 @@ void NodeService::Initialize(node::mojom::NodeServiceParamsPtr params) {
 
   URLLoaderBundle::GetInstance()->SetURLLoaderFactory(
       std::move(params->url_loader_factory),
-      mojo::Remote(std::move(params->host_resolver)));
+      mojo::Remote(std::move(params->host_resolver)),
+      params->use_network_observer_from_url_loader_factory);
 
   js_env_ = std::make_unique<JavascriptEnvironment>(node_bindings_->uv_loop());
 

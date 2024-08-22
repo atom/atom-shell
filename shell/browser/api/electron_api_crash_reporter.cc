@@ -81,6 +81,8 @@ const std::map<std::string, std::string>& GetGlobalCrashKeys() {
   return GetGlobalCrashKeysMutable();
 }
 
+namespace {
+
 bool GetClientIdPath(base::FilePath* path) {
   if (base::PathService::Get(electron::DIR_CRASH_DUMPS, path)) {
     *path = path->Append("client_id");
@@ -108,6 +110,8 @@ void WriteClientId(const std::string& client_id) {
   if (GetClientIdPath(&client_id_path))
     base::WriteFile(client_id_path, client_id);
 }
+
+}  // namespace
 
 std::string GetClientId() {
   static base::NoDestructor<std::string> client_id;

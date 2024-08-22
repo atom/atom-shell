@@ -1,5 +1,14 @@
 # contextBridge
 
+<!--
+```YAML history
+changes:
+  - pr-url: https://github.com/electron/electron/pull/40330
+    description: "`ipcRenderer` can no longer be sent over the `contextBridge`"
+    breaking-changes-header: behavior-changed-ipcrenderer-can-no-longer-be-sent-over-the-contextbridge
+```
+-->
+
 > Create a safe, bi-directional, synchronous bridge across isolated contexts
 
 Process: [Renderer](../glossary.md#renderer-process)

@@ -97,10 +97,10 @@ index e10245b4f36f324510a2dfd785ffaa2ceaad48d6..befb5666134d5f299b228e3d654fa2b0
  }
  
 diff --git a/ui/shell_dialogs/select_file_dialog.h b/ui/shell_dialogs/select_file_dialog.h
-index ab916846f3776075221611eca461d7c49176ae95..e8abe5d0b3423b4709575253f4289ac3687df998 100644
+index eb3d997598631b220c3566748f23a5cdac3e4692..b4b2f7294ce6e9349a4a8a05f614e93359eca25a 100644
 --- a/ui/shell_dialogs/select_file_dialog.h
 +++ b/ui/shell_dialogs/select_file_dialog.h
-@@ -220,6 +220,21 @@ class SHELL_DIALOGS_EXPORT SelectFileDialog
+@@ -224,6 +224,21 @@ class SHELL_DIALOGS_EXPORT SelectFileDialog
                    const GURL* caller = nullptr);
    bool HasMultipleFileTypeChoices();
  
@@ -199,7 +199,7 @@ index 58985ce62dc569256bad5e94de9c0d125fc470d0..33436784b691c860d58f8b4dfcc6718e
            &SelectFileDialogLinuxKde::OnSelectSingleFolderDialogResponse, this,
            parent));
 diff --git a/ui/shell_dialogs/select_file_dialog_linux_portal.cc b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
-index 1ce06cc0044eecc8662fadcd086f27872e7618b6..d77ea886d4b28f92fe7fe4ee20fa61f0f5386273 100644
+index 61ddcbf7bf57e423099c7d392a19b3ec79b5d03f..8c3f4058ad7e9f6460c8d0516a150db612e8f574 100644
 --- a/ui/shell_dialogs/select_file_dialog_linux_portal.cc
 +++ b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
 @@ -221,6 +221,8 @@ void SelectFileDialogLinuxPortal::SelectFileImpl(
@@ -222,7 +222,7 @@ index 1ce06cc0044eecc8662fadcd086f27872e7618b6..d77ea886d4b28f92fe7fe4ee20fa61f0
                         l10n_util::GetStringUTF8(
                             IDS_SELECT_UPLOAD_FOLDER_DIALOG_UPLOAD_BUTTON));
    }
-@@ -566,12 +570,13 @@ void SelectFileDialogLinuxPortal::DialogInfo::AppendOptions(
+@@ -566,6 +570,8 @@ void SelectFileDialogLinuxPortal::DialogInfo::AppendOptions(
        type == SelectFileDialog::Type::SELECT_UPLOAD_FOLDER ||
        type == SelectFileDialog::Type::SELECT_EXISTING_FOLDER) {
      AppendBoolOption(&options_writer, kFileChooserOptionDirectory, true);
@@ -231,13 +231,6 @@ index 1ce06cc0044eecc8662fadcd086f27872e7618b6..d77ea886d4b28f92fe7fe4ee20fa61f0
    } else if (type == SelectFileDialog::Type::SELECT_OPEN_MULTI_FILE) {
      AppendBoolOption(&options_writer, kFileChooserOptionMultiple, true);
    }
- 
--  if (type == SelectFileDialog::Type::SELECT_SAVEAS_FILE &&
--      !default_path.empty()) {
-+  if (!default_path.empty()) {
-     if (default_path_exists) {
-       // If this is an existing directory, navigate to that directory, with no
-       // filename.
 diff --git a/ui/shell_dialogs/select_file_dialog_linux_portal.h b/ui/shell_dialogs/select_file_dialog_linux_portal.h
 index 47e3b0e658858ba5f3219f04d258bdf6dd7c26ed..ff8eaabb406cdf759f7a62725171aaf9f74ce183 100644
 --- a/ui/shell_dialogs/select_file_dialog_linux_portal.h

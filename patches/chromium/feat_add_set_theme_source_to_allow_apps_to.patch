@@ -13,7 +13,7 @@ uses internally for things like menus and devtools.
 We can remove this patch once it has in some shape been upstreamed.
 
 diff --git a/ui/native_theme/native_theme.cc b/ui/native_theme/native_theme.cc
-index 2a1b1cec67b1c125a82d46e600ccc99141f9dae8..615d64309ffc039deb1ae324518c5ee85931a10a 100644
+index 9d108fe375fa68811c5aba9b2d3b5622b7293b49..3080f77e125e1792f37b402ceeb3dbf730af45eb 100644
 --- a/ui/native_theme/native_theme.cc
 +++ b/ui/native_theme/native_theme.cc
 @@ -209,6 +209,8 @@ NativeTheme::NativeTheme(bool should_use_dark_colors,

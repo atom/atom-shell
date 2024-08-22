@@ -7,18 +7,53 @@ Some node tests / test fixtures spawn other tests that clobber env,
 which causes the `ELECTRON_RUN_AS_NODE` variable to be lost. This patch
 re-injects it.
 
-diff --git a/test/common/assertSnapshot.js b/test/common/assertSnapshot.js
-index 88f40281e069b77ac071ac872c4491f749b64e21..0fa102da111fa370406ca74069316fa7a7a3a050 100644
---- a/test/common/assertSnapshot.js
-+++ b/test/common/assertSnapshot.js
-@@ -80,6 +80,7 @@ async function spawnAndAssert(filename, transform = (x) => x, { tty = false, ...
-   const flags = common.parseTestFlags(filename);
-   const executable = tty ? 'tools/pseudo-tty.py' : process.execPath;
-   const args = tty ? [process.execPath, ...flags, filename] : [...flags, filename];
-+  if (options && options.env) options.env.ELECTRON_RUN_AS_NODE = 1;
-   const { stdout, stderr } = await common.spawnPromisified(executable, args, options);
-   await assertSnapshot(transform(`${stdout}${stderr}`), filename);
- }
+diff --git a/test/fixtures/errors/promise_unhandled_warn_with_error.snapshot b/test/fixtures/errors/promise_unhandled_warn_with_error.snapshot
+index d7f1aa2f72007f6f70b6b66b81913f39e5678d2f..e091b1575954f5dc82a05a5d200ee028e053f616 100644
+--- a/test/fixtures/errors/promise_unhandled_warn_with_error.snapshot
++++ b/test/fixtures/errors/promise_unhandled_warn_with_error.snapshot
+@@ -6,5 +6,5 @@
+     at *
+     at *
+     at *
+-(Use `node --trace-warnings ...` to show where the warning was created)
++(Use `* --trace-warnings ...` to show where the warning was created)
+ (node:*) UnhandledPromiseRejectionWarning: Unhandled promise rejection. This error originated either by throwing inside of an async function without a catch block, or by rejecting a promise which was not handled with .catch(). To terminate the node process on unhandled promise rejection, use the CLI flag `--unhandled-rejections=strict` (see https:*nodejs.org*api*cli.html#cli_unhandled_rejections_mode). (rejection id: 1)
+diff --git a/test/fixtures/errors/throw_error_with_getter_throw.snapshot b/test/fixtures/errors/throw_error_with_getter_throw.snapshot
+index 30bbb336a22aaffbd63333f297eb598a8f501d75..1786f96f19856cdc43e0e86c8271a845e337359f 100644
+--- a/test/fixtures/errors/throw_error_with_getter_throw.snapshot
++++ b/test/fixtures/errors/throw_error_with_getter_throw.snapshot
+@@ -3,6 +3,6 @@
+ throw {  * eslint-disable-line no-throw-literal
+ ^
+ [object Object]
+-(Use `node --trace-uncaught ...` to show where the exception was thrown)
++(Use `* --trace-uncaught ...` to show where the exception was thrown)
+ 
+ Node.js *
+diff --git a/test/fixtures/errors/throw_null.snapshot b/test/fixtures/errors/throw_null.snapshot
+index 88494ec6832205b30e7ae159708112a45494834c..1a1191ca9ced90936b764c32c1c334cce114b46e 100644
+--- a/test/fixtures/errors/throw_null.snapshot
++++ b/test/fixtures/errors/throw_null.snapshot
+@@ -3,6 +3,6 @@
+ throw null;
+ ^
+ null
+-(Use `node --trace-uncaught ...` to show where the exception was thrown)
++(Use `* --trace-uncaught ...` to show where the exception was thrown)
+ 
+ Node.js *
+diff --git a/test/fixtures/errors/throw_undefined.snapshot b/test/fixtures/errors/throw_undefined.snapshot
+index baae7384453373f3a005b4f85abb702a4c165f98..b6b6060b17839f3452aa915c12bd5174b7585414 100644
+--- a/test/fixtures/errors/throw_undefined.snapshot
++++ b/test/fixtures/errors/throw_undefined.snapshot
+@@ -3,6 +3,6 @@
+ throw undefined;
+ ^
+ undefined
+-(Use `node --trace-uncaught ...` to show where the exception was thrown)
++(Use `* --trace-uncaught ...` to show where the exception was thrown)
+ 
+ Node.js *
 diff --git a/test/fixtures/test-runner/output/arbitrary-output-colored.js b/test/fixtures/test-runner/output/arbitrary-output-colored.js
 index af23e674cb361ed81dafa22670d5633559cd1144..1dd59990cb7cdba8aecf4f499ee6b92e7cd41b30 100644
 --- a/test/fixtures/test-runner/output/arbitrary-output-colored.js
@@ -32,48 +67,32 @@ index af23e674cb361ed81dafa22670d5633559cd1144..1dd59990cb7cdba8aecf4f499ee6b92e
 +  await once(spawn(process.execPath, ['-r', reset, '--test', test], { stdio: 'inherit', env: { ELECTRON_RUN_AS_NODE: 1 }}), 'exit');
 +  await once(spawn(process.execPath, ['-r', reset, '--test', '--test-reporter', 'tap', test], { stdio: 'inherit', env: { ELECTRON_RUN_AS_NODE: 1 }  }), 'exit');
  })().then(common.mustCall());
-diff --git a/test/parallel/test-node-output-console.mjs b/test/parallel/test-node-output-console.mjs
-index f995c170540ffaa80b1b5f8b95dbd8f52bbd5431..6455dbdd015477e16c414b6d2113139327fea4b3 100644
---- a/test/parallel/test-node-output-console.mjs
-+++ b/test/parallel/test-node-output-console.mjs
-@@ -31,6 +31,7 @@ describe('console output', { concurrency: true }, () => {
-     .transform(snapshot.replaceWindowsLineEndings, snapshot.replaceWindowsPaths, replaceStackTrace);
-   for (const { name, transform, env } of tests) {
-     it(name, async () => {
-+      if (env) env.ELECTRON_RUN_AS_NODE = 1;
-       await snapshot.spawnAndAssert(
-         fixtures.path(name),
-         transform ?? defaultTransform,
 diff --git a/test/parallel/test-node-output-errors.mjs b/test/parallel/test-node-output-errors.mjs
-index 84f20a77dda367fe1ada8d616c7b6813d39efd43..27d16d74884a006ba01b777f5a20339b4906197b 100644
+index 84f20a77dda367fe1ada8d616c7b6813d39efd43..9bebb256776c5be155a8de07abbe4284bc8dad8a 100644
 --- a/test/parallel/test-node-output-errors.mjs
 +++ b/test/parallel/test-node-output-errors.mjs
-@@ -59,21 +59,22 @@ describe('errors output', { concurrency: true }, () => {
-     { name: 'errors/events_unhandled_error_subclass.js', transform: errTransform },
-     { name: 'errors/if-error-has-good-stack.js', transform: errTransform },
-     { name: 'errors/throw_custom_error.js', transform: errTransform },
--    { name: 'errors/throw_error_with_getter_throw.js', transform: errTransform },
-+    // { name: 'errors/throw_error_with_getter_throw.js', transform: errTransform },
-     { name: 'errors/throw_in_line_with_tabs.js', transform: errTransform },
-     { name: 'errors/throw_non_error.js', transform: errTransform },
--    { name: 'errors/throw_null.js', transform: errTransform },
--    { name: 'errors/throw_undefined.js', transform: errTransform },
-+    // { name: 'errors/throw_null.js', transform: errTransform },
-+    // { name: 'errors/throw_undefined.js', transform: errTransform },
-     { name: 'errors/timeout_throw.js', transform: errTransform },
-     { name: 'errors/undefined_reference_in_new_context.js', transform: errTransform },
-     { name: 'errors/promise_always_throw_unhandled.js', transform: promiseTransform },
--    { name: 'errors/promise_unhandled_warn_with_error.js', transform: promiseTransform },
-+    // { name: 'errors/promise_unhandled_warn_with_error.js', transform: promiseTransform },
-     { name: 'errors/unhandled_promise_trace_warnings.js', transform: promiseTransform },
--    { skip: skipForceColors, name: 'errors/force_colors.js',
--      transform: forceColorsTransform, env: { FORCE_COLOR: 1 } },
-+    // { skip: skipForceColors, name: 'errors/force_colors.js',
-+    //   transform: forceColorsTransform, env: { FORCE_COLOR: 1 } },
-   ];
-   for (const { name, transform = defaultTransform, env, skip = false } of tests) {
-     it(name, { skip }, async () => {
-+      if (env) env.ELECTRON_RUN_AS_NODE = 1;
-       await snapshot.spawnAndAssert(fixtures.path(name), transform, { env: { ...env, ...process.env } });
-     });
+@@ -3,6 +3,7 @@ import * as fixtures from '../common/fixtures.mjs';
+ import * as snapshot from '../common/assertSnapshot.js';
+ import * as os from 'node:os';
+ import { describe, it } from 'node:test';
++import { basename } from 'node:path';
+ import { pathToFileURL } from 'node:url';
+ 
+ const skipForceColors =
+@@ -20,13 +21,15 @@ function replaceForceColorsStackTrace(str) {
+ 
+ describe('errors output', { concurrency: true }, () => {
+   function normalize(str) {
++    const baseName = basename(process.argv0 || 'node', '.exe');
+     return str.replaceAll(snapshot.replaceWindowsPaths(process.cwd()), '')
+       .replaceAll(pathToFileURL(process.cwd()).pathname, '')
+       .replaceAll('//', '*')
+       .replaceAll(/\/(\w)/g, '*$1')
+       .replaceAll('*test*', '*')
+       .replaceAll('*fixtures*errors*', '*')
+-      .replaceAll('file:**', 'file:*/');
++      .replaceAll('file:**', 'file:*/')
++      .replaceAll(`${baseName} --`, '* --');
    }
+ 
+   function normalizeNoNumbers(str) {

@@ -18,6 +18,7 @@
 #include "mojo/public/cpp/bindings/message.h"
 #include "mojo/public/cpp/bindings/remote.h"
 #include "shell/browser/event_emitter_mixin.h"
+#include "shell/browser/net/url_loader_network_observer.h"
 #include "shell/common/gin_helper/pinnable.h"
 #include "shell/services/node/public/mojom/node_service.mojom.h"
 #include "v8/include/v8-forward.h"
@@ -66,7 +67,8 @@ class UtilityProcessWrapper
                         std::map<IOHandle, IOType> stdio,
                         base::EnvironmentMap env_map,
                         base::FilePath current_working_directory,
-                        bool use_plugin_helper);
+                        bool use_plugin_helper,
+                        bool create_network_observer);
   void OnServiceProcessLaunch(const base::Process& process);
   void CloseConnectorPort();
 
@@ -101,6 +103,8 @@ class UtilityProcessWrapper
   std::unique_ptr<mojo::Connector> connector_;
   blink::MessagePortDescriptor host_port_;
   mojo::Remote<node::mojom::NodeService> node_service_remote_;
+  std::optional<electron::URLLoaderNetworkObserver>
+      url_loader_network_observer_;
   base::WeakPtrFactory<UtilityProcessWrapper> weak_factory_{this};
 };
 

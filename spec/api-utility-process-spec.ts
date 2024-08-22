@@ -2,8 +2,9 @@ import { expect } from 'chai';
 import * as childProcess from 'node:child_process';
 import * as path from 'node:path';
 import { BrowserWindow, MessageChannelMain, utilityProcess, app } from 'electron/main';
-import { ifit } from './lib/spec-helpers';
+import { ifit, startRemoteControlApp } from './lib/spec-helpers';
 import { closeWindow } from './lib/window-helpers';
+import { respondOnce, randomString, kOneKiloByte } from './lib/net-helpers';
 import { once } from 'node:events';
 import { pathToFileURL } from 'node:url';
 import { setImmediate } from 'node:timers/promises';
@@ -507,6 +508,194 @@ describe('utilityProcess module', () => {
       const exit = once(child, 'exit');
       expect(child.kill()).to.be.true();
       await exit;
+    });
+
+    it('should emit the app#login event when 401', async () => {
+      const { remotely } = await startRemoteControlApp();
+      const serverUrl = await respondOnce.toSingleURL((request, response) => {
+        if (!request.headers.authorization) {
+          return response.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Foo"' }).end();
+        }
+        response.writeHead(200).end('ok');
+      });
+      const [loginAuthInfo, statusCode] = await remotely(async (serverUrl: string, fixture: string) => {
+        const { app, utilityProcess } = require('electron');
+        const { once } = require('node:events');
+        const child = utilityProcess.fork(fixture, [`--server-url=${serverUrl}`], {
+          stdio: 'ignore',
+          respondToAuthRequestsFromMainProcess: true
+        });
+        await once(child, 'spawn');
+        const [ev,,, authInfo, cb] = await once(app, 'login');
+        ev.preventDefault();
+        cb('dummy', 'pass');
+        const [result] = await once(child, 'message');
+        return [authInfo, ...result];
+      }, serverUrl, path.join(fixturesPath, 'net.js'));
+      expect(statusCode).to.equal(200);
+      expect(loginAuthInfo!.realm).to.equal('Foo');
+      expect(loginAuthInfo!.scheme).to.equal('basic');
+    });
+
+    it('should receive 401 response when cancelling authentication via app#login event', async () => {
+      const { remotely } = await startRemoteControlApp();
+      const serverUrl = await respondOnce.toSingleURL((request, response) => {
+        if (!request.headers.authorization) {
+          response.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Foo"' });
+          response.end('unauthenticated');
+        } else {
+          response.writeHead(200).end('ok');
+        }
+      });
+      const [authDetails, responseBody, statusCode] = await remotely(async (serverUrl: string, fixture: string) => {
+        const { app, utilityProcess } = require('electron');
+        const { once } = require('node:events');
+        const child = utilityProcess.fork(fixture, [`--server-url=${serverUrl}`], {
+          stdio: 'ignore',
+          respondToAuthRequestsFromMainProcess: true
+        });
+        await once(child, 'spawn');
+        const [,, details,, cb] = await once(app, 'login');
+        cb();
+        const [response] = await once(child, 'message');
+        const [responseBody] = await once(child, 'message');
+        return [details, responseBody, ...response];
+      }, serverUrl, path.join(fixturesPath, 'net.js'));
+      expect(authDetails.url).to.equal(serverUrl);
+      expect(statusCode).to.equal(401);
+      expect(responseBody).to.equal('unauthenticated');
+    });
+
+    it('should upload body when 401', async () => {
+      const { remotely } = await startRemoteControlApp();
+      const serverUrl = await respondOnce.toSingleURL((request, response) => {
+        if (!request.headers.authorization) {
+          return response.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Foo"' }).end();
+        }
+        response.writeHead(200);
+        request.on('data', (chunk) => response.write(chunk));
+        request.on('end', () => response.end());
+      });
+      const requestData = randomString(kOneKiloByte);
+      const [authDetails, responseBody, statusCode] = await remotely(async (serverUrl: string, requestData: string, fixture: string) => {
+        const { app, utilityProcess } = require('electron');
+        const { once } = require('node:events');
+        const child = utilityProcess.fork(fixture, [`--server-url=${serverUrl}`, '--request-data'], {
+          stdio: 'ignore',
+          respondToAuthRequestsFromMainProcess: true
+        });
+        await once(child, 'spawn');
+        await once(child, 'message');
+        child.postMessage(requestData);
+        const [,, details,, cb] = await once(app, 'login');
+        cb('user', 'pass');
+        const [response] = await once(child, 'message');
+        const [responseBody] = await once(child, 'message');
+        return [details, responseBody, ...response];
+      }, serverUrl, requestData, path.join(fixturesPath, 'net.js'));
+      expect(authDetails.url).to.equal(serverUrl);
+      expect(statusCode).to.equal(200);
+      expect(responseBody).to.equal(requestData);
+    });
+
+    it('should not emit the app#login event when 401 with {"credentials":"omit"}', async () => {
+      const rc = await startRemoteControlApp();
+      const serverUrl = await respondOnce.toSingleURL((request, response) => {
+        if (!request.headers.authorization) {
+          return response.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Foo"' }).end();
+        }
+        response.writeHead(200).end('ok');
+      });
+      const [statusCode, responseHeaders] = await rc.remotely(async (serverUrl: string, fixture: string) => {
+        const { app, utilityProcess } = require('electron');
+        const { once } = require('node:events');
+        let gracefulExit = true;
+        const child = utilityProcess.fork(fixture, [`--server-url=${serverUrl}`, '--omit-credentials'], {
+          stdio: 'ignore',
+          respondToAuthRequestsFromMainProcess: true
+        });
+        await once(child, 'spawn');
+        app.on('login', () => {
+          gracefulExit = false;
+        });
+        const [result] = await once(child, 'message');
+        setTimeout(() => {
+          if (gracefulExit) {
+            app.quit();
+          } else {
+            process.exit(1);
+          }
+        });
+        return result;
+      }, serverUrl, path.join(fixturesPath, 'net.js'));
+      const [code] = await once(rc.process, 'exit');
+      expect(code).to.equal(0);
+      expect(statusCode).to.equal(401);
+      expect(responseHeaders['www-authenticate']).to.equal('Basic realm="Foo"');
+    });
+
+    it('should not emit the app#login event with default respondToAuthRequestsFromMainProcess', async () => {
+      const rc = await startRemoteControlApp();
+      const serverUrl = await respondOnce.toSingleURL((request, response) => {
+        if (!request.headers.authorization) {
+          return response.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Foo"' }).end();
+        }
+        response.writeHead(200).end('ok');
+      });
+      const [loginAuthInfo, statusCode] = await rc.remotely(async (serverUrl: string, fixture: string) => {
+        const { app, utilityProcess } = require('electron');
+        const { once } = require('node:events');
+        let gracefulExit = true;
+        const child = utilityProcess.fork(fixture, [`--server-url=${serverUrl}`, '--use-net-login-event'], {
+          stdio: 'ignore'
+        });
+        await once(child, 'spawn');
+        app.on('login', () => {
+          gracefulExit = false;
+        });
+        const [authInfo] = await once(child, 'message');
+        const [result] = await once(child, 'message');
+        setTimeout(() => {
+          if (gracefulExit) {
+            app.quit();
+          } else {
+            process.exit(1);
+          }
+        });
+        return [authInfo, ...result];
+      }, serverUrl, path.join(fixturesPath, 'net.js'));
+      const [code] = await once(rc.process, 'exit');
+      expect(code).to.equal(0);
+      expect(statusCode).to.equal(200);
+      expect(loginAuthInfo!.realm).to.equal('Foo');
+      expect(loginAuthInfo!.scheme).to.equal('basic');
+    });
+
+    it('should emit the app#login event when creating requests with fetch API', async () => {
+      const { remotely } = await startRemoteControlApp();
+      const serverUrl = await respondOnce.toSingleURL((request, response) => {
+        if (!request.headers.authorization) {
+          return response.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Foo"' }).end();
+        }
+        response.writeHead(200).end('ok');
+      });
+      const [loginAuthInfo, statusCode] = await remotely(async (serverUrl: string, fixture: string) => {
+        const { app, utilityProcess } = require('electron');
+        const { once } = require('node:events');
+        const child = utilityProcess.fork(fixture, [`--server-url=${serverUrl}`, '--use-fetch-api'], {
+          stdio: 'ignore',
+          respondToAuthRequestsFromMainProcess: true
+        });
+        await once(child, 'spawn');
+        const [ev,,, authInfo, cb] = await once(app, 'login');
+        ev.preventDefault();
+        cb('dummy', 'pass');
+        const [response] = await once(child, 'message');
+        return [authInfo, ...response];
+      }, serverUrl, path.join(fixturesPath, 'net.js'));
+      expect(statusCode).to.equal(200);
+      expect(loginAuthInfo!.realm).to.equal('Foo');
+      expect(loginAuthInfo!.scheme).to.equal('basic');
     });
   });
 });

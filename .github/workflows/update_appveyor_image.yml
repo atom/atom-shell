@@ -60,7 +60,7 @@ jobs:
         git add appveyor-woa.yml
     - name: (Optionally) Commit to Branch
       if: ${{ env.APPVEYOR_IMAGE_VERSION }}
-      uses: dsanders11/github-app-commit-action@48d2ff8c1a855eb15d16afa97ae12616456d7cbc # v1.4.0
+      uses: dsanders11/github-app-commit-action@43de6da2f4d927e997c0784c7a0b61bd19ad6aac # v1.5.0
       with:
         message: 'build: update appveyor image to latest version'
         ref: bump-appveyor-image

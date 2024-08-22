@@ -189,6 +189,15 @@ Returns `boolean` - Whether `scheme` is already handled.
 
 ### `protocol.registerFileProtocol(scheme, handler)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 * `handler` Function
   * `request` [ProtocolRequest](structures/protocol-request.md)
@@ -209,6 +218,15 @@ By default the `scheme` is treated like `http:`, which is parsed differently
 from protocols that follow the "generic URI syntax" like `file:`.
 
 ### `protocol.registerBufferProtocol(scheme, handler)` _Deprecated_
+
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
 
 * `scheme` string
 * `handler` Function
@@ -234,6 +252,15 @@ protocol.registerBufferProtocol('atom', (request, callback) => {
 
 ### `protocol.registerStringProtocol(scheme, handler)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 * `handler` Function
   * `request` [ProtocolRequest](structures/protocol-request.md)
@@ -250,6 +277,15 @@ property.
 
 ### `protocol.registerHttpProtocol(scheme, handler)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 * `handler` Function
   * `request` [ProtocolRequest](structures/protocol-request.md)
@@ -264,6 +300,15 @@ The usage is the same with `registerFileProtocol`, except that the `callback`
 should be called with an object that has the `url` property.
 
 ### `protocol.registerStreamProtocol(scheme, handler)` _Deprecated_
+
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
 
 * `scheme` string
 * `handler` Function
@@ -314,6 +359,15 @@ protocol.registerStreamProtocol('atom', (request, callback) => {
 
 ### `protocol.unregisterProtocol(scheme)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 
 Returns `boolean` - Whether the protocol was successfully unregistered
@@ -322,11 +376,29 @@ Unregisters the custom protocol of `scheme`.
 
 ### `protocol.isProtocolRegistered(scheme)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 
 Returns `boolean` - Whether `scheme` is already registered.
 
 ### `protocol.interceptFileProtocol(scheme, handler)` _Deprecated_
+
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
 
 * `scheme` string
 * `handler` Function
@@ -341,6 +413,15 @@ which sends a file as a response.
 
 ### `protocol.interceptStringProtocol(scheme, handler)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 * `handler` Function
   * `request` [ProtocolRequest](structures/protocol-request.md)
@@ -353,6 +434,15 @@ Intercepts `scheme` protocol and uses `handler` as the protocol's new handler
 which sends a `string` as a response.
 
 ### `protocol.interceptBufferProtocol(scheme, handler)` _Deprecated_
+
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
 
 * `scheme` string
 * `handler` Function
@@ -367,6 +457,15 @@ which sends a `Buffer` as a response.
 
 ### `protocol.interceptHttpProtocol(scheme, handler)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 * `handler` Function
   * `request` [ProtocolRequest](structures/protocol-request.md)
@@ -379,6 +478,15 @@ Intercepts `scheme` protocol and uses `handler` as the protocol's new handler
 which sends a new HTTP request as a response.
 
 ### `protocol.interceptStreamProtocol(scheme, handler)` _Deprecated_
+
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
 
 * `scheme` string
 * `handler` Function
@@ -393,6 +501,15 @@ protocol handler.
 
 ### `protocol.uninterceptProtocol(scheme)` _Deprecated_
 
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
+
 * `scheme` string
 
 Returns `boolean` - Whether the protocol was successfully unintercepted
@@ -400,6 +517,15 @@ Returns `boolean` - Whether the protocol was successfully unintercepted
 Remove the interceptor installed for `scheme` and restore its original handler.
 
 ### `protocol.isProtocolIntercepted(scheme)` _Deprecated_
+
+<!--
+```YAML history
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/36674
+    description: "`protocol.register*Protocol` and `protocol.intercept*Protocol` methods have been replaced with `protocol.handle`"
+    breaking-changes-header: deprecated-protocolunregisterinterceptbufferstringstreamfilehttpprotocol-and-protocolisprotocolregisteredintercepted
+```
+-->
 
 * `scheme` string
 

@@ -567,6 +567,39 @@ describe('webContents module', () => {
       w = new BrowserWindow({ show: false });
     });
     afterEach(closeAllWindows);
+    describe('navigationHistory.removeEntryAtIndex(index) API', () => {
+      it('should remove a navigation entry given a valid index', async () => {
+        await w.loadURL(urlPage1);
+        await w.loadURL(urlPage2);
+        await w.loadURL(urlPage3);
+        const initialLength = w.webContents.navigationHistory.length();
+        const wasRemoved = w.webContents.navigationHistory.removeEntryAtIndex(1); // Attempt to remove the second entry
+        const newLength = w.webContents.navigationHistory.length();
+        expect(wasRemoved).to.be.true();
+        expect(newLength).to.equal(initialLength - 1);
+      });
+
+      it('should not remove the current active navigation entry', async () => {
+        await w.loadURL(urlPage1);
+        await w.loadURL(urlPage2);
+        const activeIndex = w.webContents.navigationHistory.getActiveIndex();
+        const wasRemoved = w.webContents.navigationHistory.removeEntryAtIndex(activeIndex);
+        expect(wasRemoved).to.be.false();
+      });
+
+      it('should return false given an invalid index larger than history length', async () => {
+        await w.loadURL(urlPage1);
+        const wasRemoved = w.webContents.navigationHistory.removeEntryAtIndex(5); // Index larger than history length
+        expect(wasRemoved).to.be.false();
+      });
+
+      it('should return false given an invalid negative index', async () => {
+        await w.loadURL(urlPage1);
+        const wasRemoved = w.webContents.navigationHistory.removeEntryAtIndex(-1); // Negative index
+        expect(wasRemoved).to.be.false();
+      });
+    });
+
     describe('navigationHistory.canGoBack and navigationHistory.goBack API', () => {
       it('should not be able to go back if history is empty', async () => {
         expect(w.webContents.navigationHistory.canGoBack()).to.be.false();
@@ -704,6 +737,24 @@ describe('webContents module', () => {
         // Note: Even if no navigation has committed, the history list will always start with an initial navigation entry
         // Ref: https://source.chromium.org/chromium/chromium/src/+/main:ceontent/public/browser/navigation_controller.h;l=381
         expect(w.webContents.navigationHistory.length()).to.equal(1);
+      });
+    });
+
+    describe('navigationHistory.getAllEntries() API', () => {
+      it('should return all navigation entries as an array of NavigationEntry objects', async () => {
+        await w.loadURL(urlPage1);
+        await w.loadURL(urlPage2);
+        await w.loadURL(urlPage3);
+        const entries = w.webContents.navigationHistory.getAllEntries();
+        expect(entries.length).to.equal(3);
+        expect(entries[0]).to.deep.equal({ url: urlPage1, title: 'Page 1' });
+        expect(entries[1]).to.deep.equal({ url: urlPage2, title: 'Page 2' });
+        expect(entries[2]).to.deep.equal({ url: urlPage3, title: 'Page 3' });
+      });
+
+      it('should return an empty array when there is no navigation history', async () => {
+        const entries = w.webContents.navigationHistory.getAllEntries();
+        expect(entries.length).to.equal(0);
       });
     });
   });
@@ -2204,6 +2255,10 @@ describe('webContents module', () => {
   ifdescribe(features.isPrintingEnabled())('printToPDF()', () => {
     let w: BrowserWindow;
 
+    const containsText = (items: any[], text: RegExp) => {
+      return items.some(({ str }: { str: string }) => str.match(text));
+    };
+
     beforeEach(() => {
       w = new BrowserWindow({
         show: false,
@@ -2326,7 +2381,7 @@ describe('webContents module', () => {
     });
 
     it('with custom header and footer', async () => {
-      await w.loadFile(path.join(__dirname, 'fixtures', 'api', 'print-to-pdf-small.html'));
+      await w.loadFile(path.join(fixturesPath, 'api', 'print-to-pdf-small.html'));
 
       const data = await w.webContents.printToPDF({
         displayHeaderFooter: true,
@@ -2339,11 +2394,8 @@ describe('webContents module', () => {
 
       const { items } = await page.getTextContent();
 
-      // Check that generated PDF contains a header.
-      const containsText = (text: RegExp) => items.some(({ str }: { str: string }) => str.match(text));
-
-      expect(containsText(/I'm a PDF header/)).to.be.true();
-      expect(containsText(/I'm a PDF footer/)).to.be.true();
+      expect(containsText(items, /I'm a PDF header/)).to.be.true();
+      expect(containsText(items, /I'm a PDF footer/)).to.be.true();
     });
 
     it('in landscape mode', async () => {
@@ -2394,6 +2446,25 @@ describe('webContents module', () => {
         UserProperties: false,
         Suspects: false
       });
+    });
+
+    it('from an existing pdf document', async () => {
+      const pdfPath = path.join(fixturesPath, 'cat.pdf');
+      await w.loadFile(pdfPath);
+
+      // TODO(codebytere): the PDF plugin is not always ready immediately
+      // after the document is loaded, so we need to wait for it to be ready.
+      // We should find a better way to do this.
+      await setTimeout(3000);
+
+      const data = await w.webContents.printToPDF({});
+      const doc = await pdfjs.getDocument(data).promise;
+      expect(doc.numPages).to.equal(2);
+
+      const page = await doc.getPage(1);
+
+      const { items } = await page.getTextContent();
+      expect(containsText(items, /Cat: The Ideal Pet/)).to.be.true();
     });
   });
 

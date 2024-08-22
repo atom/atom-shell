@@ -36,7 +36,7 @@ Returns `boolean` - Whether or not desktop notifications are supported on the cu
   * `subtitle` string (optional) _macOS_ - A subtitle for the notification, which will be displayed below the title.
   * `body` string (optional) - The body text of the notification, which will be displayed below the title or subtitle.
   * `silent` boolean (optional) - Whether or not to suppress the OS notification noise when showing the notification.
-  * `icon` (string | [NativeImage](native-image.md)) (optional) - An icon to use in the notification.
+  * `icon` (string | [NativeImage](native-image.md)) (optional) - An icon to use in the notification. If a string is passed, it must be a valid path to a local icon file.
   * `hasReply` boolean (optional) _macOS_ - Whether or not to add an inline reply option to the notification.
   * `timeoutType` string (optional) _Linux_ _Windows_ - The timeout duration of the notification. Can be 'default' or 'never'.
   * `replyPlaceholder` string (optional) _macOS_ - The placeholder to write in the inline reply input field.

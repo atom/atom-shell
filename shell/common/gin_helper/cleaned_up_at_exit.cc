@@ -11,10 +11,15 @@
 
 namespace gin_helper {
 
+namespace {
+
 std::vector<CleanedUpAtExit*>& GetDoomed() {
   static base::NoDestructor<std::vector<CleanedUpAtExit*>> doomed;
   return *doomed;
 }
+
+}  // namespace
+
 CleanedUpAtExit::CleanedUpAtExit() {
   GetDoomed().emplace_back(this);
 }

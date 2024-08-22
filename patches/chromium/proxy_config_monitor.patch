@@ -6,7 +6,7 @@ Subject: proxy_config_monitor.patch
 Allow monitoring proxy config changes for a pref service.
 
 diff --git a/chrome/browser/net/proxy_config_monitor.cc b/chrome/browser/net/proxy_config_monitor.cc
-index c2adfa2bd0f79038cb50c69607827aef8fecca59..3db9b93e7c98544de7488ab97ad4a5addefdd2cd 100644
+index bb520c729dae1d37d78c5ed48191dcd5e5047831..c21d82dba1df1a869323f0d2eb68788e4596d1d5 100644
 --- a/chrome/browser/net/proxy_config_monitor.cc
 +++ b/chrome/browser/net/proxy_config_monitor.cc
 @@ -11,7 +11,9 @@
@@ -42,27 +42,24 @@ index c2adfa2bd0f79038cb50c69607827aef8fecca59..3db9b93e7c98544de7488ab97ad4a5ad
  
  ProxyConfigMonitor::ProxyConfigMonitor(PrefService* local_state) {
    DCHECK(BrowserThread::CurrentlyOn(BrowserThread::UI) ||
-@@ -136,9 +140,11 @@ void ProxyConfigMonitor::OnLazyProxyConfigPoll() {
+@@ -136,8 +140,10 @@ void ProxyConfigMonitor::OnLazyProxyConfigPoll() {
  void ProxyConfigMonitor::OnPACScriptError(int32_t line_number,
                                            const std::string& details) {
    DCHECK_CURRENTLY_ON(content::BrowserThread::UI);
 +#if 0
    extensions::ProxyEventRouter::GetInstance()->OnPACScriptError(
-       g_browser_process->extension_event_router_forwarder(), profile_,
-       line_number, base::UTF8ToUTF16(details));
+       profile_, line_number, base::UTF8ToUTF16(details));
 +#endif
  }
  
  void ProxyConfigMonitor::OnRequestMaybeFailedDueToProxySettings(
-@@ -152,9 +158,10 @@ void ProxyConfigMonitor::OnRequestMaybeFailedDueToProxySettings(
-     // controlled.
+@@ -152,7 +158,9 @@ void ProxyConfigMonitor::OnRequestMaybeFailedDueToProxySettings(
      return;
    }
--
+ 
 +#if 0
-   extensions::ProxyEventRouter::GetInstance()->OnProxyError(
-       g_browser_process->extension_event_router_forwarder(), profile_,
-       net_error);
+   extensions::ProxyEventRouter::GetInstance()->OnProxyError(profile_,
+                                                             net_error);
 +#endif
  }
  #endif

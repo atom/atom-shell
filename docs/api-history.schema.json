@@ -1,0 +1,47 @@
+{
+  "title": "JSON schema for API history blocks in Electron documentation",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "If you change this schema, remember to edit the TypeScript interfaces in the linting script.",
+  "definitions": {
+    "baseChangeSchema": {
+      "type": "object",
+      "properties": {
+        "pr-url": {
+          "description": "URL to the 'main' GitHub Pull Request for the change (i.e. not a backport PR)",
+          "type": "string", "pattern": "^https://github.com/electron/electron/pull/\\d+$",
+          "examples": [ "https://github.com/electron/electron/pull/26789" ]
+        },
+        "breaking-changes-header": {
+          "description": "Heading ID for the change in `electron/docs/breaking-changes.md`",
+          "type": "string", "minLength": 3,
+          "examples": [ "deprecated-browserwindowsettrafficlightpositionposition" ]
+        },
+        "description": {
+          "description": "Short description of the change",
+          "type": "string", "minLength": 3, "maxLength": 120,
+          "examples": [ "Made `trafficLightPosition` option work for `customButtonOnHover`." ]
+        }
+      },
+      "required": [ "pr-url" ],
+      "additionalProperties": false
+    },
+    "addedChangeSchema": {
+      "allOf": [ { "$ref": "#/definitions/baseChangeSchema" } ]
+    },
+    "deprecatedChangeSchema": {
+      "$comment": "TODO: Make 'breaking-changes-header' required in the future.",
+      "allOf": [ { "$ref": "#/definitions/baseChangeSchema" } ]
+    },
+    "changesChangeSchema": {
+      "$comment": "Unlike RFC, added `'type': 'object'` to appease AJV strict mode",
+      "allOf": [ { "$ref": "#/definitions/baseChangeSchema" }, { "type": "object", "required": [ "description" ] } ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "added": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/definitions/addedChangeSchema" } },
+    "deprecated": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "$ref": "#/definitions/deprecatedChangeSchema" } },
+    "changes": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/changesChangeSchema" } }
+  },
+  "additionalProperties": false
+}

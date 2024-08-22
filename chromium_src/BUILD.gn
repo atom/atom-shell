@@ -40,6 +40,8 @@ static_library("chrome") {
     "//chrome/browser/icon_loader.h",
     "//chrome/browser/icon_manager.cc",
     "//chrome/browser/icon_manager.h",
+    "//chrome/browser/media/webrtc/delegated_source_list_capturer.cc",
+    "//chrome/browser/media/webrtc/delegated_source_list_capturer.h",
     "//chrome/browser/media/webrtc/desktop_capturer_wrapper.cc",
     "//chrome/browser/media/webrtc/desktop_capturer_wrapper.h",
     "//chrome/browser/media/webrtc/desktop_media_list.cc",

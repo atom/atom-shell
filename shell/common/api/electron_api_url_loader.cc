@@ -335,13 +335,21 @@ SimpleURLLoaderWrapper::SimpleURLLoaderWrapper(
   DETACH_FROM_SEQUENCE(sequence_checker_);
   if (!request_->trusted_params)
     request_->trusted_params = network::ResourceRequest::TrustedParams();
-  mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
-      url_loader_network_observer_remote;
-  url_loader_network_observer_receivers_.Add(
-      this,
-      url_loader_network_observer_remote.InitWithNewPipeAndPassReceiver());
-  request_->trusted_params->url_loader_network_observer =
-      std::move(url_loader_network_observer_remote);
+  bool create_network_observer = true;
+  if (electron::IsUtilityProcess()) {
+    create_network_observer =
+        !URLLoaderBundle::GetInstance()
+             ->ShouldUseNetworkObserverfromURLLoaderFactory();
+  }
+  if (create_network_observer) {
+    mojo::PendingRemote<network::mojom::URLLoaderNetworkServiceObserver>
+        url_loader_network_observer_remote;
+    url_loader_network_observer_receivers_.Add(
+        this,
+        url_loader_network_observer_remote.InitWithNewPipeAndPassReceiver());
+    request_->trusted_params->url_loader_network_observer =
+        std::move(url_loader_network_observer_remote);
+  }
   // Chromium filters headers using browser rules, while for net module we have
   // every header passed. The following setting will allow us to capture the
   // raw headers in the URLLoader.

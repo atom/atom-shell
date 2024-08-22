@@ -144,11 +144,6 @@ class LinuxUiGetterImpl : public ui::LinuxUiGetter {
 };
 #endif
 
-template <typename T>
-void Erase(T* container, typename T::iterator iter) {
-  container->erase(iter);
-}
-
 #if BUILDFLAG(IS_WIN)
 int GetMinimumFontSize() {
   int min_font_size;

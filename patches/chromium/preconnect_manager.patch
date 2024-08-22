@@ -63,7 +63,7 @@ index 02bdfd1f176d4ce44984387226b6fc2e6551f15e..1fabbbdd5359073692724ff722e205bb
  
  void PreconnectManager::Start(const GURL& url,
 diff --git a/chrome/browser/predictors/preconnect_manager.h b/chrome/browser/predictors/preconnect_manager.h
-index d18470c05cdaffbc48b83cc0c76f7085442dccce..0c0a3f11a2da083ef5437a0e6abcf91afbcf9df3 100644
+index 8376663d6ce03f006cff3e1d954a6ae5b9f773ec..b7c01d2dc7b30148b77708f4b6ebe02c357e93c0 100644
 --- a/chrome/browser/predictors/preconnect_manager.h
 +++ b/chrome/browser/predictors/preconnect_manager.h
 @@ -17,7 +17,9 @@

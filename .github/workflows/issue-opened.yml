@@ -76,7 +76,8 @@ jobs:
                   const { ElectronVersions } = await import('${{ github.workspace }}/node_modules/@electron/fiddle-core/dist/index.js');
                   const versions = await ElectronVersions.create(undefined, { ignoreCache: true });
 
-                  if (!versions.supportedMajors.includes(major)) {
+                  const validVersions = [...versions.supportedMajors, ...versions.prereleaseMajors];
+                  if (!validVersions.includes(major)) {
                     core.setOutput('unsupportedMajor', true);
                     labels.push('blocked/need-info ❌');
                   }

@@ -250,6 +250,157 @@ The properties chapter must be in following form:
 The heading can be `###` or `####`-levels depending on whether the property
 belongs to a module or a class.
 
+## API History
+
+An "API History" block is a YAML code block encapsulated by an HTML comment that
+should be placed directly after the Markdown header for a class or method, like so:
+
+`````markdown
+#### `win.setTrafficLightPosition(position)` _macOS_
+
+<!--
+```YAML history
+added:
+  - pr-url: https://github.com/electron/electron/pull/22533
+changes:
+  - pr-url: https://github.com/electron/electron/pull/26789
+    description: "Made `trafficLightPosition` option work for `customButtonOnHover` window."
+deprecated:
+  - pr-url: https://github.com/electron/electron/pull/37094
+    breaking-changes-header: deprecated-browserwindowsettrafficlightpositionposition
+```
+-->
+
+* `position` [Point](structures/point.md)
+
+Set a custom position for the traffic light buttons. Can only be used with `titleBarStyle` set to `hidden`.
+`````
+
+It should adhere to the API History [JSON Schema](https://json-schema.org/)
+(`api-history.schema.json`) which you can find in the `docs` folder.
+The [API History Schema RFC][api-history-schema-rfc] includes example usage and detailed
+explanations for each aspect of the schema.
+
+The purpose of the API History block is to describe when/where/how/why an API was:
+
+* Added
+* Changed (usually breaking changes)
+* Deprecated
+
+Each API change listed in the block should include a link to the
+PR where that change was made along with an optional short description of the
+change. If applicable, include the [heading id](https://gist.github.com/asabaylus/3071099)
+for that change from the [breaking changes documentation](./breaking-changes.md).
+
+The [API History linting script][api-history-linting-script] (`lint:api-history`)
+validates API History blocks in the Electron documentation against the schema and
+performs some other checks. You can look at its [tests][api-history-tests] for more
+details.
+
+There are a few style guidelines that aren't covered by the linting script:
+
+### Format
+
+Always adhere to this format:
+
+  ```markdown
+  API HEADER                  |  #### `win.flashFrame(flag)`
+  BLANK LINE                  | 
+  HTML COMMENT OPENING TAG    |  <!--
+  API HISTORY OPENING TAG     |  ```YAML history
+  API HISTORY                 |  added:
+                              |    - pr-url: https://github.com/electron/electron/pull/22533
+  API HISTORY CLOSING TAG     |  ```
+  HTML COMMENT CLOSING TAG    |  -->
+  BLANK LINE                  |
+  ```
+
+### YAML
+
+* Use two spaces for indentation.
+* Do not use comments.
+
+### Descriptions
+
+* Always wrap descriptions with double quotation marks (i.e. "example").
+  * [Certain special characters (e.g. `[`, `]`) can break YAML parsing](https:/stackoverflow.com/a/37015689/19020549).
+* Describe the change in a way relevant to app developers and make it
+  capitalized, punctuated, and past tense.
+  * Refer to [Clerk](https://github.com/electron/clerk/blob/main/README.md#examples)
+    for examples.
+* Keep descriptions concise.
+  * Ideally, a description will match its corresponding header in the
+    breaking changes document.
+  * Favor using the release notes from the associated PR whenever possible.
+  * Developers can always view the breaking changes document or linked
+    pull request for more details.
+
+### Placement
+
+Generally, you should place the API History block directly after the Markdown header
+for a class or method that was changed. However, there are some instances where this
+is ambiguous:
+
+#### Chromium bump
+
+* [chore: bump chromium to 122.0.6194.0 (main)](https://github.com/electron/electron/pull/40750)
+  * [Behavior Changed: cross-origin iframes now use Permission Policy to access features][api-history-cross-origin]
+
+Sometimes a breaking change doesn't relate to any of the existing APIs. In this
+case, it is ok not to add API History anywhere.
+
+#### Change affecting multiple APIs
+
+* [refactor: ensure IpcRenderer is not bridgable](https://github.com/electron/electron/pull/40330)
+  * [Behavior Changed: ipcRenderer can no longer be sent over the contextBridge][api-history-ipc-renderer]
+
+Sometimes a breaking change involves multiple APIs. In this case, place the
+API History block under the top-level Markdown header for each of the
+involved APIs.
+
+`````markdown
+# contextBridge
+
+<!--
+```YAML history
+changes:
+  - pr-url: https://github.com/electron/electron/pull/40330
+    description: "`ipcRenderer` can no longer be sent over the `contextBridge`"
+    breaking-changes-header: behavior-changed-ipcrenderer-can-no-longer-be-sent-over-the-contextbridge
+```
+-->
+
+> Create a safe, bi-directional, synchronous bridge across isolated contexts
+`````
+
+`````markdown
+# ipcRenderer
+
+<!--
+```YAML history
+changes:
+  - pr-url: https://github.com/electron/electron/pull/40330
+    description: "`ipcRenderer` can no longer be sent over the `contextBridge`"
+    breaking-changes-header: behavior-changed-ipcrenderer-can-no-longer-be-sent-over-the-contextbridge
+```
+-->
+
+Process: [Renderer](../glossary.md#renderer-process)
+`````
+
+Notice how an API History block wasn't added under:
+
+* `contextBridge.exposeInMainWorld(apiKey, api)`
+
+since that function wasn't changed, only how it may be used:
+
+```patch
+  contextBridge.exposeInMainWorld('app', {
+-   ipcRenderer,
++   onEvent: (cb) => ipcRenderer.on('foo', (e, ...args) => cb(args))
+  })
+```
+
 ## Documentation translations
 
 See [electron/i18n](https://github.com/electron/i18n#readme)
@@ -257,3 +408,8 @@ See [electron/i18n](https://github.com/electron/i18n#readme)
 [title-case]: https://apastyle.apa.org/style-grammar-guidelines/capitalization/title-case
 [sentence-case]: https://apastyle.apa.org/style-grammar-guidelines/capitalization/sentence-case
 [markdownlint]: https://github.com/DavidAnson/markdownlint
+[api-history-schema-rfc]: https://github.com/electron/rfcs/blob/f36e0a8483e1ea844710890a8a7a1bd58ecbac05/text/0004-api-history-schema.md
+[api-history-linting-script]: https://github.com/electron/lint-roller/blob/3030970136ec6b41028ef973f944d3e5cad68e1c/bin/lint-markdown-api-history.ts
+[api-history-tests]: https://github.com/electron/lint-roller/blob/main/tests/lint-roller-markdown-api-history.spec.ts
+[api-history-cross-origin]: https://github.com/electron/electron/blob/f508f6b6b570481a2b61d8c4f8c1951f492e4309/docs/breaking-changes.md#behavior-changed-cross-origin-iframes-now-use-permission-policy-to-access-features
+[api-history-ipc-renderer]: https://github.com/electron/electron/blob/f508f6b6b570481a2b61d8c4f8c1951f492e4309/docs/breaking-changes.md#behavior-changed-ipcrenderer-can-no-longer-be-sent-over-the-contextbridge

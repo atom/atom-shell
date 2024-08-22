@@ -37,9 +37,7 @@ bool SaveIconToPath(const SkBitmap& bitmap, const base::FilePath& path) {
   if (!gfx::PNGCodec::EncodeBGRASkBitmap(bitmap, false, &png_data))
     return false;
 
-  char* data = reinterpret_cast<char*>(&png_data[0]);
-  int size = static_cast<int>(png_data.size());
-  return base::WriteFile(path, data, size) == size;
+  return base::WriteFile(path, png_data);
 }
 
 }  // namespace

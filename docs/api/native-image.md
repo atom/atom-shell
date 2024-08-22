@@ -257,6 +257,15 @@ data.
 
 #### `image.toDataURL([options])`
 
+<!--
+```YAML history
+changes:
+  - pr-url: https://github.com/electron/electron/pull/41752
+    description: "`nativeImage.toDataURL` will preserve PNG colorspace"
+    breaking-changes-header: behavior-changed-nativeimagetodataurl-will-preserve-png-colorspace
+```
+-->
+
 * `options` Object (optional)
   * `scaleFactor` Number (optional) - Defaults to 1.0.
 

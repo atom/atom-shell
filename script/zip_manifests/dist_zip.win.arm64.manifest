@@ -71,4 +71,5 @@ vk_swiftshader.dll
 vulkan-1.dll
 v8_context_snapshot.bin
 version
+win_clang_x64/icudtl.dat
 win_clang_x64/snapshot_blob.bin

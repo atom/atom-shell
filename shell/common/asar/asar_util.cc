@@ -45,8 +45,6 @@ bool IsDirectoryCached(const base::FilePath& path) {
   return is_directory_cache[path] = base::DirectoryExists(path);
 }
 
-}  // namespace
-
 ArchiveMap& GetArchiveCache() {
   static base::NoDestructor<ArchiveMap> s_archive_map;
   return *s_archive_map;
@@ -56,6 +54,8 @@ base::Lock& GetArchiveCacheLock() {
   static base::NoDestructor<base::Lock> lock;
   return *lock;
 }
+
+}  // namespace
 
 std::shared_ptr<Archive> GetOrCreateAsarArchive(const base::FilePath& path) {
   base::AutoLock auto_lock(GetArchiveCacheLock());

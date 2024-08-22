@@ -453,6 +453,8 @@ filenames = {
     "shell/browser/net/resolve_proxy_helper.h",
     "shell/browser/net/system_network_context_manager.cc",
     "shell/browser/net/system_network_context_manager.h",
+    "shell/browser/net/url_loader_network_observer.cc",
+    "shell/browser/net/url_loader_network_observer.h",
     "shell/browser/net/url_pipe_loader.cc",
     "shell/browser/net/url_pipe_loader.h",
     "shell/browser/net/web_request_api_interface.h",

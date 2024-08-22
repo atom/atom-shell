@@ -2,7 +2,7 @@ is_electron_build = true
 root_extra_deps = [ "//electron" ]
 
 # Registry of NMVs --> https://github.com/nodejs/node/blob/main/doc/abi_version_registry.json
-node_module_version = 128
+node_module_version = 130
 
 v8_promise_internal_field_count = 1
 v8_embedder_string = "-electron.0"

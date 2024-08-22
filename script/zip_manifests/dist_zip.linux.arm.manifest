@@ -4,6 +4,7 @@ chrome-sandbox
 chrome_100_percent.pak
 chrome_200_percent.pak
 chrome_crashpad_handler
+clang_x86_v8_arm/icudtl.dat
 clang_x86_v8_arm/snapshot_blob.bin
 electron
 icudtl.dat

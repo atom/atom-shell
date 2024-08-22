@@ -84,7 +84,7 @@ class NodeBindings {
  public:
   enum class BrowserEnvironment { kBrowser, kRenderer, kUtility, kWorker };
 
-  static NodeBindings* Create(BrowserEnvironment browser_env);
+  static std::unique_ptr<NodeBindings> Create(BrowserEnvironment browser_env);
   static void RegisterBuiltinBindings();
   static bool IsInitialized();
 

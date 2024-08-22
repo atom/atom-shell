@@ -31,20 +31,15 @@ class ElectronExtensionsRendererClient
   ElectronExtensionsRendererClient& operator=(
       const ElectronExtensionsRendererClient&) = delete;
 
-  // ExtensionsRendererClient implementation.
-  void RenderThreadStarted() override;
+  // extensions::ExtensionsRendererClient:
   bool IsIncognitoProcess() const override;
   int GetLowestIsolatedWorldId() const override;
-  extensions::Dispatcher* GetDispatcher() override;
 
   bool AllowPopup();
 
   void RunScriptsAtDocumentStart(content::RenderFrame* render_frame);
   void RunScriptsAtDocumentEnd(content::RenderFrame* render_frame);
   void RunScriptsAtDocumentIdle(content::RenderFrame* render_frame);
-
- private:
-  std::unique_ptr<extensions::Dispatcher> dispatcher_;
 };
 
 }  // namespace electron

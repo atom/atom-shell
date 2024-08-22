@@ -14,6 +14,11 @@ namespace gfx {
 class Size;
 }
 
+namespace content {
+class RenderFrameHost;
+class WebContents;
+}  // namespace content
+
 namespace electron {
 
 // This function returns the per-platform default printer's DPI.
@@ -23,6 +28,9 @@ gfx::Size GetDefaultPrinterDPI(const std::u16string& device_name);
 // found on the network. We need to check this because Chromium does not do
 // sanity checking of device_name validity and so will crash on invalid names.
 bool IsDeviceNameValid(const std::u16string& device_name);
+
+content::RenderFrameHost* GetRenderFrameHostToUse(
+    content::WebContents* contents);
 
 // This function returns a validated device name.
 // If the user passed one to webContents.print(), we check that it's valid and

@@ -41,6 +41,8 @@ base::FilePath GetLogFileName(const base::CommandLine& command_line) {
   }
 }
 
+namespace {
+
 bool HasExplicitLogFile(const base::CommandLine& command_line) {
   std::string filename = command_line.GetSwitchValueASCII(switches::kLogFile);
   if (filename.empty())
@@ -94,6 +96,8 @@ LoggingDestination DetermineLoggingDestination(
     return LOG_TO_FILE | (also_log_to_stderr ? LOG_TO_STDERR : 0);
   return LOG_TO_SYSTEM_DEBUG_LOG | LOG_TO_STDERR;
 }
+
+}  // namespace
 
 void InitElectronLogging(const base::CommandLine& command_line,
                          bool is_preinit) {

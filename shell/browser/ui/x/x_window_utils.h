@@ -11,10 +11,6 @@
 
 namespace electron {
 
-// Sends a message to the x11 window manager, enabling or disabling the |state|
-// for _NET_WM_STATE.
-void SetWMSpecState(x11::Window window, bool enabled, x11::Atom state);
-
 // Sets the _NET_WM_WINDOW_TYPE of window.
 void SetWindowType(x11::Window window, const std::string& type);
 

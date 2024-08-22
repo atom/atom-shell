@@ -39,13 +39,16 @@ class URLLoaderBundle {
   static URLLoaderBundle* GetInstance();
   void SetURLLoaderFactory(
       mojo::PendingRemote<network::mojom::URLLoaderFactory> factory,
-      mojo::Remote<network::mojom::HostResolver> host_resolver);
+      mojo::Remote<network::mojom::HostResolver> host_resolver,
+      bool use_network_observer_from_url_loader_factory);
   scoped_refptr<network::SharedURLLoaderFactory> GetSharedURLLoaderFactory();
   network::mojom::HostResolver* GetHostResolver();
+  bool ShouldUseNetworkObserverfromURLLoaderFactory() const;
 
  private:
   scoped_refptr<network::SharedURLLoaderFactory> factory_;
   mojo::Remote<network::mojom::HostResolver> host_resolver_;
+  bool should_use_network_observer_from_url_loader_factory_ = false;
 };
 
 class NodeService : public node::mojom::NodeService {

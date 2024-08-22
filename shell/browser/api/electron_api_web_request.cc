@@ -213,8 +213,7 @@ CalculateOnBeforeSendHeadersDelta(const net::HttpRequestHeaders* old_headers,
     {
       net::HttpRequestHeaders::Iterator i(*new_headers);
       while (i.GetNext()) {
-        std::string value;
-        if (!old_headers->GetHeader(i.name(), &value) || i.value() != value) {
+        if (i.value() != old_headers->GetHeader(i.name())) {
           modified_request_headers.insert(i.name());
         }
       }

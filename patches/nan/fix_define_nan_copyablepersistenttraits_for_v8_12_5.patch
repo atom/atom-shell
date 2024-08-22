@@ -23,14 +23,14 @@ index 2a68349448c163fa29af327a03b11678e61f5789..42285328055ddb7c76548258f3c4847d
  template<typename T>
  class PersistentBase :
 diff --git a/nan_persistent_12_inl.h b/nan_persistent_12_inl.h
-index d9649e867606c6356e393e9964b5607a08ea4e3a..09a8d6d722b8e8af367f71a2b0685bbb7a6fa40e 100644
+index d9649e867606c6356e393e9964b5607a08ea4e3a..ad89657e204259018f1e3814a864410a0917a915 100644
 --- a/nan_persistent_12_inl.h
 +++ b/nan_persistent_12_inl.h
 @@ -129,4 +129,15 @@ class Global : public v8::UniquePersistent<T> {
  };
  #endif
  
-+#if defined(V8_MAJOR_VERSION) && (V8_MAJOR_VERSION >= 12 && V8_MINOR_VERSION >= 5)
++#if defined(V8_MAJOR_VERSION) && ((V8_MAJOR_VERSION >= 12 && V8_MINOR_VERSION >= 5) || V8_MAJOR_VERSION >= 13)
 +template<typename T>
 +struct CopyablePersistentTraits {
 +  typedef v8::Persistent<T, CopyablePersistentTraits<T> > CopyablePersistent;

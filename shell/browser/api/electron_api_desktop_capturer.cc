@@ -46,6 +46,7 @@
 #include "ui/base/cocoa/permissions_utils.h"
 #endif
 
+namespace {
 #if BUILDFLAG(IS_LINUX)
 // Private function in ui/base/x/x11_display_util.cc
 base::flat_map<x11::RandR::Output, int> GetMonitors(
@@ -141,8 +142,6 @@ base::flat_map<int32_t, uint32_t> MonitorAtomIdToDisplayId() {
   return monitor_atom_to_display;
 }
 #endif
-
-namespace {
 
 std::unique_ptr<ThumbnailCapturer> MakeWindowCapturer() {
 #if BUILDFLAG(IS_MAC)

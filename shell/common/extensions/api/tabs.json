@@ -64,7 +64,7 @@
           "windowId": {"type": "integer", "minimum": 0, "description": "The ID of the window that contains the tab."},
           "openerTabId": {"type": "integer", "minimum": 0, "optional": true, "description": "The ID of the tab that opened this tab, if any. This property is only present if the opener tab still exists."},
           "selected": {"type": "boolean", "description": "Whether the tab is selected.", "deprecated": "Please use $(ref:tabs.Tab.highlighted)."},
-          "lastAccessed": {"type": "number", "optional": true, "description": "The last time the tab was accessed as the number of milliseconds since epoch."},
+          "lastAccessed": {"type": "number", "description": "The last time the tab was accessed as the number of milliseconds since epoch."},
           "highlighted": {"type": "boolean", "description": "Whether the tab is highlighted."},
           "active": {"type": "boolean", "description": "Whether the tab is active in its window. Does not necessarily mean the window is focused."},
           "pinned": {"type": "boolean", "description": "Whether the tab is pinned."},

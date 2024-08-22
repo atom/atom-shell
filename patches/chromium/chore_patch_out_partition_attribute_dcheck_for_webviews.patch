@@ -14,7 +14,7 @@ This change patches it out to prevent the DCHECK.
 It can be removed once/if we see a better solution to the problem.
 
 diff --git a/content/browser/site_instance_impl.cc b/content/browser/site_instance_impl.cc
-index 5e8f841eafbf6dfd8b4af893f7e51874ede80e73..6c542184e2f1ef166337d0d97ca64d2499449251 100644
+index ab89f0ad6239c7b247403b604bf31ca35d23757c..f18cca522c244006364dd5e9ea6271675cd75057 100644
 --- a/content/browser/site_instance_impl.cc
 +++ b/content/browser/site_instance_impl.cc
 @@ -211,7 +211,7 @@ scoped_refptr<SiteInstanceImpl> SiteInstanceImpl::CreateForGuest(

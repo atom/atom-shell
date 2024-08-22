@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { dialog, BrowserWindow } from 'electron/main';
+import { dialog, BaseWindow, BrowserWindow } from 'electron/main';
 import { closeAllWindows } from './lib/window-helpers';
 import { ifit } from './lib/spec-helpers';
 import { setTimeout } from 'node:timers/promises';
@@ -14,6 +14,11 @@ describe('dialog module', () => {
 
       expect(() => {
         const w = new BrowserWindow();
+        dialog.showOpenDialog(w, { title: 'i am title' });
+      }).to.not.throw();
+
+      expect(() => {
+        const w = new BaseWindow();
         dialog.showOpenDialog(w, { title: 'i am title' });
       }).to.not.throw();
     });
@@ -50,6 +55,11 @@ describe('dialog module', () => {
 
       expect(() => {
         const w = new BrowserWindow();
+        dialog.showSaveDialog(w, { title: 'i am title' });
+      }).to.not.throw();
+
+      expect(() => {
+        const w = new BaseWindow();
         dialog.showSaveDialog(w, { title: 'i am title' });
       }).to.not.throw();
     });
@@ -91,6 +101,11 @@ describe('dialog module', () => {
     ifit(process.platform !== 'win32')('should not throw for valid cases', () => {
       expect(() => {
         const w = new BrowserWindow();
+        dialog.showMessageBox(w, { message: 'i am message' });
+      }).to.not.throw();
+
+      expect(() => {
+        const w = new BaseWindow();
         dialog.showMessageBox(w, { message: 'i am message' });
       }).to.not.throw();
     });
