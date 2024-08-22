@@ -243,7 +243,7 @@ to enable this behavior.
 Even when `nodeIntegration: false` is used, to truly enforce strong isolation
 and prevent the use of Node primitives `contextIsolation` **must** also be used.
 
-Beware that **disabling context isolation*** for a renderer process by setting 
+Beware that ***disabling context isolation*** for a renderer process by setting 
 `nodeIntegration: true` ***also disables process sandboxing*** for that process. 
 See section below.
 
