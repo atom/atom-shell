@@ -15,8 +15,8 @@ See Chromium's [Sandbox design document][sandbox] for more information.
 Starting from Electron 20, the sandbox is enabled for renderer processes without any
 further configuration.
 
-Sandboxing is tied to Node.js integration. ***Enabling Node.js integration*** for a 
-renderer process by setting `nodeIntegration: true` ***disables the sandbox*** for the 
+Sandboxing is tied to Node.js integration. _Enabling Node.js integration_ for a
+renderer process by setting `nodeIntegration: true` _disables the sandbox_ for the
 process.
 
 If you want to disable the sandbox for a process, see the
@@ -104,7 +104,7 @@ app.whenReady().then(() => {
 ```
 
 Sandboxing is also disabled whenever Node.js integration is enabled in the renderer.
-This can be done through the BrowserWindow constructor with the `nodeIntegration: true` flag 
+This can be done through the BrowserWindow constructor with the `nodeIntegration: true` flag
 or by providing the respective html boolean attribute for a `webview`.
 
 ```js title='main.js'

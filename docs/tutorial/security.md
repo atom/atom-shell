@@ -243,8 +243,8 @@ to enable this behavior.
 Even when `nodeIntegration: false` is used, to truly enforce strong isolation
 and prevent the use of Node primitives `contextIsolation` **must** also be used.
 
-Beware that ***disabling context isolation*** for a renderer process by setting 
-`nodeIntegration: true` ***also disables process sandboxing*** for that process. 
+Beware that _disabling context isolation_ for a renderer process by setting
+`nodeIntegration: true` _also disables process sandboxing_ for that process.
 See section below.
 
 :::info
@@ -257,10 +257,10 @@ see our dedicated [Context Isolation](context-isolation.md) document.
 :::info
 This recommendation is the default behavior in Electron since 20.0.0.
 
-Additionally, process sandboxing can be enforced for all renderer processes 
+Additionally, process sandboxing can be enforced for all renderer processes
 application wide: [Enabling the sandbox globally](sandbox.md#enabling-the-sandbox-globally)
 
-***Disabling context isolation*** (see above) ***also disables process sandboxing***, 
+_Disabling context isolation_ (see above) _also disables process sandboxing_,
 regardless of the default, `sandbox: false` or globally enabled sandboxing!
 :::
 
