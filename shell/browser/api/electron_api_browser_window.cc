@@ -312,16 +312,6 @@ void BrowserWindow::NotifyWindowUnresponsive() {
   }
 }
 
-void BrowserWindow::OnWindowShow() {
-  web_contents()->WasShown();
-  BaseWindow::OnWindowShow();
-}
-
-void BrowserWindow::OnWindowHide() {
-  web_contents()->WasOccluded();
-  BaseWindow::OnWindowHide();
-}
-
 // static
 gin_helper::WrappableBase* BrowserWindow::New(gin_helper::ErrorThrower thrower,
                                               gin::Arguments* args) {

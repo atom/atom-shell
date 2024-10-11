@@ -81,7 +81,7 @@ ifdescribe(process.platform !== 'linux')('document.visibilityState', () => {
     show: true
   }, async () => {
     // TODO(MarshallOfSound): Figure out if we can work around this 1 tick issue for users
-    if (process.platform === 'darwin') {
+    if (process.platform === 'darwin' || process.platform === 'win32') {
       // Wait for a tick, the window being "shown" takes 1 tick on macOS
       await setTimeout(10000);
     }
