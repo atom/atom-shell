@@ -178,7 +178,7 @@ void InitElectronLogging(const base::CommandLine& command_line,
       // enabled as sandboxed processes cannot open files.
       log_handle = GetLogInheritedHandle(command_line);
       if (!log_handle.is_valid()) {
-        DLOG(ERROR) << "Unable to initialize logging from handle.";
+        LOG(ERROR) << "Unable to initialize logging from handle.";
         return;
       }
 #endif
