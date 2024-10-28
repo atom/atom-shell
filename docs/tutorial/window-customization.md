@@ -267,3 +267,15 @@ draggable areas.
 [overlay-css-env-vars]: https://github.com/WICG/window-controls-overlay/blob/main/explainer.md#css-environment-variables
 [overlay-javascript-apis]: https://github.com/WICG/window-controls-overlay/blob/main/explainer.md#javascript-apis
 [Window Controls Overlay API]: https://github.com/WICG/window-controls-overlay/blob/main/explainer.md
+
+## Panel windows _macOS_
+
+To achieve a floating panel that doesn't steal focus from a normal window,
+similar to how Spotlight or Alfred behave in macOS, use `type: "panel"` within `BrowserWindow`:
+
+```js title='main.js'
+const { BrowserWindow } = require('electron')
+const win = new BrowserWindow({ type: "panel" })
+```
+
+More details on the `type` option can be found [here](https://www.electronjs.org/docs/latest/api/structures/base-window-options).
