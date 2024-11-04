@@ -42,10 +42,14 @@ MenuBar::MenuBar(NativeWindow* window, RootView* root_view)
   SetLayoutManager(std::make_unique<views::BoxLayout>(
       views::BoxLayout::Orientation::kHorizontal));
   window_->AddObserver(this);
+
+  menu_delegate_ = std::make_unique<MenuDelegate>(this);
+  menu_delegate_->AddObserver(this);
 }
 
 MenuBar::~MenuBar() {
   window_->RemoveObserver(this);
+  menu_delegate_->RemoveObserver(this);
 }
 
 void MenuBar::SetMenu(ElectronMenuModel* model) {
@@ -195,11 +199,9 @@ void MenuBar::ButtonPressed(size_t id, const ui::Event& event) {
   DCHECK(source);
 
   // Deleted in MenuDelegate::OnMenuClosed
-  auto* menu_delegate = new MenuDelegate(this);
-  menu_delegate->RunMenu(
+  menu_delegate_->RunMenu(
       menu_model_->GetSubmenuModelAt(id), source,
       event.IsKeyEvent() ? ui::MENU_SOURCE_KEYBOARD : ui::MENU_SOURCE_MOUSE);
-  menu_delegate->AddObserver(this);
 }
 
 void MenuBar::ViewHierarchyChanged(

@@ -92,6 +92,7 @@ class MenuBar : public views::AccessiblePaneView,
   raw_ptr<NativeWindow> window_;
   raw_ptr<RootView> root_view_;
   raw_ptr<ElectronMenuModel> menu_model_ = nullptr;
+  std::unique_pt<MenuDelegate> menu_delegate_ = nullptr;
   bool accelerator_installed_ = false;
 };
 
