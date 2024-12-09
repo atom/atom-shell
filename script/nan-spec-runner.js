@@ -129,9 +129,7 @@ async function main () {
 
   const DISABLED_TESTS = new Set([
     'nannew-test.js',
-    'buffer-test.js',
-    // we can't patch this test because it uses CRLF line endings
-    'methodswithdata-test.js'
+    'buffer-test.js'
   ]);
   const testsToRun = fs.readdirSync(path.resolve(NAN_DIR, 'test', 'js'))
     .filter(test => !DISABLED_TESTS.has(test))

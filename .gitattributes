@@ -1,7 +1,8 @@
-# `git apply` and friends don't understand CRLF, even on windows. Force those
-# files to be checked out with LF endings even if core.autocrlf is true.
-*.patch text eol=lf
 patches/**/.patches merge=union
+
+# Patches must use the line endings of their target files. Otherwise they will
+# fail to apply properly.
+*.patch -eol
 
 # Source code and markdown files should always use LF as line ending.
 *.c text eol=lf

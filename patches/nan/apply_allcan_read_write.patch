@@ -139,3 +139,24 @@ index e6ad45737e2ac18da3fa936b1de618e7389933bc..025f5b66774c2f5fe0ccb98c91fc714d
    t.equal(derived.prop2, 'setting a new value')
 -  t.equal(settergetter.prop2, 'setting a new value')
  })
+diff --git a/test/js/methodswithdata-test.js b/test/js/methodswithdata-test.js
+index 9f4fc5246f1ca3d8faadc9a72d49e14a6a190e32..795538510431fb3b633be37f916d4ce1955c808a 100644
+--- a/test/js/methodswithdata-test.js
++++ b/test/js/methodswithdata-test.js
+@@ -16,7 +16,7 @@ test('SetMethod with data', function (t) {
+ });
+ 
+ test('accessors with data', function (t) {
+-    t.plan(7)
++    t.plan(6)
+     var settergetter = bindings.create()
+     t.equal(settergetter.prop1, 'this is property 1')
+     t.ok(settergetter.prop2 === '')
+@@ -33,6 +33,5 @@ test('accessors with data', function (t) {
+     t.equal(derived.prop1, 'this is property 1')
+     derived.prop2 = 'setting a new value'
+     t.equal(derived.prop2, 'setting a new value')
+-    t.equal(settergetter.prop2, 'setting a new value')
+   })
+   
+\ No newline at end of file
