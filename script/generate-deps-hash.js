@@ -16,7 +16,8 @@ const HASH_VERSIONS = {
 const filesToHash = [
   path.resolve(__dirname, '../DEPS'),
   path.resolve(__dirname, '../yarn.lock'),
-  path.resolve(__dirname, '../script/sysroots.json')
+  path.resolve(__dirname, '../script/sysroots.json'),
+  path.resolve(__dirname, '../.github/actions/checkout/action.yml')
 ];
 
 const addAllFiles = (dir) => {

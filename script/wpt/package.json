@@ -1,0 +1,5 @@
+{
+    "name": "electron-test-wpt",
+    "main": "start.mjs",
+    "type": "module"
+}

@@ -62,7 +62,8 @@ move_src_dirs_if_exist() {
     src/third_party/libc++ \
     src/third_party/libc++abi \
     src/out/Default/obj/buildtools/third_party \
-    src/v8/tools/builtins-pgo
+    src/v8/tools/builtins-pgo \
+    src/third_party/blink/web_tests/external/wpt
   do
     if [ -d "$dir" ]; then
       mkdir -p src_artifacts/$(dirname $dir)

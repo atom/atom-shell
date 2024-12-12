@@ -161,3 +161,53 @@ jobs:
         do
           sleep 60
         done
+  wpt-tests:
+    name: Run WPT Tests
+    runs-on: electron-arc-linux-amd64-4core
+    timeout-minutes: 20
+    env: 
+      TARGET_ARCH: ${{ inputs.target-arch }}
+      BUILD_TYPE: linux
+    container: ${{ fromJSON(inputs.test-container) }}
+    steps:
+    - name: Checkout Electron
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        path: src/electron
+        fetch-depth: 0
+    - name: Install Dependencies
+      run: |
+        cd src/electron
+        node script/yarn install --frozen-lockfile
+    - name: Download Generated Artifacts
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: generated_artifacts_${{ env.BUILD_TYPE }}_${{ env.TARGET_ARCH }}
+        path: ./generated_artifacts_${{ env.BUILD_TYPE }}_${{ env.TARGET_ARCH }}
+    - name: Download Src Artifacts
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: src_artifacts_linux_${{ env.TARGET_ARCH }}
+        path: ./src_artifacts_linux_${{ env.TARGET_ARCH }}
+    - name: Restore Generated Artifacts
+      run: ./src/electron/script/actions/restore-artifacts.sh
+    - name: Unzip Dist
+      run: |
+        cd src/out/Default
+        unzip -:o dist.zip
+    - name: Setup Linux for Headless Testing
+      run: sh -e /etc/init.d/xvfb start
+    - name: Run WPT Tests
+      run: |
+        cd src
+        chown :builduser . && chmod g+w .
+        chown -R :builduser ./electron && chmod -R g+w ./electron
+        chmod 4755 ./out/Default/chrome-sandbox
+        runuser -u builduser -- xvfb-run electron/script/actions/run-tests.sh electron/script/wpt-spec-runner.js
+    - name: Wait for active SSH sessions
+      if: always() && !cancelled()
+      run: |
+        while [ -f /var/.ssh-lock ]
+        do
+          sleep 60
+        done

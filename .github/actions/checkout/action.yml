@@ -139,7 +139,10 @@ runs:
     run: |
       rm -rf src/android_webview
       rm -rf src/ios/chrome
+      mv src/third_party/blink/web_tests/external/wpt ./wpt
       rm -rf src/third_party/blink/web_tests
+      mkdir -p src/third_party/blink/web_tests/external
+      mv ./wpt src/third_party/blink/web_tests/external/wpt
       rm -rf src/third_party/blink/perf_tests
       rm -rf src/chrome/test/data/xr/webvr_info
       rm -rf src/third_party/angle/third_party/VK-GL-CTS/src

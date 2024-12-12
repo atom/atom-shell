@@ -1508,15 +1508,6 @@ describe('net module', () => {
     });
 
     describe('net.fetch', () => {
-      // NB. there exist much more comprehensive tests for fetch() in the form of
-      // the WPT: https://github.com/web-platform-tests/wpt/tree/master/fetch
-      // It's possible to run these tests against net.fetch(), but the test
-      // harness to do so is quite complex and hasn't been munged to smoothly run
-      // inside the Electron test runner yet.
-      //
-      // In the meantime, here are some tests for basic functionality and
-      // Electron-specific behavior.
-
       describe('basic', () => {
         test('can fetch http urls', async () => {
           const serverUrl = await respondOnce.toSingleURL((request, response) => {

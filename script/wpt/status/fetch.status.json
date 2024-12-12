@@ -1,0 +1,578 @@
+{
+  "api": {
+    "abort": {
+      "general.any.js": {
+        "fail": [
+          "response.arrayBuffer() rejects if already aborted",
+          "response.blob() rejects if already aborted",
+          "response.formData() rejects if already aborted",
+          "response.json() rejects if already aborted",
+          "response.text() rejects if already aborted",
+          "response.bytes() rejects if already aborted",
+          "Call text() twice on aborted response",
+          "Fetch aborted & connection closed when aborted after calling response.arrayBuffer()",
+          "Fetch aborted & connection closed when aborted after calling response.blob()",
+          "Fetch aborted & connection closed when aborted after calling response.formData()",
+          "Fetch aborted & connection closed when aborted after calling response.json()",
+          "Fetch aborted & connection closed when aborted after calling response.text()",
+          "Fetch aborted & connection closed when aborted after calling response.bytes()",
+          "Stream errors once aborted. Underlying connection closed.",
+          "Stream errors once aborted, after reading. Underlying connection closed."
+        ]
+      },
+      "cache.https.any.js": {
+        "note": "undici doesn't implement http caching",
+        "skip": true
+      }
+    },
+    "basic": {
+      "accept-header.any.js": {
+        "fail": [
+          "Request through fetch should have 'accept' header with value '*/*'",
+          "Request through fetch should have 'accept' header with value 'custom/*'",
+          "Request through fetch should have a 'accept-language' header",
+          "Request through fetch should have 'accept-language' header with value 'bzh'"
+        ]
+      },
+      "conditional-get.any.js": {
+        "fail": [
+          "Testing conditional GET with ETags"
+        ],
+        "note": "undici doesn't keep track of etags"
+      },
+      "error-after-response.any.js": {
+        "fail": [
+          "Response reader read() promise should reject after a network error happening after resolving fetch promise",
+          "Response reader closed promise should reject after a network error happening after resolving fetch promise"
+        ]
+      },
+      "header-value-combining.any.js": {
+        "fail": [
+          "response.headers.get('content-length') expects 0, 0",
+          "response.headers.get('foo-test') expects 1, 2, 3",
+          "response.headers.get('heya') expects , \\x0B\f, 1, , , 2"
+        ],
+        "flaky": [
+          "response.headers.get('content-length') expects 0",
+          "response.headers.get('double-trouble') expects , ",
+          "response.headers.get('www-authenticate') expects 1, 2, 3, 4"
+        ]
+      },
+      "header-value-null-byte.any.js": {
+        "fail": [
+          "Ensure fetch() rejects null bytes in headers"
+        ]
+      },
+      "http-response-code.any.js": {
+        "fail": [
+          "Fetch on 425 response should not be retried for non TLS early data."
+        ]
+      },
+      "integrity.sub.any.js": {
+        "note": "Electron: integrity is not working",
+        "skip": true
+      },
+      "keepalive.any.js": {
+        "note": "document is not defined",
+        "skip": true
+      },
+      "mode-no-cors.sub.any.js": {
+        "note": "undici doesn't implement CORs",
+        "skip": true
+      },
+      "mode-same-origin.any.js": {
+        "note": "undici doesn't respect RequestInit.mode",
+        "skip": true
+      },
+      "referrer.any.js": {
+        "note": "Electron: fix referrrer handling",
+        "skip": true
+      },
+      "request-forbidden-headers.any.js": {
+        "note": "undici doesn't filter headers",
+        "skip": true
+      },
+      "request-headers.any.js": {
+        "note": "Electron: fix response type",
+        "skip": true
+      },
+      "request-headers-case.any.js": {
+        "note": "Electron: rework header generation",
+        "skip": true
+      },
+      "request-private-network-headers.tentative.any.js": {
+        "note": "undici doesn't filter headers",
+        "skip": true
+      },
+      "request-referrer.any.js": {
+        "note": "Electron: fix referrrer handling",
+        "skip": true
+      },
+      "request-upload.any.js": {
+        "note": "no Float16Array",
+        "fail": [
+          "Fetch with POST with Float16Array body",
+          "Fetch with POST with text body on 421 response should be retried once on new connection."
+        ]
+      },
+      "request-upload.h2.any.js": {
+        "note": "undici doesn't support http/2",
+        "skip": true
+      },
+      "response-url.sub.any.js": {
+        "note": "Electron: does not support response.url",
+        "skip": true
+      },
+      "scheme-about.any.js": {
+        "note": "Electron: does not handle about urls",
+        "skip": true
+      },
+      "scheme-blob.sub.any.js": {
+        "note": "Electron: does not support blob urls",
+        "skip": true
+      },
+      "scheme-data.any.js": {
+        "note": "Electron: does not support data urls",
+        "skip": true
+      },
+      "scheme-others.sub.any.js": {
+        "note": "Electron: does not support unknown urls",
+        "skip": true
+      },
+      "status.h2.any.js": {
+        "note": "undici doesn't support http/2",
+        "skip": true
+      },
+      "stream-response.any.js": {
+        "fail": [
+          "Stream response's body when content-type is not present"
+        ]
+      },
+      "stream-safe-creation.any.js": {
+        "note": "Electron: stream accessors are broken",
+        "skip": true
+      }
+    },
+    "body": {
+      "mime-type.any.js": {
+        "note": "fails on all platforms, https://wpt.fyi/results/fetch/api/body/mime-type.any.html?label=master&label=experimental&product=chrome&product=firefox&product=safari&product=node.js&product=deno&aligned",
+        "fail": [
+          "Response: Extract a MIME type with clone"
+        ]
+      }
+    },
+    "cors": {
+      "note": "undici doesn't implement CORs",
+      "skip": true
+    },
+    "credentials": {
+      "authentication-basic.any.js": {
+        "note": "Electron: fix response type",
+        "skip": true
+      },
+      "authentication-redirection.any.js": {
+        "note": "connects to https server",
+        "fail": [
+          "getAuthorizationHeaderValue - cross origin redirection",
+          "getAuthorizationHeaderValue - same origin redirection"
+        ]
+      },
+      "cookies.any.js": {
+        "note": "Electron: fix response type",
+        "skip": true
+      }
+    },
+    "fetch-later": {
+      "note": "this is not part of the spec, only a proposal",
+      "skip": true
+    },
+    "headers": {
+      "header-setcookie.any.js": {
+        "note": "undici doesn't filter headers",
+        "fail": [
+          "Set-Cookie is a forbidden response header"
+        ]
+      },
+      "header-values-normalize.any.js": {
+        "note": "TODO(@KhafraDev): https://github.com/nodejs/undici/issues/1680",
+        "fail": [
+          "XMLHttpRequest with value %00",
+          "XMLHttpRequest with value %01",
+          "XMLHttpRequest with value %02",
+          "XMLHttpRequest with value %03",
+          "XMLHttpRequest with value %04",
+          "XMLHttpRequest with value %05",
+          "XMLHttpRequest with value %06",
+          "XMLHttpRequest with value %07",
+          "XMLHttpRequest with value %08",
+          "XMLHttpRequest with value %09",
+          "XMLHttpRequest with value %0A",
+          "XMLHttpRequest with value %0D",
+          "XMLHttpRequest with value %0E",
+          "XMLHttpRequest with value %0F",
+          "XMLHttpRequest with value %10",
+          "XMLHttpRequest with value %11",
+          "XMLHttpRequest with value %12",
+          "XMLHttpRequest with value %13",
+          "XMLHttpRequest with value %14",
+          "XMLHttpRequest with value %15",
+          "XMLHttpRequest with value %16",
+          "XMLHttpRequest with value %17",
+          "XMLHttpRequest with value %18",
+          "XMLHttpRequest with value %19",
+          "XMLHttpRequest with value %1A",
+          "XMLHttpRequest with value %1B",
+          "XMLHttpRequest with value %1C",
+          "XMLHttpRequest with value %1D",
+          "XMLHttpRequest with value %1E",
+          "XMLHttpRequest with value %1F",
+          "XMLHttpRequest with value %20",
+          "fetch() with value %01",
+          "fetch() with value %02",
+          "fetch() with value %03",
+          "fetch() with value %04",
+          "fetch() with value %05",
+          "fetch() with value %06",
+          "fetch() with value %07",
+          "fetch() with value %08",
+          "fetch() with value %0E",
+          "fetch() with value %0F",
+          "fetch() with value %10",
+          "fetch() with value %11",
+          "fetch() with value %12",
+          "fetch() with value %13",
+          "fetch() with value %14",
+          "fetch() with value %15",
+          "fetch() with value %16",
+          "fetch() with value %17",
+          "fetch() with value %18",
+          "fetch() with value %19",
+          "fetch() with value %1A",
+          "fetch() with value %1B",
+          "fetch() with value %1C",
+          "fetch() with value %1D",
+          "fetch() with value %1E",
+          "fetch() with value %1F"
+        ]
+      },
+      "header-values.any.js": {
+        "fail": [
+          "XMLHttpRequest with value x%00x needs to throw",
+          "XMLHttpRequest with value x%0Ax needs to throw",
+          "XMLHttpRequest with value x%0Dx needs to throw",
+          "XMLHttpRequest with all valid values",
+          "fetch() with all valid values"
+        ]
+      },
+      "headers-no-cors.any.js": {
+        "note": "undici doesn't implement CORs",
+        "skip": true
+      }
+    },
+    "redirect": {
+      "redirect-back-to-original-origin.any.js": {
+        "note": "Electron: fix response type",
+        "skip": true
+      },
+      "redirect-count.any.js": {
+        "note": "Electron: handle too many redirects",
+        "skip": true
+      },
+      "redirect-empty-location.any.js": {
+        "note": "undici handles redirect: manual differently than browsers",
+        "fail": [
+          "redirect response with empty Location, manual mode",
+          "redirect response with empty Location, follow mode"
+        ]
+      },
+      "redirect-keepalive.any.js": {
+        "note": "document is not defined",
+        "skip": true
+      },
+      "redirect-keepalive.https.any.js": {
+        "note": "document is not defined",
+        "skip": true
+      },
+      "redirect-location-escape.tentative.any.js": {
+        "note": "TODO(@KhafraDev): crashes runner",
+        "skip": true
+      },
+      "redirect-location.any.js": {
+        "note": "Electron: fix redirect handling",
+        "skip": true
+      },
+      "redirect-method.any.js": {
+        "note": "Electron: fix response type",
+        "skip": true
+      },
+      "redirect-mode.any.js": {
+        "note": "mode isn't respected",
+        "skip": true
+      },
+      "redirect-origin.any.js": {
+        "note": "TODO(@KhafraDev): investigate",
+        "skip": true
+      },
+      "redirect-referrer-override.any.js": {
+        "note": "TODO(@KhafraDev): investigate",
+        "skip": true
+      },
+      "redirect-referrer.any.js": {
+        "note": "TODO(@KhafraDev): investigate",
+        "skip": true
+      },
+      "redirect-schemes.any.js": {
+        "note": "Electron: fix redirect handling",
+        "skip": true
+      },
+      "redirect-to-dataurl.any.js": {
+        "note": "Electron: does not support data urls",
+        "skip": true
+      },
+      "redirect-upload.h2.any.js": {
+        "note": "undici doesn't support http/2",
+        "skip": true
+      }
+    },
+    "request": {
+      "request-cache-default-conditional.any.js": {
+        "note": "undici doesn't implement an http cache",
+        "skip": true
+      },
+      "request-cache-default.any.js": {
+        "note": "undici doesn't implement an http cache",
+        "skip": true
+      },
+      "request-cache-force-cache.any.js": {
+        "note": "undici doesn't implement an http cache",
+        "skip": true
+      },
+      "request-cache-no-cache.any.js": {
+        "note": "undici doesn't implement an http cache",
+        "skip": true
+      },
+      "request-cache-no-store.any.js": {
+        "note": "undici doesn't implement an http cache",
+        "skip": true
+      },
+      "request-cache-only-if-cached.any.js": {
+        "note": "undici doesn't implement an http cache",
+        "skip": true
+      },
+      "request-cache-reload.any.js": {
+        "note": "undici doesn't implement an http cache",
+        "skip": true
+      },
+      "request-consume-empty.any.js": {
+        "note": "the semantics about this test are being discussed - https://github.com/web-platform-tests/wpt/pull/3950",
+        "fail": [
+          "Consume empty FormData request body as text"
+        ]
+      },
+      "request-disturbed.any.js": {
+        "note": "this test fails in all other platforms - https://wpt.fyi/results/fetch/api/request/request-disturbed.any.html?label=master&label=experimental&product=chrome&product=firefox&product=safari&product=deno&aligned&view=subtest",
+        "fail": [
+          "Input request used for creating new request became disturbed even if body is not used"
+        ]
+      },
+      "request-headers.any.js": {
+        "note": "undici doesn't filter headers",
+        "fail": [
+          "Adding invalid request header \"Accept-Charset: KO\"",
+          "Adding invalid request header \"accept-charset: KO\"",
+          "Adding invalid request header \"ACCEPT-ENCODING: KO\"",
+          "Adding invalid request header \"Accept-Encoding: KO\"",
+          "Adding invalid request header \"Access-Control-Request-Headers: KO\"",
+          "Adding invalid request header \"Access-Control-Request-Method: KO\"",
+          "Adding invalid request header \"Connection: KO\"",
+          "Adding invalid request header \"Content-Length: KO\"",
+          "Adding invalid request header \"Cookie: KO\"",
+          "Adding invalid request header \"Cookie2: KO\"",
+          "Adding invalid request header \"Date: KO\"",
+          "Adding invalid request header \"DNT: KO\"",
+          "Adding invalid request header \"Expect: KO\"",
+          "Adding invalid request header \"Host: KO\"",
+          "Adding invalid request header \"Keep-Alive: KO\"",
+          "Adding invalid request header \"Origin: KO\"",
+          "Adding invalid request header \"Referer: KO\"",
+          "Adding invalid request header \"Set-Cookie: KO\"",
+          "Adding invalid request header \"TE: KO\"",
+          "Adding invalid request header \"Trailer: KO\"",
+          "Adding invalid request header \"Transfer-Encoding: KO\"",
+          "Adding invalid request header \"Upgrade: KO\"",
+          "Adding invalid request header \"Via: KO\"",
+          "Adding invalid request header \"Proxy-: KO\"",
+          "Adding invalid request header \"proxy-a: KO\"",
+          "Adding invalid request header \"Sec-: KO\"",
+          "Adding invalid request header \"sec-b: KO\"",
+          "Adding invalid no-cors request header \"Content-Type: KO\"",
+          "Adding invalid no-cors request header \"Potato: KO\"",
+          "Adding invalid no-cors request header \"proxy: KO\"",
+          "Adding invalid no-cors request header \"proxya: KO\"",
+          "Adding invalid no-cors request header \"sec: KO\"",
+          "Adding invalid no-cors request header \"secb: KO\"",
+          "Adding invalid no-cors request header \"Empty-Value: \"",
+          "Check that request constructor is filtering headers provided as init parameter",
+          "Check that no-cors request constructor is filtering headers provided as init parameter",
+          "Check that no-cors request constructor is filtering headers provided as part of request parameter"
+        ]
+      },
+      "request-init-priority.any.js": {
+        "note": "undici doesn't implement priority hints, yet(?)",
+        "skip": true
+      }
+    },
+    "response": {
+      "json.any.js": {
+        "note": "Electron: does not support data urls",
+        "skip": true
+      },
+      "response-blob-realm.any.js": {
+        "note": "onload is not defined (globalThis does not extend EventTarget)",
+        "fail": [
+          "realm of the Uint8Array from Response bytes()"
+        ]
+      },
+      "response-clone.any.js": {
+        "note": "Node streams are too buggy currently.",
+        "skip": true
+      },
+      "response-consume-empty.any.js": {
+        "fail": [
+          "Consume empty FormData response body as text"
+        ]
+      },
+      "response-consume-stream.any.js": {
+        "note": "only fail in node v18",
+        "flaky": [
+          "Read blob response's body as readableStream with mode=byob",
+          "Read text response's body as readableStream with mode=byob",
+          "Read URLSearchParams response's body as readableStream with mode=byob",
+          "Read array buffer response's body as readableStream with mode=byob",
+          "Read form data response's body as readableStream with mode=byob"
+        ]
+      },
+      "response-headers-guard.any.js": {
+        "fail": [
+          "Ensure response headers are immutable"
+        ]
+      },
+      "response-stream-with-broken-then.any.js": {
+        "note": "this is a bug in webstreams, see https://github.com/nodejs/node/issues/46786",
+        "skip": true
+      }
+    },
+    "idlharness.any.js": {
+      "note": "Electron: fix idl generation",
+      "skip": true
+    }
+  },
+  "content-encoding": {
+    "br": {
+      "bad-br-body.https.any.js": {
+        "note": "TODO(@KhafraDev): investigate failure",
+        "fail": [
+          "Consuming the body of a resource with bad br content with arrayBuffer() should reject"
+        ]
+      },
+      "big-br-body.https.any.js": {
+        "note": "TODO(@KhafraDev): investigate failure",
+        "fail": [
+          "large br data should be decompressed successfully",
+          "large br data should be decompressed successfully with byte stream"
+        ]
+      },
+      "br-body.https.any.js": {
+        "note": "TODO(@KhafraDev): investigate failure",
+        "fail": [
+          "fetched br data with content type text should be decompressed.",
+          "fetched br data with content type octetstream should be decompressed."
+        ]
+      }
+    },
+    "gzip": {
+      "bad-gzip-body.any.js": {
+        "note": "TODO(@KhafraDev): investigate failure",
+        "fail": [
+          "Consuming the body of a resource with bad gzip content with arrayBuffer() should reject",
+          "Consuming the body of a resource with bad gzip content with blob() should reject",
+          "Consuming the body of a resource with bad gzip content with json() should reject",
+          "Consuming the body of a resource with bad gzip content with text() should reject"
+        ]
+      },
+      "gzip-body.any.js": {
+        "note": "TODO(@KhafraDev): investigate failure",
+        "fail": [
+          "fetched gzip data with content type text should be decompressed.",
+          "fetched gzip data with content type octetstream should be decompressed."
+        ]
+      },
+      "big-gzip-body.https.any.js": {
+        "note": "TODO(@KhafraDev): investigate failure",
+        "fail": [
+          "large gzip data should be decompressed successfully",
+          "large gzip data should be decompressed successfully with byte stream"
+        ]
+      }
+    },
+    "zstd": {
+      "note": "node does not have zstd yet",
+      "skip": true
+    }
+  },
+  "content-length": {
+    "api-and-duplicate-headers.any.js": {
+      "fail": [
+        "XMLHttpRequest and duplicate Content-Length/Content-Type headers",
+        "fetch() and duplicate Content-Length/Content-Type headers"
+      ]
+    }
+  },
+  "cross-origin-resource-policy": {
+    "note": "undici doesn't implement CORs",
+    "skip": true
+  },
+  "data-urls": {
+    "note": "Electron: does not support data urls",
+    "skip": true
+  },
+  "http-cache": {
+    "note": "undici doesn't implement http caching",
+    "skip": true
+  },
+  "metadata": {
+    "note": "undici doesn't respect RequestInit.mode",
+    "skip": true
+  },
+  "orb": {
+    "tentative": {
+      "note": "undici doesn't implement orb",
+      "skip": true
+    }
+  },
+  "range": {
+    "note": "undici doesn't respect range header",
+    "skip": true
+  },
+  "security": {
+    "1xx-response.any.js": {
+      "note": "TODO(@KhafraDev): investigate timeout",
+      "skip": true,
+      "fail": [
+        "Status(100) should be ignored.",
+        "Status(101) should be accepted, with removing body.",
+        "Status(103) should be ignored.",
+        "Status(199) should be ignored."
+      ]
+    }
+  },
+  "stale-while-revalidate": {
+    "note": "undici doesn't implement http caching",
+    "skip": true
+  },
+	"idlharness.any.js": {
+		"flaky": [
+			"Window interface: operation fetch(RequestInfo, optional RequestInit)"
+		]
+	}
+}
