@@ -22,6 +22,7 @@ In `preload.js` use the [`contextBridge`][] to inject a method `window.electron.
 
 ```js
 const { contextBridge, ipcRenderer } = require('electron')
+
 const path = require('node:path')
 
 contextBridge.exposeInMainWorld('electron', {

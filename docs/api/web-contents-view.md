@@ -9,6 +9,7 @@ module is emitted.
 
 ```js
 const { BaseWindow, WebContentsView } = require('electron')
+
 const win = new BaseWindow({ width: 800, height: 400 })
 
 const view1 = new WebContentsView()
@@ -52,6 +53,7 @@ Use this to interact with the `WebContents`, for instance to load a URL.
 
 ```js
 const { WebContentsView } = require('electron')
+
 const view = new WebContentsView()
 view.webContents.loadURL('https://electronjs.org/')
 ```

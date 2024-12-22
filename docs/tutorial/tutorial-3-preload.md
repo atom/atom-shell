@@ -83,6 +83,7 @@ To attach this script to your renderer process, pass its path to the
 
 ```js {2,8-10} title="main.js"
 const { app, BrowserWindow } = require('electron')
+
 const path = require('node:path')
 
 const createWindow = () => {
@@ -204,6 +205,7 @@ you send out the `invoke` call from the renderer.
 
 ```js {1,15} title="main.js"
 const { app, BrowserWindow, ipcMain } = require('electron/main')
+
 const path = require('node:path')
 
 const createWindow = () => {

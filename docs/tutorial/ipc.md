@@ -52,6 +52,7 @@ In the main process, set an IPC listener on the `set-title` channel with the `ip
 
 ```js {6-10,22} title='main.js (Main Process)'
 const { app, BrowserWindow, ipcMain } = require('electron')
+
 const path = require('node:path')
 
 // ...
@@ -183,6 +184,7 @@ provided to the renderer process. Please refer to
 
 ```js {6-13,25} title='main.js (Main Process)'
 const { app, BrowserWindow, dialog, ipcMain } = require('electron')
+
 const path = require('node:path')
 
 // ...
@@ -334,6 +336,7 @@ response.
 
 ```js title='main.js (Main Process)'
 const { ipcMain } = require('electron')
+
 ipcMain.on('synchronous-message', (event, arg) => {
   console.log(arg) // prints "ping" in the Node console
   event.returnValue = 'pong'
@@ -378,6 +381,7 @@ target renderer.
 
 ```js {11-26} title='main.js (Main Process)'
 const { app, BrowserWindow, Menu, ipcMain } = require('electron')
+
 const path = require('node:path')
 
 function createWindow () {
@@ -411,6 +415,8 @@ function createWindow () {
 
 For the purposes of the tutorial, it's important to note that the `click` handler
 sends a message (either `1` or `-1`) to the renderer process through the `update-counter` channel.
+
+<!-- eslint-skip -->
 
 ```js @ts-type={mainWindow:Electron.BrowserWindow}
 click: () => mainWindow.webContents.send('update-counter', -1)

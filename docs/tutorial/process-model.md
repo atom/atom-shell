@@ -241,8 +241,8 @@ These aliases have no impact on runtime, but can be used for typechecking
 and autocomplete.
 
 ```js title="Usage example"
-const { app } = require('electron/main')
 const { shell } = require('electron/common')
+const { app } = require('electron/main')
 ```
 
 [window-mdn]: https://developer.mozilla.org/en-US/docs/Web/API/Window

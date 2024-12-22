@@ -27,6 +27,7 @@ control our application lifecycle and create a native browser window.
 
 ```js
 const { app, BrowserWindow, shell } = require('electron')
+
 const path = require('node:path')
 ```
 

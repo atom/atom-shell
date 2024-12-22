@@ -983,6 +983,7 @@ webview.send('ping')
 ```js
 // In guest page.
 const { ipcRenderer } = require('electron')
+
 ipcRenderer.on('ping', () => {
   ipcRenderer.sendToHost('pong')
 })

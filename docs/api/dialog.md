@@ -8,6 +8,7 @@ An example of showing a dialog to select multiple files:
 
 ```js
 const { dialog } = require('electron')
+
 console.log(dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] }))
 ```
 
@@ -51,6 +52,8 @@ The `window` argument allows the dialog to attach itself to a parent window, mak
 
 The `filters` specifies an array of file types that can be displayed or
 selected when you want to limit the user to a specific type. For example:
+
+<!-- eslint-skip -->
 
 ```js
 {
@@ -123,6 +126,8 @@ The `window` argument allows the dialog to attach itself to a parent window, mak
 
 The `filters` specifies an array of file types that can be displayed or
 selected when you want to limit the user to a specific type. For example:
+
+<!-- eslint-skip -->
 
 ```js
 {

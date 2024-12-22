@@ -85,6 +85,8 @@ The `@babel/plugin-transform-modules-commonjs` plugin will transform
 ESM imports down to `require` calls. The exact syntax will depend on the
 [`importInterop` setting](https://babeljs.io/docs/babel-plugin-transform-modules-commonjs#importinterop).
 
+<!-- eslint-disable import/newline-after-import, import/order, no-var, quotes -->
+
 ```js @nolint @ts-nocheck title='@babel/plugin-transform-modules-commonjs'
 import foo from "foo";
 import { bar } from "bar";

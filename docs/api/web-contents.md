@@ -55,6 +55,7 @@ These methods can be accessed from the `webContents` module:
 
 ```js
 const { webContents } = require('electron')
+
 console.log(webContents)
 ```
 
@@ -446,7 +447,9 @@ and allow the page to be unloaded.
 
 ```js
 const { BrowserWindow, dialog } = require('electron')
+
 const win = new BrowserWindow({ width: 800, height: 600 })
+
 win.webContents.on('will-prevent-unload', (event) => {
   const choice = dialog.showMessageBoxSync(win, {
     type: 'question',
@@ -1100,7 +1103,9 @@ Returns `string` - The URL of the current web page.
 
 ```js
 const { BrowserWindow } = require('electron')
+
 const win = new BrowserWindow({ width: 800, height: 600 })
+
 win.loadURL('https://github.com').then(() => {
   const currentURL = win.webContents.getURL()
   console.log(currentURL)
@@ -1767,9 +1772,10 @@ An example of `webContents.printToPDF`:
 
 ```js
 const { app, BrowserWindow } = require('electron')
+
 const fs = require('node:fs')
-const path = require('node:path')
 const os = require('node:os')
+const path = require('node:path')
 
 app.whenReady().then(() => {
   const win = new BrowserWindow()
@@ -1801,7 +1807,9 @@ creation:
 
 ```js
 const { BrowserWindow } = require('electron')
+
 const win = new BrowserWindow()
+
 win.webContents.on('devtools-opened', () => {
   win.webContents.addWorkSpace(__dirname)
 })
@@ -1867,6 +1875,7 @@ An example of showing devtools in a `<webview>` tag:
 ```js
 // Main process
 const { ipcMain, webContents } = require('electron')
+
 ipcMain.on('open-devtools', (event, targetContentsId, devtoolsContentsId) => {
   const target = webContents.fromId(targetContentsId)
   const devtools = webContents.fromId(devtoolsContentsId)
@@ -2124,6 +2133,7 @@ Returns `Promise<void>` - resolves if the page is saved.
 
 ```js
 const { BrowserWindow } = require('electron')
+
 const win = new BrowserWindow()
 
 win.loadURL('https://github.com')

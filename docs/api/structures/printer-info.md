@@ -14,6 +14,8 @@ The number represented by `status` means different things on different platforms
 Below is an example of some of the additional options that may be set which
 may be different on each platform.
 
+<!-- eslint-skip -->
+
 ```js
 {
   name: 'Austin_4th_Floor_Printer___C02XK13BJHD4',

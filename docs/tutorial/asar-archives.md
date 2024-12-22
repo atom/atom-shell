@@ -42,6 +42,7 @@ Read a file in the ASAR archive:
 
 ```js
 const fs = require('node:fs')
+
 fs.readFileSync('/path/to/example.asar/file.txt')
 ```
 
@@ -49,6 +50,7 @@ List all files under the root of the archive:
 
 ```js
 const fs = require('node:fs')
+
 fs.readdirSync('/path/to/example.asar')
 ```
 
@@ -62,6 +64,7 @@ You can also display a web page in an ASAR archive with `BrowserWindow`:
 
 ```js
 const { BrowserWindow } = require('electron')
+
 const win = new BrowserWindow()
 
 win.loadURL('file:///path/to/example.asar/static/index.html')
@@ -89,8 +92,11 @@ For some cases like verifying the ASAR archive's checksum, we need to read the
 content of an ASAR archive as a file. For this purpose you can use the built-in
 `original-fs` module which provides original `fs` APIs without `asar` support:
 
+<!-- eslint-disable unicorn/prefer-node-protocol -->
+
 ```js
 const originalFs = require('original-fs')
+
 originalFs.readFileSync('/path/to/example.asar')
 ```
 
@@ -99,6 +105,7 @@ the `fs` module:
 
 ```js
 const fs = require('node:fs')
+
 process.noAsar = true
 fs.readFileSync('/path/to/example.asar')
 ```

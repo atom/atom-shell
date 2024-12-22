@@ -29,6 +29,7 @@
     "eslint": "^8.57.1",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-markdown": "^5.1.0",
     "eslint-plugin-mocha": "^10.5.0",
     "eslint-plugin-n": "^16.6.2",
     "eslint-plugin-node": "^11.1.0",

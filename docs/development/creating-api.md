@@ -166,6 +166,6 @@ Add your module to the module list found at `"lib/browser/api/module-list.ts"` l
 
 ```ts title='lib/browser/api/module-list.ts' @ts-nocheck
 export const browserModuleList: ElectronInternal.ModuleEntry[] = [
-  { name: 'apiName', loader: () => require('./api-name') },
+  { name: 'apiName', loader: () => require('./api-name') }
 ];
 ```

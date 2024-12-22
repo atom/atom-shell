@@ -62,6 +62,7 @@ API:
 
 ```js title='main.js'
 const { BrowserWindow } = require('electron')
+
 const win = new BrowserWindow()
 win.setIgnoreMouseEvents(true)
 ```
@@ -75,6 +76,7 @@ allowing events such as `mouseleave` to be emitted:
 
 ```js title='main.js'
 const { BrowserWindow, ipcMain } = require('electron')
+
 const path = require('node:path')
 
 const win = new BrowserWindow({

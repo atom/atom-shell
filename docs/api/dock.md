@@ -9,6 +9,7 @@ The following example shows how to bounce your icon on the dock.
 
 ```js
 const { app } = require('electron')
+
 app.dock.bounce()
 ```
 

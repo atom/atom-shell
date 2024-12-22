@@ -9,6 +9,7 @@ The following example shows how to check if the `--disable-gpu` flag is set.
 
 ```js
 const { app } = require('electron')
+
 app.commandLine.hasSwitch('disable-gpu')
 ```
 

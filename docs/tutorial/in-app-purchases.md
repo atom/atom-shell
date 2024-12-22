@@ -37,6 +37,7 @@ Here is an example that shows how to use In-App Purchases in Electron. You'll ha
 ```js
 // Main process
 const { inAppPurchase } = require('electron')
+
 const PRODUCT_IDS = ['id1', 'id2']
 
 // Listen for transactions as soon as possible.

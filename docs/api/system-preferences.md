@@ -6,6 +6,7 @@ Process: [Main](../glossary.md#main-process), [Utility](../glossary.md#utility-p
 
 ```js
 const { systemPreferences } = require('electron')
+
 console.log(systemPreferences.isAeroGlassEnabled())
 ```
 
@@ -191,6 +192,7 @@ not (transparent windows won't work correctly when DWM composition is disabled):
 
 ```js
 const { BrowserWindow, systemPreferences } = require('electron')
+
 const browserOptions = { width: 1000, height: 800 }
 
 // Make the window transparent only if the platform supports it.

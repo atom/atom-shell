@@ -173,9 +173,10 @@ in the fictitious `.foo` format. In order to do that, it relies on the
 equally fictitious `foo-parser` module. In traditional Node.js development,
 you might write code that eagerly loads dependencies:
 
-```js title='parser.js' @ts-expect-error=[2]
-const fs = require('node:fs')
+```js title='parser.js' @ts-expect-error=[1]
 const fooParser = require('foo-parser')
+
+const fs = require('node:fs')
 
 class Parser {
   constructor () {

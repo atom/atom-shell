@@ -303,6 +303,7 @@ without having to step through the isolated world.
 
 ```js title='main.js (Main Process)'
 const { BrowserWindow, app, MessageChannelMain } = require('electron')
+
 const path = require('node:path')
 
 app.whenReady().then(async () => {

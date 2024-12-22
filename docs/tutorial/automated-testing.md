@@ -93,9 +93,10 @@ describe('when the make smaller button is clicked', () => {
 or to retrieve other Electron process information:
 
 ```js @ts-nocheck
+import { browser, expect } from '@wdio/globals'
+
 import fs from 'node:fs'
 import path from 'node:path'
-import { browser, expect } from '@wdio/globals'
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), { encoding: 'utf-8' }))
 const { name, version } = packageJson
@@ -165,6 +166,7 @@ ChromeDriver and where to find the binary of your Electron app:
 
 ```js title='test.js' @ts-expect-error=[1]
 const webdriver = require('selenium-webdriver')
+
 const driver = new webdriver.Builder()
   // The "9515" is the port opened by ChromeDriver.
   .usingServer('http://localhost:9515')
@@ -317,8 +319,9 @@ To create a custom driver, we'll use Node.js' [`child_process`](https://nodejs.o
 The test suite will spawn the Electron process, then establish a simple messaging protocol:
 
 ```js title='testDriver.js' @ts-nocheck
-const childProcess = require('node:child_process')
 const electronPath = require('electron')
+
+const childProcess = require('node:child_process')
 
 // spawn the process
 const env = { /* ... */ }
@@ -436,8 +439,10 @@ framework of your choosing. The following example uses
 or Mocha would work as well:
 
 ```js title='test.js' @ts-nocheck
-const test = require('ava')
 const electronPath = require('electron')
+
+const test = require('ava')
+
 const { TestDriver } = require('./testDriver')
 
 const app = new TestDriver({

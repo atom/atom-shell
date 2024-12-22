@@ -1,0 +1,21 @@
+{
+  "plugins": [
+    "markdown",
+    "unicorn"
+  ],
+  "overrides": [
+    {
+      "files": ["*.md", "**/*.md"],
+      "processor": "markdown/markdown"
+    }
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": "off",
+    "indent": "off",
+    "no-undef": "off",
+    "no-unused-expressions": "off",
+    "no-unused-vars": "off",
+    "semi": "off",
+    "unicorn/prefer-node-protocol": "error"
+  }
+}
