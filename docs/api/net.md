@@ -97,8 +97,7 @@ Limitations:
 
 * `net.fetch()` does not support the `data:` or `blob:` schemes.
 * The value of the `integrity` option is ignored.
-* The `.type` and `.url` values of the returned `Response` object are
-  incorrect.
+* The `.type` value of the returned `Response` object is incorrect.
 
 By default, requests made with `net.fetch` can be made to [custom protocols](protocol.md)
 as well as `file:`, and will trigger [webRequest](web-request.md) handlers if present.

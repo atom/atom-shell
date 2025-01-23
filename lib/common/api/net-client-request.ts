@@ -98,6 +98,10 @@ class IncomingMessage extends Readable {
     throw new Error('HTTP trailers are not supported');
   }
 
+  get urlList () {
+    return this._responseHead.urlList;
+  }
+
   _storeInternalData (chunk: Buffer | null, resume: (() => void) | null) {
     // save the network callback for use in _pushInternalData
     this._resume = resume;
@@ -460,7 +464,7 @@ export class ClientRequest extends Writable implements Electron.ClientRequest {
       }
     });
 
-    this._urlLoader.on('redirect', (event, redirectInfo, headers) => {
+    this._urlLoader.on('redirect', (event, redirectInfo, responseHead) => {
       const { statusCode, newMethod, newUrl } = redirectInfo;
       if (this._redirectPolicy === 'error') {
         this._die(new Error('Attempted to redirect, but redirect policy was \'error\''));
@@ -468,7 +472,7 @@ export class ClientRequest extends Writable implements Electron.ClientRequest {
         let _followRedirect = false;
         this._followRedirectCb = () => { _followRedirect = true; };
         try {
-          this.emit('redirect', statusCode, newMethod, newUrl, headers);
+          this.emit('redirect', statusCode, newMethod, newUrl, responseHead.headers);
         } finally {
           this._followRedirectCb = undefined;
           if (!_followRedirect && !this._aborted) {
@@ -481,7 +485,7 @@ export class ClientRequest extends Writable implements Electron.ClientRequest {
         // though...? Since the redirect will happen regardless.)
         try {
           this._followRedirectCb = () => {};
-          this.emit('redirect', statusCode, newMethod, newUrl, headers);
+          this.emit('redirect', statusCode, newMethod, newUrl, responseHead.headers);
         } finally {
           this._followRedirectCb = undefined;
         }

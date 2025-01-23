@@ -106,11 +106,21 @@ export function fetchWithSession (input: RequestInfo, init: (RequestInit & {bypa
     }
     const nullBodyStatus = [101, 204, 205, 304];
     const body = nullBodyStatus.includes(resp.statusCode) || req.method === 'HEAD' ? null : Readable.toWeb(resp as unknown as Readable) as ReadableStream;
+    type ResponseInitWithUrlList = ResponseInit & { urlList?: URL[] };
+    const urlList = resp.urlList.map((url) => {
+      let parsedURL;
+      try {
+        parsedURL = new URL(url);
+      } catch {
+      }
+      return parsedURL;
+    });
     const rResp = new Response(body, {
       headers,
       status: resp.statusCode,
-      statusText: resp.statusMessage
-    });
+      statusText: resp.statusMessage,
+      urlList
+    } as ResponseInitWithUrlList);
     (rResp as any).__original_resp = resp;
     p.resolve(rResp);
   });

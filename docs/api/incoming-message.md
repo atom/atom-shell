@@ -102,3 +102,8 @@ duplicates are not merged.
 //   '*/*' ]
 console.log(response.rawHeaders)
 ```
+
+#### `response.urlList`
+
+A `string[]` containing the chain of urls traversed by this request.
+If the request had no redirects, this array will contain one element.

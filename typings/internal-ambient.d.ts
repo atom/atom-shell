@@ -175,6 +175,7 @@ declare namespace NodeJS {
     httpVersion: { major: number, minor: number };
     rawHeaders: { key: string, value: string }[];
     headers: Record<string, string[]>;
+    urlList: string[];
   };
 
   type RedirectInfo = {
@@ -194,7 +195,7 @@ declare namespace NodeJS {
     on(eventName: 'complete', listener: (event: any) => void): this;
     on(eventName: 'error', listener: (event: any, netErrorString: string) => void): this;
     on(eventName: 'login', listener: (event: any, authInfo: Electron.AuthInfo, callback: (username?: string, password?: string) => void) => void): this;
-    on(eventName: 'redirect', listener: (event: any, redirectInfo: RedirectInfo, headers: Record<string, string>) => void): this;
+    on(eventName: 'redirect', listener: (event: any, redirectInfo: RedirectInfo, responseHead: ResponseHead) => void): this;
     on(eventName: 'upload-progress', listener: (event: any, position: number, total: number) => void): this;
     on(eventName: 'download-progress', listener: (event: any, current: number) => void): this;
   }

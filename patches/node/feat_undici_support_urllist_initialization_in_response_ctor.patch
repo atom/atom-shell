@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: deepak1556 <hop2deep@gmail.com>
+Date: Tue, 19 Nov 2024 17:54:33 +0900
+Subject: feat(undici): support urlList initialization in Response ctor
+
+Extends the Response constructor to initialize with urlList array,
+which will be used to support the url getter.
+
+Should be upstreamed.
+
+diff --git a/deps/undici/undici.js b/deps/undici/undici.js
+index acbece9168787204c1b5d27aa05c6709899d0847..eb4dc9497acb880a2d00fe319d56129d65084719 100644
+--- a/deps/undici/undici.js
++++ b/deps/undici/undici.js
+@@ -9050,6 +9050,9 @@ var require_response = __commonJS({
+       if ("headers" in init && init.headers != null) {
+         fill(response[kHeaders], init.headers);
+       }
++      if ("urlList" in init && init.urlList != null) {
++        response[kState].urlList = [...init.urlList];
++      }
+       if (body) {
+         if (nullBodyStatus.includes(response.status)) {
+           throw webidl.errors.exception({
+@@ -9126,6 +9129,11 @@ var require_response = __commonJS({
+       {
+         key: "headers",
+         converter: webidl.converters.HeadersInit
++      },
++      {
++        key: "urlList",
++        converter: webidl.converters.any,
++        defaultValue: () => []
+       }
+     ]);
+     module2.exports = {

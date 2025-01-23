@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: deepak1556 <hop2deep@gmail.com>
+Date: Tue, 19 Nov 2024 17:52:08 +0900
+Subject: feat: expose url chain from urlloader
+
+The patch adds the url chain to the URLResponseHead struct. This is
+used to support the Response.url property in the Fetch API.
+
+Should be upstreamed.
+
+diff --git a/services/network/public/mojom/url_response_head.mojom b/services/network/public/mojom/url_response_head.mojom
+index e7390e01f113755613f42d592b36108b703960dc..123636abfd4e8497668356202353cb08a48e99fc 100644
+--- a/services/network/public/mojom/url_response_head.mojom
++++ b/services/network/public/mojom/url_response_head.mojom
+@@ -53,6 +53,10 @@ struct URLResponseHead {
+   // Actual response headers, as obtained from the network stack.
+   array<HttpRawHeaderPair> raw_response_headers;
+ 
++  // The chain of urls traversed by this request.  If the request had no
++  // redirects, this vector will contain one element.
++  array<url.mojom.Url> url_list;
++
+   // The mime type of the response.  This may be a derived value.
+   string mime_type;
+ 
+diff --git a/services/network/url_loader.cc b/services/network/url_loader.cc
+index beb3fe75a654510b60b62ab29380c7ff243bb095..fdf3fc5d7edc902ce7cfd23e5cdd1fa97d744120 100644
+--- a/services/network/url_loader.cc
++++ b/services/network/url_loader.cc
+@@ -1537,6 +1537,8 @@ mojom::URLResponseHeadPtr URLLoader::BuildResponseHead() const {
+ 
+   response->load_with_storage_access = ShouldSetLoadWithStorageAccess();
+ 
++  response->url_list = url_request_->url_chain();
++
+   return response;
+ }
+ 

@@ -125,6 +125,23 @@ struct Converter<net::ReferrerPolicy> {
     return FromV8WithLowerLookup(isolate, val, Lookup, out);
   }
 };
+
+template <>
+struct Converter<network::mojom::URLResponseHead> {
+  static v8::Local<v8::Value> ToV8(
+      v8::Isolate* isolate,
+      const network::mojom::URLResponseHead& response_head) {
+    auto dict = gin_helper::Dictionary::CreateEmpty(isolate);
+    dict.Set("statusCode", response_head.headers->response_code());
+    dict.Set("statusMessage", response_head.headers->GetStatusText());
+    dict.Set("httpVersion", response_head.headers->GetHttpVersion());
+    dict.Set("headers", response_head.headers.get());
+    dict.Set("rawHeaders", response_head.raw_response_headers);
+    dict.Set("mimeType", response_head.mime_type);
+    dict.Set("urlList", response_head.url_list);
+    return dict.GetHandle();
+  }
+};
 }  // namespace gin
 
 namespace electron::api {
@@ -739,16 +756,7 @@ void SimpleURLLoaderWrapper::OnComplete(bool success) {
 void SimpleURLLoaderWrapper::OnResponseStarted(
     const GURL& final_url,
     const network::mojom::URLResponseHead& response_head) {
-  v8::Isolate* isolate = JavascriptEnvironment::GetIsolate();
-  v8::HandleScope scope(isolate);
-  auto dict = gin::Dictionary::CreateEmpty(isolate);
-  dict.Set("statusCode", response_head.headers->response_code());
-  dict.Set("statusMessage", response_head.headers->GetStatusText());
-  dict.Set("httpVersion", response_head.headers->GetHttpVersion());
-  dict.Set("headers", response_head.headers.get());
-  dict.Set("rawHeaders", response_head.raw_response_headers);
-  dict.Set("mimeType", response_head.mime_type);
-  Emit("response-started", final_url, dict);
+  Emit("response-started", final_url, response_head);
 }
 
 void SimpleURLLoaderWrapper::OnRedirect(
@@ -756,7 +764,7 @@ void SimpleURLLoaderWrapper::OnRedirect(
     const net::RedirectInfo& redirect_info,
     const network::mojom::URLResponseHead& response_head,
     std::vector<std::string>* removed_headers) {
-  Emit("redirect", redirect_info, response_head.headers.get());
+  Emit("redirect", redirect_info, response_head);
 
   if (!loader_)
     // The redirect was aborted by JS.

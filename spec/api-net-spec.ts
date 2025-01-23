@@ -1524,6 +1524,7 @@ describe('net module', () => {
           });
           const resp = await net.fetch(serverUrl);
           expect(resp.ok).to.be.true();
+          expect(resp.url).to.equal(serverUrl);
           expect(await resp.text()).to.equal('test');
         });
 
@@ -1536,6 +1537,7 @@ describe('net module', () => {
             method: 'POST',
             body: 'anchovies'
           });
+          expect(resp.url).to.equal(serverUrl);
           expect(await resp.text()).to.equal('anchovies');
         });
 
@@ -1548,6 +1550,7 @@ describe('net module', () => {
             method: 'POST',
             body: 'anchovies'
           });
+          expect(resp.url).to.equal(serverUrl);
           expect(new TextDecoder().decode(new Uint8Array(await resp.arrayBuffer()))).to.equal('anchovies');
         });
 
@@ -1557,6 +1560,7 @@ describe('net module', () => {
             response.end('foo=bar');
           });
           const resp = await net.fetch(serverUrl);
+          expect(resp.url).to.equal(serverUrl);
           const result = await resp.formData();
           expect(result.get('foo')).to.equal('bar');
         });
@@ -1573,7 +1577,30 @@ describe('net module', () => {
           });
           const r = await net.fetch(serverUrl);
           expect(r.status).to.equal(200);
+          expect(r.url).to.equal(serverUrl);
           await expect(r.text()).to.be.rejectedWith(/ERR_INCOMPLETE_CHUNKED_ENCODING/);
+        });
+
+        test('should follow redirect when mode is follow', async () => {
+          const serverUrl = await respondOnce.toRoutes({
+            '/redirectChain': (request, response) => {
+              response.statusCode = 302;
+              response.setHeader('Location', '/302');
+              response.end();
+            },
+            '/302': (request, response) => {
+              response.statusCode = 302;
+              response.setHeader('Location', '/200');
+              response.end();
+            },
+            '/200': (request, response) => {
+              response.statusCode = 200;
+              response.end();
+            }
+          });
+          const resp = await net.fetch(`${serverUrl}/redirectChain`);
+          expect(resp.status).to.equal(200);
+          expect(resp.url).to.equal(`${serverUrl}/200`);
         });
       });
     });
