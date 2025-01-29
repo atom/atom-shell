@@ -127,6 +127,7 @@ UtilityProcessWrapper::UtilityProcessWrapper(
                       OPEN_EXISTING, 0, nullptr);
       if (handle == INVALID_HANDLE_VALUE) {
         PLOG(ERROR) << "Failed to create null handle";
+        Emit("error", "Failed to create null handle for ignoring stdio");
         return;
       }
       if (io_handle == IOHandle::STDOUT) {

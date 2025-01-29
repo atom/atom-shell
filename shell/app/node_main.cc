@@ -32,6 +32,8 @@
 #include "shell/common/node_bindings.h"
 #include "shell/common/node_includes.h"
 #include "shell/common/node_util.h"
+#include "shell/common/options_switches.h"
+#include "shell/common/platform_util.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "chrome/child/v8_crashpad_support_win.h"
@@ -180,14 +182,33 @@ int NodeMain() {
     NodeBindings::RegisterBuiltinBindings();
 
     // Parse Node.js cli flags and strip out disallowed options.
-    const std::vector<std::string> args = ElectronCommandLine::AsUtf8();
+    std::vector<std::string> args = ElectronCommandLine::AsUtf8();
     ExitIfContainsDisallowedFlags(args);
+
+    uint64_t process_flags =
+        node::ProcessInitializationFlags::kNoInitializeV8 |
+        node::ProcessInitializationFlags::kNoInitializeNodeV8Platform;
+
+    base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
+    if (command_line->HasSwitch(switches::kNoStdioInit)) {
+      process_flags |= node::ProcessInitializationFlags::kNoStdioInitialization;
+      // remove the option to avoid node error "bad option: --no-stdio-init"
+      std::string option = std::string("--") + switches::kNoStdioInit;
+      std::erase(args, option);
+    } else {
+#if BUILDFLAG(IS_WIN)
+      if (!platform_util::IsNulDeviceEnabled()) {
+        LOG(FATAL) << "Fail to open nul device and node initialization may "
+                      "crash! Try using --"
+                   << switches::kNoStdioInit;
+      }
+#endif
+    }
 
     std::shared_ptr<node::InitializationResult> result =
         node::InitializeOncePerProcess(
-            args,
-            {node::ProcessInitializationFlags::kNoInitializeV8,
-             node::ProcessInitializationFlags::kNoInitializeNodeV8Platform});
+            args, static_cast<node::ProcessInitializationFlags::Flags>(
+                      process_flags));
 
     for (const std::string& error : result->errors())
       fprintf(stderr, "%s: %s\n", args[0].c_str(), error.c_str());

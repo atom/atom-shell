@@ -46,6 +46,9 @@ void Beep();
 #if BUILDFLAG(IS_WIN)
 // SHGetFolderPath calls not covered by Chromium
 bool GetFolderPath(int key, base::FilePath* result);
+
+// Check if nul device can be used.
+bool IsNulDeviceEnabled();
 #endif
 
 #if BUILDFLAG(IS_MAC)
