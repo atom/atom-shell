@@ -105,7 +105,7 @@ app.whenReady().then(() => {
 
 Sandboxing is also disabled whenever Node.js integration is enabled in the renderer.
 This can be done through the BrowserWindow constructor with the `nodeIntegration: true` flag
-or by providing the respective html boolean attribute for a `webview`.
+or by providing the respective HTML boolean attribute for a `webview`.
 
 ```js title='main.js'
 app.whenReady().then(() => {
