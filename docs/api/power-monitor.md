@@ -26,7 +26,10 @@ Emitted when system changes to battery power.
 
 ### Event: 'thermal-state-change' _macOS_
 
-* `state` string - The system's new thermal state. Can be `unknown`, `nominal`, `fair`, `serious`, `critical`.
+Returns:
+
+* `details` Object
+  * `state` string - The system's new thermal state. Can be `unknown`, `nominal`, `fair`, `serious`, `critical`.
 
 Emitted when the thermal state of the system changes. Notification of a change
 in the thermal status of the system, such as entering a critical temperature
@@ -44,7 +47,8 @@ See https://developer.apple.com/library/archive/documentation/Performance/Concep
 
 Returns:
 
-* `limit` number - The operating system's advertised speed limit for CPUs, in percent.
+* `details` Object
+  * `limit` number - The operating system's advertised speed limit for CPUs, in percent.
 
 Notification of a change in the operating system's advertised speed limit for
 CPUs, in percent. Values below 100 indicate that the system is impairing
