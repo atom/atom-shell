@@ -59,7 +59,7 @@ const { app, BrowserWindow } = require('electron')
 const createWindow = () => {
   const onlineStatusWindow = new BrowserWindow({
     width: 400,
-    height: 100
+    height: 200
   })
 
   onlineStatusWindow.loadFile('index.html')
