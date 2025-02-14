@@ -324,6 +324,7 @@ NSArray* ConvertSharingItemToNS(const SharingItem& item) {
   std::u16string role = model->GetRoleAt(index);
   electron::ElectronMenuModel::ItemType type = model->GetTypeAt(index);
 
+  // The sectionHeaderWithTitle menu item is only available in macOS 14.0+.
   if (@available(macOS 14, *)) {
     if (role == u"header") {
       item = [NSMenuItem sectionHeaderWithTitle:label];
@@ -370,6 +371,7 @@ NSArray* ConvertSharingItemToNS(const SharingItem& item) {
                           ? [self menuFromModel:submenuModel]
                           : MakeEmptySubmenu();
 
+    // NSMenuPresentationStylePalette is only available in macOS 14.0+.
     if (@available(macOS 14, *)) {
       if (role == u"palette") {
         submenu.presentationStyle = NSMenuPresentationStylePalette;
