@@ -1336,7 +1336,8 @@ void NativeWindowViews::SetFocusable(bool focusable) {
     ex_style |= WS_EX_NOACTIVATE;
   ::SetWindowLong(GetAcceleratedWidget(), GWL_EXSTYLE, ex_style);
   SetSkipTaskbar(!focusable);
-  Focus(false);
+  if (!focusable)
+    Focus(false);
 #endif
 }
 
