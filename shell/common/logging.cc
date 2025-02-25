@@ -17,10 +17,40 @@
 #include "chrome/common/chrome_paths.h"
 #include "content/public/common/content_switches.h"
 
+#if BUILDFLAG(IS_WIN)
+#include <windows.h>
+#include "base/win/scoped_handle.h"
+#include "base/win/win_util.h"
+#include "sandbox/policy/switches.h"
+#endif
+
 namespace logging {
 
 constexpr std::string_view kLogFileName{"ELECTRON_LOG_FILE"};
 constexpr std::string_view kElectronEnableLogging{"ELECTRON_ENABLE_LOGGING"};
+
+#if BUILDFLAG(IS_WIN)
+base::win::ScopedHandle GetLogInheritedHandle(
+    const base::CommandLine& command_line) {
+  auto handle_str = command_line.GetSwitchValueNative(::switches::kLogFile);
+  uint32_t handle_value = 0;
+  if (!base::StringToUint(handle_str, &handle_value)) {
+    return base::win::ScopedHandle();
+  }
+  // Duplicate the handle from the command line so that different things can
+  // init logging. This means the handle from the parent is never closed, but
+  // there will only be one of these in the process.
+  HANDLE log_handle = nullptr;
+  if (!::DuplicateHandle(::GetCurrentProcess(),
+                         base::win::Uint32ToHandle(handle_value),
+                         ::GetCurrentProcess(), &log_handle, 0,
+                         /*bInheritHandle=*/FALSE, DUPLICATE_SAME_ACCESS)) {
+    return base::win::ScopedHandle();
+  }
+  // Transfer ownership to the caller.
+  return base::win::ScopedHandle(log_handle);
+}
+#endif
 
 base::FilePath GetLogFileName(const base::CommandLine& command_line) {
   std::string filename = command_line.GetSwitchValueASCII(switches::kLogFile);
@@ -49,7 +79,10 @@ bool HasExplicitLogFile(const base::CommandLine& command_line) {
 
 LoggingDestination DetermineLoggingDestination(
     const base::CommandLine& command_line,
-    bool is_preinit) {
+    bool is_preinit,
+    bool& filename_is_handle) {
+  filename_is_handle = false;
+
   bool enable_logging = false;
   std::string logging_destination;
   if (command_line.HasSwitch(::switches::kEnableLogging)) {
@@ -74,6 +107,17 @@ LoggingDestination DetermineLoggingDestination(
       !also_log_to_stderr_str.empty())
     also_log_to_stderr = true;
 #endif
+
+#if BUILDFLAG(IS_WIN)
+  if (logging_destination == "handle" &&
+      command_line.HasSwitch(::switches::kProcessType) &&
+      command_line.HasSwitch(::switches::kLogFile)) {
+    // Child processes can log to a handle duplicated from the parent, and
+    // provided in the log-file switch value.
+    filename_is_handle = true;
+    return LOG_TO_FILE | (also_log_to_stderr ? LOG_TO_STDERR : 0);
+  }
+#endif  // BUILDFLAG(IS_WIN)
 
   // --enable-logging logs to stderr, --enable-logging=file logs to a file.
   // NB. this differs from Chromium, in which --enable-logging logs to a file
@@ -100,10 +144,14 @@ void InitElectronLogging(const base::CommandLine& command_line,
                          bool is_preinit) {
   const std::string process_type =
       command_line.GetSwitchValueASCII(::switches::kProcessType);
+  bool filename_is_handle = false;
   LoggingDestination logging_dest =
-      DetermineLoggingDestination(command_line, is_preinit);
+      DetermineLoggingDestination(command_line, is_preinit, filename_is_handle);
   LogLockingState log_locking_state = LOCK_LOG_FILE;
   base::FilePath log_path;
+#if BUILDFLAG(IS_WIN)
+  base::win::ScopedHandle log_handle;
+#endif
 
   if (command_line.HasSwitch(::switches::kLoggingLevel) &&
       GetMinLogLevel() >= 0) {
@@ -121,7 +169,19 @@ void InitElectronLogging(const base::CommandLine& command_line,
   // Don't resolve the log path unless we need to. Otherwise we leave an open
   // ALPC handle after sandbox lockdown on Windows.
   if ((logging_dest & LOG_TO_FILE) != 0) {
-    log_path = GetLogFileName(command_line);
+    if (filename_is_handle) {
+#if BUILDFLAG(IS_WIN)
+      // Child processes on Windows are provided a file handle if logging is
+      // enabled as sandboxed processes cannot open files.
+      log_handle = GetLogInheritedHandle(command_line);
+      if (!log_handle.is_valid()) {
+        LOG(ERROR) << "Unable to initialize logging from handle.";
+        return;
+      }
+#endif
+    } else {
+      log_path = GetLogFileName(command_line);
+    }
   } else {
     log_locking_state = DONT_LOCK_LOG_FILE;
   }
@@ -133,6 +193,13 @@ void InitElectronLogging(const base::CommandLine& command_line,
   LoggingSettings settings;
   settings.logging_dest = logging_dest;
   settings.log_file_path = log_path.value().c_str();
+#if BUILDFLAG(IS_WIN)
+  // Avoid initializing with INVALID_HANDLE_VALUE.
+  // This handle is owned by the logging framework and is closed when the
+  // process exits.
+  // TODO(crbug.com/328285906) Use a ScopedHandle in logging settings.
+  settings.log_file = log_handle.is_valid() ? log_handle.release() : nullptr;
+#endif
   settings.lock_log = log_locking_state;
   // If we're logging to an explicit file passed with --log-file, we don't want
   // to delete the log file on our second initialization.
