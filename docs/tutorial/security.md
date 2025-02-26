@@ -265,10 +265,10 @@ see our dedicated [Process Sandboxing](sandbox.md) document.
 ### 5. Handle session permission requests from remote content
 
 You may have seen permission requests while using Chrome: they pop up whenever
-the website attempts to use a feature that the user has to manually approve (
-like notifications).
+the website attempts to use a feature that the user has to manually approve
+(like notifications).
 
-The API is based on the [Chromium permissions API](https://developer.chrome.com/extensions/permissions)
+The API is based on the [web Permissions model](https://developer.mozilla.org/en-US/docs/Web/API/Permissions_API)
 and implements the same types of permissions.
 
 #### Why?
@@ -300,6 +300,12 @@ session
     }
   })
 ```
+
+:::info
+
+For more context, refer to the [Web API Permissions](./web-api-permissions.md) guide.
+
+:::
 
 ### 6. Do not disable `webSecurity`
 
