@@ -18,6 +18,7 @@
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/promise.h"
 #include "ui/shell_dialogs/select_file_dialog.h"
+#include "ui/shell_dialogs/select_file_dialog_linux_portal.h"
 #include "ui/shell_dialogs/select_file_policy.h"
 #include "ui/shell_dialogs/selected_file_info.h"
 
@@ -56,6 +57,18 @@ ui::SelectFileDialog::FileTypeInfo GetFilterInfo(const Filters& filters) {
   }
 
   return file_type_info;
+}
+
+void LogIfNeededAboutUnsupportedPortalFeature(const DialogSettings& settings) {
+  if (!settings.default_path.empty() &&
+      ui::SelectFileDialogLinuxPortal::IsPortalAvailable() &&
+      ui::SelectFileDialogLinuxPortal::GetPortalVersion() < 4) {
+    LOG(INFO) << "Available portal version "
+              << ui::SelectFileDialogLinuxPortal::GetPortalVersion()
+              << " does not support defaultPath option, try the non-portal"
+              << " file chooser dialogs by launching with"
+              << " --xdg-portal-required-version";
+  }
 }
 
 class FileChooserDialog : public ui::SelectFileDialog::Listener {
@@ -200,6 +213,7 @@ class FileChooserDialog : public ui::SelectFileDialog::Listener {
 
 bool ShowOpenDialogSync(const DialogSettings& settings,
                         std::vector<base::FilePath>* paths) {
+  LogIfNeededAboutUnsupportedPortalFeature(settings);
   base::RunLoop run_loop(base::RunLoop::Type::kNestableTasksAllowed);
   auto cb = base::BindOnce(
       [](base::RepeatingClosure cb, std::vector<base::FilePath>* file_paths,
@@ -217,6 +231,7 @@ bool ShowOpenDialogSync(const DialogSettings& settings,
 
 void ShowOpenDialog(const DialogSettings& settings,
                     gin_helper::Promise<gin_helper::Dictionary> promise) {
+  LogIfNeededAboutUnsupportedPortalFeature(settings);
   FileChooserDialog* dialog = new FileChooserDialog();
   dialog->RunOpenDialog(std::move(promise), settings);
 }

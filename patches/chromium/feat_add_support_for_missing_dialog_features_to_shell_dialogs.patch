@@ -199,21 +199,70 @@ index 58985ce62dc569256bad5e94de9c0d125fc470d0..33436784b691c860d58f8b4dfcc6718e
            &SelectFileDialogLinuxKde::OnSelectSingleFolderDialogResponse, this,
            parent));
 diff --git a/ui/shell_dialogs/select_file_dialog_linux_portal.cc b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
-index 61ddcbf7bf57e423099c7d392a19b3ec79b5d03f..920d0610943091f850e44e3e0481abd7fe08f881 100644
+index 61ddcbf7bf57e423099c7d392a19b3ec79b5d03f..7e52ce9f2f108f1aee4cfe2a95d5aa053d49f993 100644
 --- a/ui/shell_dialogs/select_file_dialog_linux_portal.cc
 +++ b/ui/shell_dialogs/select_file_dialog_linux_portal.cc
-@@ -44,7 +44,9 @@ constexpr char kMethodStartServiceByName[] = "StartServiceByName";
+@@ -12,6 +12,7 @@
+ #include <string_view>
+ 
+ #include "base/containers/contains.h"
++#include "base/command_line.h"
+ #include "base/functional/bind.h"
+ #include "base/logging.h"
+ #include "base/no_destructor.h"
+@@ -44,6 +45,8 @@ constexpr char kMethodStartServiceByName[] = "StartServiceByName";
  constexpr char kXdgPortalService[] = "org.freedesktop.portal.Desktop";
  constexpr char kXdgPortalObject[] = "/org/freedesktop/portal/desktop";
  
--constexpr int kXdgPortalRequiredVersion = 3;
 +// Version 4 includes support for current_folder option to the OpenFile method via
 +// https://github.com/flatpak/xdg-desktop-portal/commit/71165a5.
-+constexpr int kXdgPortalRequiredVersion = 4;
+ constexpr int kXdgPortalRequiredVersion = 3;
  
  constexpr char kXdgPortalRequestInterfaceName[] =
-     "org.freedesktop.portal.Request";
-@@ -221,6 +223,8 @@ void SelectFileDialogLinuxPortal::SelectFileImpl(
+@@ -72,9 +75,8 @@ constexpr char kFileUriPrefix[] = "file://";
+ 
+ // Time to wait for the notification service to start, in milliseconds.
+ constexpr base::TimeDelta kStartServiceTimeout = base::Seconds(1);
+-
++const char kXdgPortalRequiredVersionFlag[] = "xdg-portal-required-version";
+ struct FileChooserProperties : dbus::PropertySet {
+   dbus::Property<uint32_t> version;
+ 
+   explicit FileChooserProperties(dbus::ObjectProxy* object_proxy)
+       : dbus::PropertySet(object_proxy, kFileChooserInterfaceName, {}) {
+@@ -178,10 +180,18 @@ void SelectFileDialogLinuxPortal::StartAvailabilityTestInBackground() {
+   if (GetAvailabilityTestCompletionFlag()->IsSet())
+     return;
+ 
++  auto* cmd = base::CommandLine::ForCurrentProcess();
++  unsigned int xdg_portal_required_version;
++  if (!base::StringToUint(cmd->GetSwitchValueASCII(kXdgPortalRequiredVersionFlag),
++                          &xdg_portal_required_version)) {
++    xdg_portal_required_version = kXdgPortalRequiredVersion;
++  }
++
+   dbus_thread_linux::GetTaskRunner()->PostTask(
+       FROM_HERE,
+       base::BindOnce(
+-          &SelectFileDialogLinuxPortal::CheckPortalAvailabilityOnBusThread));
++          &SelectFileDialogLinuxPortal::CheckPortalAvailabilityOnBusThread,
++          xdg_portal_required_version));
+ }
+ 
+ // static
+@@ -192,6 +202,11 @@ bool SelectFileDialogLinuxPortal::IsPortalAvailable() {
+   return is_portal_available_;
+ }
+ 
++// static
++int SelectFileDialogLinuxPortal::GetPortalVersion() {
++  return available_portal_version_;
++}
++
+ // static
+ void SelectFileDialogLinuxPortal::DestroyPortalConnection() {
+   dbus_thread_linux::GetTaskRunner()->PostTask(
+@@ -221,6 +236,8 @@ void SelectFileDialogLinuxPortal::SelectFileImpl(
                       weak_factory_.GetWeakPtr()));
    info_->type = type;
    info_->main_task_runner = base::SequencedTaskRunner::GetCurrentDefault();
@@ -222,7 +271,38 @@ index 61ddcbf7bf57e423099c7d392a19b3ec79b5d03f..920d0610943091f850e44e3e0481abd7
  
    if (owning_window) {
      if (auto* root = owning_window->GetRootWindow()) {
-@@ -557,7 +561,9 @@ void SelectFileDialogLinuxPortal::DialogInfo::AppendOptions(
+@@ -267,7 +284,8 @@ bool SelectFileDialogLinuxPortal::HasMultipleFileTypeChoicesImpl() {
+ }
+ 
+ // static
+-void SelectFileDialogLinuxPortal::CheckPortalAvailabilityOnBusThread() {
++void SelectFileDialogLinuxPortal::CheckPortalAvailabilityOnBusThread(
++    unsigned int xdg_portal_required_version) {
+   DCHECK(dbus_thread_linux::GetTaskRunner()->RunsTasksInCurrentSequence());
+   base::AtomicFlag* availability_test_complete =
+       GetAvailabilityTestCompletionFlag();
+@@ -288,11 +306,18 @@ void SelectFileDialogLinuxPortal::CheckPortalAvailabilityOnBusThread() {
+     FileChooserProperties properties(portal);
+     if (!properties.GetAndBlock(&properties.version)) {
+       LOG(ERROR) << "Failed to read portal version property";
+-    } else if (properties.version.value() >= kXdgPortalRequiredVersion) {
+-      is_portal_available_ = true;
++    } else if (properties.version.value() >= xdg_portal_required_version) {
++          is_portal_available_ = true;
++          available_portal_version_ = properties.version.value();
++    } else {
++      VLOG(1) << "File chooser portal available version: "
++              << properties.version.value();
++      available_portal_version_ = properties.version.value();
+     }
+   }
+ 
++  VLOG(1) << "File chooser portal expected version: "
++          << xdg_portal_required_version;
+   VLOG(1) << "File chooser portal available: "
+           << (is_portal_available_ ? "yes" : "no");
+   availability_test_complete->Set();
+@@ -557,7 +582,9 @@ void SelectFileDialogLinuxPortal::DialogInfo::AppendOptions(
                       response_handle_token);
  
    if (type == SelectFileDialog::Type::SELECT_UPLOAD_FOLDER) {
@@ -233,7 +313,7 @@ index 61ddcbf7bf57e423099c7d392a19b3ec79b5d03f..920d0610943091f850e44e3e0481abd7
                         l10n_util::GetStringUTF8(
                             IDS_SELECT_UPLOAD_FOLDER_DIALOG_UPLOAD_BUTTON));
    }
-@@ -566,6 +572,8 @@ void SelectFileDialogLinuxPortal::DialogInfo::AppendOptions(
+@@ -566,6 +593,8 @@ void SelectFileDialogLinuxPortal::DialogInfo::AppendOptions(
        type == SelectFileDialog::Type::SELECT_UPLOAD_FOLDER ||
        type == SelectFileDialog::Type::SELECT_EXISTING_FOLDER) {
      AppendBoolOption(&options_writer, kFileChooserOptionDirectory, true);
@@ -242,11 +322,29 @@ index 61ddcbf7bf57e423099c7d392a19b3ec79b5d03f..920d0610943091f850e44e3e0481abd7
    } else if (type == SelectFileDialog::Type::SELECT_OPEN_MULTI_FILE) {
      AppendBoolOption(&options_writer, kFileChooserOptionMultiple, true);
    }
+@@ -883,6 +912,7 @@ SelectFileDialogLinuxPortal::DialogInfo::ConvertUrisToPaths(
+ }
+ 
+ bool SelectFileDialogLinuxPortal::is_portal_available_ = false;
++unsigned int SelectFileDialogLinuxPortal::available_portal_version_ = 0;
+ int SelectFileDialogLinuxPortal::handle_token_counter_ = 0;
+ 
+ }  // namespace ui
 diff --git a/ui/shell_dialogs/select_file_dialog_linux_portal.h b/ui/shell_dialogs/select_file_dialog_linux_portal.h
-index 47e3b0e658858ba5f3219f04d258bdf6dd7c26ed..ff8eaabb406cdf759f7a62725171aaf9f74ce183 100644
+index 47e3b0e658858ba5f3219f04d258bdf6dd7c26ed..7124f65d801b086cf39f3640027b3deeca9b6dca 100644
 --- a/ui/shell_dialogs/select_file_dialog_linux_portal.h
 +++ b/ui/shell_dialogs/select_file_dialog_linux_portal.h
-@@ -117,6 +117,8 @@ class SelectFileDialogLinuxPortal : public SelectFileDialogLinux {
+@@ -44,6 +44,9 @@ class SelectFileDialogLinuxPortal : public SelectFileDialogLinux {
+   // test from above has not yet completed (which should generally not happen).
+   static bool IsPortalAvailable();
+ 
++  // Get version of portal if available.
++  static int GetPortalVersion();
++
+   // Destroys the connection to the bus.
+   static void DestroyPortalConnection();
+ 
+@@ -117,6 +120,8 @@ class SelectFileDialogLinuxPortal : public SelectFileDialogLinux {
      Type type;
      // The task runner the SelectFileImpl method was called on.
      scoped_refptr<base::SequencedTaskRunner> main_task_runner;
@@ -255,3 +353,23 @@ index 47e3b0e658858ba5f3219f04d258bdf6dd7c26ed..ff8eaabb406cdf759f7a62725171aaf9
  
     private:
      friend class base::RefCountedThreadSafe<DialogInfo>;
+@@ -173,7 +178,8 @@ class SelectFileDialogLinuxPortal : public SelectFileDialogLinux {
+   };
+ 
+   // D-Bus configuration and initialization.
+-  static void CheckPortalAvailabilityOnBusThread();
++  static void CheckPortalAvailabilityOnBusThread(
++      unsigned int xdg_portal_required_version);
+   static bool IsPortalRunningOnBusThread(dbus::ObjectProxy* dbus_proxy);
+   static bool IsPortalActivatableOnBusThread(dbus::ObjectProxy* dbus_proxy);
+ 
+@@ -207,6 +213,9 @@ class SelectFileDialogLinuxPortal : public SelectFileDialogLinux {
+   // Written by the D-Bus thread and read by the UI thread.
+   static bool is_portal_available_;
+ 
++  // Written by the D-Bus thread and read by the UI thread.
++  static unsigned int available_portal_version_;
++
+   // Used by the D-Bus thread to generate unique handle tokens.
+   static int handle_token_counter_;
+ 
