@@ -198,6 +198,7 @@ struct Converter<electron::api::DesktopCapturer::Source> {
              electron::api::NativeImage::Create(
                  isolate, gfx::Image(source.media_list_source.thumbnail)));
     dict.Set("display_id", source.display_id);
+    dict.Set("userProvidedSelection", source.user_selected);
     if (source.fetch_icon) {
       dict.Set(
           "appIcon",
@@ -388,6 +389,7 @@ void DesktopCapturer::UpdateSourcesList(DesktopMediaList* list) {
     window_sources.reserve(list->GetSourceCount());
     for (int i = 0; i < list->GetSourceCount(); i++) {
       window_sources.emplace_back(list->GetSource(i), std::string(),
+                                  list->IsSourceListDelegated(),
                                   fetch_window_icons_);
     }
     std::move(window_sources.begin(), window_sources.end(),
@@ -400,7 +402,8 @@ void DesktopCapturer::UpdateSourcesList(DesktopMediaList* list) {
     std::vector<DesktopCapturer::Source> screen_sources;
     screen_sources.reserve(list->GetSourceCount());
     for (int i = 0; i < list->GetSourceCount(); i++) {
-      screen_sources.emplace_back(list->GetSource(i), std::string());
+      screen_sources.emplace_back(list->GetSource(i), std::string(),
+                                  list->IsSourceListDelegated());
     }
 #if BUILDFLAG(IS_WIN)
     // Gather the same unique screen IDs used by the electron.screen API in
