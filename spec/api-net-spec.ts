@@ -623,6 +623,25 @@ describe('net module', () => {
         }, { dest });
       }
 
+      // for (const [priorityName, priorityValue] of Object.entries({
+      //   throttled: 0,
+      //   idle: 1,
+      //   lowest: 2,
+      //   low: 3,
+      //   medium: 4,
+      //   highest: 5
+      // })) {
+      //   test(`should set priority to ${priorityName} if requested`, async () => {
+      //     const urlRequest = net.request({
+      //       url: 'https://httpbin.org/get',
+      //       priority: priorityName as any
+      //     });
+      //     const response = await getResponse(urlRequest)
+      //     const data = JSON.parse(await collectStreamBody(response));
+      //     expect(data.headers.Priority).to.be.a('string').and.match(new RegExp('^u=' + priorityValue));
+      //   }, { priorityName });
+      // }
+
       test('should be able to abort an HTTP request before first write', async () => {
         const serverUrl = await respondOnce.toSingleURL((request, response) => {
           response.end();

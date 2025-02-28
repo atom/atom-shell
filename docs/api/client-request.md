@@ -60,6 +60,8 @@ following properties:
     `strict-origin-when-cross-origin`.
   * `cache` string (optional) - can be `default`, `no-store`, `reload`,
     `no-cache`, `force-cache` or `only-if-cached`.
+  * `priority` string (optional) - can be `throttled`, `idle`, `lowest`,
+    `low`, `medium`, or `highest`.
 
 `options` properties such as `protocol`, `host`, `hostname`, `port` and `path`
 strictly follow the Node.js model as described in the

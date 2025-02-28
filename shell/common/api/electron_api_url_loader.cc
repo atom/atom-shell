@@ -645,6 +645,20 @@ gin::Handle<SimpleURLLoaderWrapper> SimpleURLLoaderWrapper::Create(
       break;
   }
 
+  if (std::string priority; opts.Get("priority", &priority)) {
+    static constexpr auto Lookup =
+        base::MakeFixedFlatMap<std::string_view, net::RequestPriority>({
+            {"throttled ", net::THROTTLED},
+            {"idle", net::IDLE},
+            {"lowest", net::LOWEST},
+            {"low", net::LOW},
+            {"medium", net::MEDIUM},
+            {"highest", net::HIGHEST},
+        });
+    if (auto* iter = Lookup.find(priority); iter != Lookup.end())
+      request->priority = iter->second;
+  }
+
   bool use_session_cookies = false;
   opts.Get("useSessionCookies", &use_session_cookies);
   int options = network::mojom::kURLLoadOptionSniffMimeType;

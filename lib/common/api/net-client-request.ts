@@ -288,7 +288,8 @@ function parseOptions (optionsIn: ClientRequestConstructorOptions | string): Nod
     origin: options.origin,
     referrerPolicy: options.referrerPolicy,
     cache: options.cache,
-    allowNonHttpProtocols: Object.hasOwn(options, kAllowNonHttpProtocols)
+    allowNonHttpProtocols: Object.hasOwn(options, kAllowNonHttpProtocols),
+    priority: options.priority
   };
   const headers: Record<string, string | string[]> = options.headers || {};
   for (const [name, value] of Object.entries(headers)) {
