@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Frank Tang <ftang@chromium.org>
+Date: Tue, 4 Feb 2025 17:16:24 -0800
+Subject: Merged: Fix out of bound string access
+
+Bug: 386857213
+(cherry picked from commit 0242cac4b20305b03b74c2e9588003378eebeb77)
+
+Change-Id: I354e9a246ccfe36bf12fce13597f295093cde2a3
+Reviewed-on: https://chromium-review.googlesource.com/c/v8/v8/+/6245138
+Commit-Queue: Shu-yu Guo <syg@chromium.org>
+Commit-Queue: Deepti Gandluri <gdeepti@chromium.org>
+Reviewed-by: Deepti Gandluri <gdeepti@chromium.org>
+Auto-Submit: Shu-yu Guo <syg@chromium.org>
+Cr-Commit-Position: refs/branch-heads/13.2@{#78}
+Cr-Branched-From: 24068c59cedad9ee976ddc05431f5f497b1ebd71-refs/heads/13.2.152@{#1}
+Cr-Branched-From: 6054ba94db0969220be4f94dc1677fc4696bdc4f-refs/heads/main@{#97085}
+
+diff --git a/src/objects/js-date-time-format.cc b/src/objects/js-date-time-format.cc
+index 038929afeb0c8340b7e1b01e4e9d9810a10f1fee..5de38e23ea136711ace1e019cc2189a9a9bad57a 100644
+--- a/src/objects/js-date-time-format.cc
++++ b/src/objects/js-date-time-format.cc
+@@ -1685,6 +1685,10 @@ std::optional<std::string> GetOffsetTimeZone(Isolate* isolate,
+   if (m0 == ':') {
+     // Ignore ':'
+     p++;
++    if (len == p) {
++      // Error
++      return std::nullopt;
++    }
+     m0 = flat.Get(p);
+   }
+   if (len - p != 2) {
+diff --git a/test/intl/regress-386857213.js b/test/intl/regress-386857213.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..fec35fcc4bbc6c9920c56b7b7be1b5588254c460
+--- /dev/null
++++ b/test/intl/regress-386857213.js
+@@ -0,0 +1,5 @@
++// Copyright 2025 the V8 project authors. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++//
++assertThrows(() => new Intl.DateTimeFormat("en", {timeZone: "+09:"}), RangeError);

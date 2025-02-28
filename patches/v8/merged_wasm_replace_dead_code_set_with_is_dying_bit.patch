@@ -1,0 +1,200 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jakob Kummerow <jkummerow@chromium.org>
+Date: Thu, 6 Feb 2025 14:42:13 +0100
+Subject: Merged: [wasm] Replace {dead_code_} set with {is_dying_} bit
+
+This saves some memory, and fixes a bug.
+
+Fixed: 391907159
+(cherry picked from commit 33ca4f51e5dbba9817eba16fd3249e66a880cf33)
+
+Change-Id: Iad93b3e7290c25ddcedf806cc85c4401a5fcb0fc
+Reviewed-on: https://chromium-review.googlesource.com/c/v8/v8/+/6239106
+Auto-Submit: Jakob Kummerow <jkummerow@chromium.org>
+Commit-Queue: Jakob Kummerow <jkummerow@chromium.org>
+Commit-Queue: Matthias Liedtke <mliedtke@chromium.org>
+Reviewed-by: Matthias Liedtke <mliedtke@chromium.org>
+Cr-Commit-Position: refs/branch-heads/13.2@{#76}
+Cr-Branched-From: 24068c59cedad9ee976ddc05431f5f497b1ebd71-refs/heads/13.2.152@{#1}
+Cr-Branched-From: 6054ba94db0969220be4f94dc1677fc4696bdc4f-refs/heads/main@{#97085}
+
+diff --git a/src/wasm/wasm-code-manager.h b/src/wasm/wasm-code-manager.h
+index e0ec794fab33445b088220fbeb68ea02c1f35912..c04de89acf98209fe2dd32c5aa3868e4c2a234af 100644
+--- a/src/wasm/wasm-code-manager.h
++++ b/src/wasm/wasm-code-manager.h
+@@ -316,6 +316,9 @@ class V8_EXPORT_PRIVATE WasmCode final {
+     return ForDebuggingField::decode(flags_);
+   }
+ 
++  bool is_dying() const { return dying_; }
++  void mark_as_dying() { dying_ = true; }
++
+   // Returns {true} for Liftoff code that sets up a feedback vector slot in its
+   // stack frame.
+   // TODO(jkummerow): This can be dropped when we ship Wasm inlining.
+@@ -450,6 +453,10 @@ class V8_EXPORT_PRIVATE WasmCode final {
+   using ForDebuggingField = ExecutionTierField::Next<ForDebugging, 2>;
+   using FrameHasFeedbackSlotField = ForDebuggingField::Next<bool, 1>;
+ 
++  // Will be set to {true} the first time this code object is considered
++  // "potentially dead" (to be confirmed by the next Wasm Code GC cycle).
++  std::atomic<bool> dying_{false};
++
+   // WasmCode is ref counted. Counters are held by:
+   //   1) The jump table / code table.
+   //   2) {WasmCodeRefScope}s.
+diff --git a/src/wasm/wasm-engine.cc b/src/wasm/wasm-engine.cc
+index 54ac5a1a4927d858577b9a4d984dd554999107a4..6f7c5ed738f06550cb0a8fc873c44482b33488dc 100644
+--- a/src/wasm/wasm-engine.cc
++++ b/src/wasm/wasm-engine.cc
+@@ -1700,7 +1700,6 @@ void WasmEngine::FreeNativeModule(NativeModule* native_module) {
+   }
+   // If any code objects are currently tracked as dead or near-dead, remove
+   // references belonging to the NativeModule that's being deleted.
+-  std::erase_if(dead_code_, part_of_native_module);
+   std::erase_if(potentially_dead_code_, part_of_native_module);
+ 
+   native_module_cache_.Erase(native_module);
+@@ -1783,9 +1782,11 @@ void WasmEngine::ReportLiveCodeFromStackForGC(Isolate* isolate) {
+ 
+ bool WasmEngine::AddPotentiallyDeadCode(WasmCode* code) {
+   base::MutexGuard guard(&mutex_);
+-  if (dead_code_.contains(code)) return false;  // Code is already dead.
++  if (code->is_dying()) return false;
+   auto added = potentially_dead_code_.insert(code);
+-  if (!added.second) return false;  // An entry already existed.
++  DCHECK(added.second);
++  USE(added);
++  code->mark_as_dying();
+   new_potentially_dead_code_size_ += code->instructions().size();
+   if (v8_flags.wasm_code_gc) {
+     // Trigger a GC if 64kB plus 10% of committed code are potentially dead.
+@@ -1831,19 +1832,17 @@ void WasmEngine::FreeDeadCodeLocked(const DeadCodeMap& dead_code,
+     const std::vector<WasmCode*>& code_vec = dead_code_entry.second;
+     TRACE_CODE_GC("Freeing %zu code object%s of module %p.\n", code_vec.size(),
+                   code_vec.size() == 1 ? "" : "s", native_module);
+-    for (WasmCode* code : code_vec) {
+-      DCHECK(dead_code_.contains(code));
+-      dead_code_.erase(code);
+-    }
++#if DEBUG
++    for (WasmCode* code : code_vec) DCHECK(code->is_dying());
++#endif  // DEBUG
+     native_module->FreeCode(base::VectorOf(code_vec));
+   }
+   if (dead_wrappers.size()) {
+     TRACE_CODE_GC("Freeing %zu wrapper%s.\n", dead_wrappers.size(),
+                   dead_wrappers.size() == 1 ? "" : "s");
+-    for (WasmCode* code : dead_wrappers) {
+-      DCHECK(dead_code_.contains(code));
+-      dead_code_.erase(code);
+-    }
++#if DEBUG
++    for (WasmCode* code : dead_wrappers) DCHECK(code->is_dying());
++#endif  // DEBUG
+     GetWasmImportWrapperCache()->Free(dead_wrappers);
+   }
+ }
+@@ -1933,16 +1932,15 @@ void WasmEngine::PotentiallyFinishCurrentGC() {
+   if (!current_gc_info_->outstanding_isolates.empty()) return;
+ 
+   // All remaining code in {current_gc_info->dead_code} is really dead.
+-  // Move it from the set of potentially dead code to the set of dead code,
+-  // and decrement its ref count.
++  // Remove it from the set of potentially dead code, and decrement its
++  // ref count.
+   size_t num_freed = 0;
+   DeadCodeMap dead_code;
+   std::vector<WasmCode*> dead_wrappers;
+   for (WasmCode* code : current_gc_info_->dead_code) {
+     DCHECK(potentially_dead_code_.contains(code));
++    DCHECK(code->is_dying());
+     potentially_dead_code_.erase(code);
+-    DCHECK(!dead_code_.contains(code));
+-    dead_code_.insert(code);
+     if (code->DecRefOnDeadCode()) {
+       NativeModule* native_module = code->native_module();
+       if (native_module) {
+@@ -1966,8 +1964,8 @@ void WasmEngine::PotentiallyFinishCurrentGC() {
+ }
+ 
+ size_t WasmEngine::EstimateCurrentMemoryConsumption() const {
+-  UPDATE_WHEN_CLASS_CHANGES(WasmEngine, 800);
+-  UPDATE_WHEN_CLASS_CHANGES(IsolateInfo, 184);
++  UPDATE_WHEN_CLASS_CHANGES(WasmEngine, 760);
++  UPDATE_WHEN_CLASS_CHANGES(IsolateInfo, 168);
+   UPDATE_WHEN_CLASS_CHANGES(NativeModuleInfo, 56);
+   UPDATE_WHEN_CLASS_CHANGES(CurrentGCInfo, 96);
+   size_t result = sizeof(WasmEngine);
+@@ -1977,7 +1975,6 @@ size_t WasmEngine::EstimateCurrentMemoryConsumption() const {
+     result += ContentSize(async_compile_jobs_);
+     result += async_compile_jobs_.size() * sizeof(AsyncCompileJob);
+     result += ContentSize(potentially_dead_code_);
+-    result += ContentSize(dead_code_);
+ 
+     // TODO(14106): Do we care about {compilation_stats_}?
+     // TODO(14106): Do we care about {code_tracer_}?
+diff --git a/src/wasm/wasm-engine.h b/src/wasm/wasm-engine.h
+index 1511753825110dedf8a6e9b8137e593a0fd2f618..50bf7c84996eef7f5ca7c160b1047050c2da30b9 100644
+--- a/src/wasm/wasm-engine.h
++++ b/src/wasm/wasm-engine.h
+@@ -483,12 +483,8 @@ class V8_EXPORT_PRIVATE WasmEngine {
+   size_t new_potentially_dead_code_size_ = 0;
+   // Set of potentially dead code. This set holds one ref for each code object,
+   // until code is detected to be really dead. At that point, the ref count is
+-  // decremented and code is moved to the {dead_code} set. If the code is
+-  // finally deleted, it is also removed from {dead_code}.
++  // decremented and code is removed from the set.
+   std::unordered_set<WasmCode*> potentially_dead_code_;
+-  // Code that is not being executed in any isolate any more, but the ref count
+-  // did not drop to zero yet.
+-  std::unordered_set<WasmCode*> dead_code_;
+   int8_t num_code_gcs_triggered_ = 0;
+ 
+   // If an engine-wide GC is currently running, this pointer stores information
+diff --git a/src/wasm/wasm-import-wrapper-cache.cc b/src/wasm/wasm-import-wrapper-cache.cc
+index 0554f3d50a288b34bd4729a33ac523c4902d93e0..56fa64302665fdbd036c95e29610748ccd541959 100644
+--- a/src/wasm/wasm-import-wrapper-cache.cc
++++ b/src/wasm/wasm-import-wrapper-cache.cc
+@@ -150,7 +150,10 @@ WasmCode* WasmImportWrapperCache::CompileWasmImportCallWrapper(
+     // Now that we have the lock (in the form of the cache_scope), check
+     // again whether another thread has just created the wrapper.
+     wasm_code = cache_scope[key];
+-    if (wasm_code) return wasm_code;
++    if (wasm_code) {
++      WasmCodeRefScope::AddRef(wasm_code);
++      if (!wasm_code->is_dying()) return wasm_code;
++    }
+ 
+     wasm_code = cache_scope.AddWrapper(key, std::move(result),
+                                        WasmCode::Kind::kWasmToJsWrapper);
+@@ -216,6 +219,7 @@ WasmCode* WasmImportWrapperCache::MaybeGet(ImportCallKind kind,
+       entry_map_.find({kind, canonical_type_index, expected_arity, suspend});
+   if (it == entry_map_.end()) return nullptr;
+   WasmCodeRefScope::AddRef(it->second);
++  if (it->second->is_dying()) return nullptr;
+   return it->second;
+ }
+ 
+@@ -230,6 +234,9 @@ WasmCode* WasmImportWrapperCache::Lookup(Address pc) const {
+   DCHECK_EQ(candidate->instruction_start(), iter->first);
+   if (!candidate->contains(pc)) return nullptr;
+   WasmCodeRefScope::AddRef(candidate);
++  // Note: this function is used for iterating the stack, where dying
++  // code objects can still have their last few activations, so we
++  // must return {candidate} even if {candidate->is_dying()}.
+   return candidate;
+ }
+ 
+diff --git a/test/cctest/wasm/wasm-run-utils.cc b/test/cctest/wasm/wasm-run-utils.cc
+index fb4f0c3c39aaba90729dfd1f6b9ed3f90d25ed1d..2063983ecb44eb3f50b33258e40cf7cc6d7e3089 100644
+--- a/test/cctest/wasm/wasm-run-utils.cc
++++ b/test/cctest/wasm/wasm-run-utils.cc
+@@ -294,6 +294,7 @@ void TestingModuleBuilder::AddIndirectFunctionTable(
+   WasmTableObject::AddUse(isolate_, table_obj, instance_object_, table_index);
+ 
+   if (function_indexes) {
++    WasmCodeRefScope code_ref_scope;
+     for (uint32_t i = 0; i < table_size; ++i) {
+       WasmFunction& function = test_module_->functions[function_indexes[i]];
+       int sig_id = test_module_->canonical_sig_id(function.sig_index);
