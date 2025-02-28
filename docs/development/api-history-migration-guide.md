@@ -65,7 +65,7 @@ Verify that the Pull Request is correct and make a corresponding entry in the
 API History:
 
 > [!NOTE]
-> Refer to the [API History section of `styleguide.md`](../styleguide.md#api-history)
+> Refer to the [API History section of `style-guide.md`](./style-guide.md#api-history)
 for information on how to create API History blocks.
 
 `````markdown
