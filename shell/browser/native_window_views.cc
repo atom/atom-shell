@@ -1317,18 +1317,15 @@ void NativeWindowViews::SetIgnoreMouseEvents(bool ignore, bool forward) {
 
 void NativeWindowViews::SetContentProtection(bool enable) {
 #if BUILDFLAG(IS_WIN)
-  HWND hwnd = GetAcceleratedWidget();
-  DWORD affinity = enable ? WDA_EXCLUDEFROMCAPTURE : WDA_NONE;
-  ::SetWindowDisplayAffinity(hwnd, affinity);
-  if (!layered_) {
-    // Workaround to prevent black window on screen capture after hiding and
-    // showing the BrowserWindow.
-    LONG ex_style = ::GetWindowLong(hwnd, GWL_EXSTYLE);
-    ex_style |= WS_EX_LAYERED;
-    ::SetWindowLong(hwnd, GWL_EXSTYLE, ex_style);
-    layered_ = true;
-  }
+  widget()->native_widget_private()->SetAllowScreenshots(!enable);
 #endif
+}
+
+bool NativeWindowViews::IsContentProtected() const {
+#if BUILDFLAG(IS_WIN)
+  return !widget()->native_widget_private()->AreScreenshotsAllowed();
+#endif
+  return false;  // Not implemented on Linux
 }
 
 void NativeWindowViews::SetFocusable(bool focusable) {

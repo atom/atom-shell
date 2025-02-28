@@ -110,6 +110,7 @@ class NativeWindowMac : public NativeWindow,
   bool IsHiddenInMissionControl() const override;
   void SetHiddenInMissionControl(bool hidden) override;
   void SetContentProtection(bool enable) override;
+  bool IsContentProtected() const override;
   void SetFocusable(bool focusable) override;
   bool IsFocusable() const override;
   void SetParentWindow(NativeWindow* parent) override;

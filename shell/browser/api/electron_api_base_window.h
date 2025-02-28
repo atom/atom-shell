@@ -177,6 +177,7 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   bool IsDocumentEdited() const;
   void SetIgnoreMouseEvents(bool ignore, gin_helper::Arguments* args);
   void SetContentProtection(bool enable);
+  bool IsContentProtected() const;
   void SetFocusable(bool focusable);
   bool IsFocusable() const;
   void SetMenu(v8::Isolate* isolate, v8::Local<v8::Value> menu);
