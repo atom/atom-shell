@@ -1825,6 +1825,38 @@ describe('webContents module', () => {
     });
   });
 
+  describe('focusedFrame api', () => {
+    const focusFrame = (frame: Electron.WebFrameMain) => {
+      // There has to be a better way to do this...
+      return frame.executeJavaScript(`(${() => {
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        input.onfocus = () => input.remove();
+        input.focus();
+      }})()`, true);
+    };
+
+    it('is null before a url is committed', () => {
+      const w = new BrowserWindow({ show: false });
+      expect(w.webContents.focusedFrame).to.be.null();
+    });
+
+    it('is set when main frame is focused', async () => {
+      const w = new BrowserWindow({ show: true });
+      await w.loadURL('about:blank');
+      w.webContents.focus();
+      await waitUntil(() => w.webContents.focusedFrame === w.webContents.mainFrame);
+    });
+
+    it('is set to child frame when focused', async () => {
+      const w = new BrowserWindow({ show: true });
+      await w.loadFile(path.join(fixturesPath, 'sub-frames', 'frame-with-frame-container.html'));
+      const childFrame = w.webContents.mainFrame.frames[0];
+      await focusFrame(childFrame);
+      await waitUntil(() => w.webContents.focusedFrame === childFrame);
+    });
+  });
+
   describe('render view deleted events', () => {
     let server: http.Server;
     let serverUrl: string;

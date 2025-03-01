@@ -2391,8 +2391,13 @@ A [`WebFrameMain`](web-frame-main.md) property that represents the top frame of 
 
 #### `contents.opener` _Readonly_
 
-A [`WebFrameMain`](web-frame-main.md) property that represents the frame that opened this WebContents, either
+A [`WebFrameMain | null`](web-frame-main.md) property that represents the frame that opened this WebContents, either
 with open(), or by navigating a link with a target attribute.
+
+#### `contents.focusedFrame` _Readonly_
+
+A [`WebFrameMain | null`](web-frame-main.md) property that represents the currently focused frame in this WebContents.
+Can be the top frame, an inner `<iframe>`, or `null` if nothing is focused.
 
 [keyboardevent]: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent
 [event-emitter]: https://nodejs.org/api/events.html#events_class_eventemitter
