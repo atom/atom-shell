@@ -88,3 +88,9 @@ jobs:
       test-container: ${{ inputs.test-container }}
       is-asan: ${{ inputs.is-asan}}
     secrets: inherit
+  clean:
+    uses: ./.github/workflows/pipeline-segment-electron-clean.yml
+    needs: test
+    with:
+      target-arch: ${{ inputs.target-arch }}
+      target-platform: ${{ inputs.target-platform }}
