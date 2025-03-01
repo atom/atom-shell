@@ -35,11 +35,13 @@ class ElectronDesktopWindowTreeHostWin : public views::DesktopWindowTreeHostWin,
                     WPARAM w_param,
                     LPARAM l_param,
                     LRESULT* result) override;
+  void PostHandleMSG(UINT message, WPARAM w_param, LPARAM l_param) override;
   bool ShouldPaintAsActive() const override;
   bool GetDwmFrameInsetsInPixels(gfx::Insets* insets) const override;
   bool GetClientAreaInsets(gfx::Insets* insets,
                            HMONITOR monitor) const override;
   bool HandleMouseEventForCaption(UINT message) const override;
+  bool HandleMouseEvent(ui::MouseEvent* event) override;
 
   // ui::NativeThemeObserver:
   void OnNativeThemeUpdated(ui::NativeTheme* observed_theme) override;

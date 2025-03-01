@@ -6,6 +6,7 @@
 
 #include "base/win/windows_version.h"
 #include "electron/buildflags/buildflags.h"
+#include "shell/browser/api/electron_api_web_contents.h"
 #include "shell/browser/native_window_views.h"
 #include "shell/browser/ui/views/win_frame_view.h"
 #include "shell/browser/win/dark_mode.h"
@@ -35,6 +36,15 @@ bool ElectronDesktopWindowTreeHostWin::PreHandleMSG(UINT message,
   }
 
   return native_window_view_->PreHandleMSG(message, w_param, l_param, result);
+}
+
+void ElectronDesktopWindowTreeHostWin::PostHandleMSG(UINT message,
+                                                     WPARAM w_param,
+                                                     LPARAM l_param) {
+  // See ui/views/win/hwnd_message_handler.cc:3213 for why
+  // this is WM_RBUTTONUP and not WM_NCRBUTTONUP.
+  if (message == WM_RBUTTONUP)
+    electron::api::WebContents::SetDisableDraggableRegions(false);
 }
 
 bool ElectronDesktopWindowTreeHostWin::ShouldPaintAsActive() const {
@@ -129,6 +139,16 @@ void ElectronDesktopWindowTreeHostWin::OnNativeThemeUpdated(
     // Clear forced value and tell Chromium the value changed to get a repaint
     force_should_paint_as_active_.reset();
     PaintAsActiveChanged();
+  }
+}
+
+bool ElectronDesktopWindowTreeHostWin::HandleMouseEvent(ui::MouseEvent* event) {
+  if (event->IsRightMouseButton() &&
+      event->type() == ui::EventType::kMousePressed) {
+    electron::api::WebContents::SetDisableDraggableRegions(true);
+    return false;
+  } else {
+    return views::DesktopWindowTreeHostWin::HandleMouseEvent(event);
   }
 }
 
