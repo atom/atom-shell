@@ -322,6 +322,10 @@ class Browser : private WindowListObserver {
   void SetSecureKeyboardEntryEnabled(bool enabled);
 #endif
 
+#if BUILDFLAG(IS_WIN)
+  void PreventShutdown(const std::wstring& name);
+#endif
+
   bool is_shutting_down() const { return is_shutdown_; }
   bool is_quitting() const { return is_quitting_; }
   bool is_ready() const { return is_ready_; }

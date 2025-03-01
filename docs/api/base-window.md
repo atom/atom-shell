@@ -1439,6 +1439,13 @@ On a Window with Window Controls Overlay already enabled, this method updates th
 
 On Linux, the `symbolColor` is automatically calculated to have minimum accessible contrast to the `color` if not explicitly set.
 
+### `win.preventShutdown(reason)` _Windows_
+
+* `reason` string
+
+Indicates that the system cannot be shut down and sets a reason string to be displayed
+to the user if system shutdown is initiated.
+
 [quick-look]: https://en.wikipedia.org/wiki/Quick_Look
 [vibrancy-docs]: https://developer.apple.com/documentation/appkit/nsvisualeffectview?preferredLanguage=objc
 [window-levels]: https://developer.apple.com/documentation/appkit/nswindow/level
