@@ -342,7 +342,7 @@ Emitted when the window has closed a sheet.
 
 Emitted when the native new tab button is clicked.
 
-#### Event: 'system-context-menu' _Windows_
+#### Event: 'system-context-menu' _Windows_ _Linux_
 
 Returns:
 
