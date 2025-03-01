@@ -562,6 +562,60 @@ backed by C++ classes (e.g. `process.env`, some members of `Stream`), and Electr
 backed by C++ classes (e.g. `WebContents`, `BrowserWindow` and `WebFrame`) are not serializable
 with Structured Clone.
 
+## Error handling
+
+This section explores what will happen if a handler registered via `ipcMain.handle()` or
+`ipcRenderer.on()` throws an error and where it will trigger an "uncaught error" event.
+
+:::info
+Everything explained in this section for uncaught errors applies analogously for
+unhandled promise rejections.
+:::
+
+### Renderer-to-main communication
+
+Let's say a `handler()` function is registered in the main process via
+`ipcMain.handle('channel', handler)`. A renderer invokes it via `ipcRenderer.invoke()`.
+
+If the `handler` function is invoked and throws an error, the error is passed through to
+the renderer. It can be handled in the renderer using try-catch.
+
+The error will **not** trigger the [`'uncaughtException'`][] event in the main process.
+
+### Main-to-renderer communication
+
+Let's say we have the following preload script:
+
+```js title='preload.js (Preload Script)'
+const { contextBridge, ipcRenderer } = require('electron')
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  onMyEvent: (callback) => ipcRenderer.on('myEvent', () => callback())
+})
+```
+
+And let's say the renderer registers a function for `'myEvent'` that throws an error,
+e.g. the following:
+
+```js title='renderer.js (Renderer Process)' @ts-window-type={electronAPI:{onMyEvent:(callback:()=>void)=>void}}
+function handler () {
+  throw new Error()
+}
+
+window.electronAPI.onMyEvent(handler)
+```
+
+When `handler` is invoked and subsequently throws an error, the error will be passed
+through to the preload script. In the preload script, it will be an uncaught error.
+If set, this error will trigger the [`window.onerror`][] handler of the preload script
+(not of the renderer!).
+
+That is because when `'myEvent'` is received, the invocation of `callback()` happens in
+the preload script.
+
+It's best to make sure that callbacks passed to `ipcRenderer.on()` will never throw
+errors (e.g. by wrapping all code in a try-catch).
+
 [context isolation tutorial]: context-isolation.md
 [security reasons]: ./context-isolation.md#security-considerations
 [`ipcMain`]: ../api/ipc-main.md
@@ -577,3 +631,5 @@ with Structured Clone.
 [sca]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm
 [`WebContents`]: ../api/web-contents.md
 [webcontents-send]: ../api/web-contents.md#contentssendchannel-args
+[`'uncaughtException'`]: https://nodejs.org/api/process.html#event-uncaughtexception
+[`window.onerror`]: https://developer.mozilla.org/en-US/docs/Web/API/Window/error_event
