@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: deepak1556 <hop2deep@gmail.com>
+Date: Sat, 1 Mar 2025 05:11:41 +0900
+Subject: fix: enable __wrap_iter in string_view and array
+
+Refs https://github.com/electron/electron/issues/45810#issuecomment-2691417213
+
+Patch can be removed when build_make_libcxx_abi_unstable_false_for_electron.patch is removed.
+
+diff --git a/buildtools/third_party/libc++/__config_site b/buildtools/third_party/libc++/__config_site
+index e240ff6fff94a6cebf8662996712fe7eb22e5fff..ddf1693002aa171b3d91aa4ef08f5b360e4adddc 100644
+--- a/buildtools/third_party/libc++/__config_site
++++ b/buildtools/third_party/libc++/__config_site
+@@ -19,6 +19,8 @@
+ #define _LIBCPP_ABI_NAMESPACE __Cr
+ 
+ #define _LIBCPP_ABI_VERSION 1
++#define _LIBCPP_ABI_USE_WRAP_ITER_IN_STD_ARRAY
++#define _LIBCPP_ABI_USE_WRAP_ITER_IN_STD_STRING_VIEW
+ 
+ #define _LIBCPP_ABI_FORCE_ITANIUM 0
+ #define _LIBCPP_ABI_FORCE_MICROSOFT 0
