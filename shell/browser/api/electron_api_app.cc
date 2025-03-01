@@ -859,6 +859,9 @@ base::FilePath App::GetAppPath() const {
   return app_path_;
 }
 
+// This API is undocumented but also used in @electron/universal
+// to potentially change the app's root from ".../app.asar" to
+// ".../app-${platform}.asar".
 void App::SetAppPath(const base::FilePath& app_path) {
   app_path_ = app_path;
 }
