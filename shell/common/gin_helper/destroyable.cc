@@ -4,7 +4,6 @@
 
 #include "shell/common/gin_helper/destroyable.h"
 
-#include "base/no_destructor.h"
 #include "gin/converter.h"
 #include "shell/common/gin_helper/wrappable_base.h"
 #include "v8/include/v8-function.h"
@@ -13,15 +12,9 @@ namespace gin_helper {
 
 namespace {
 
-v8::Global<v8::FunctionTemplate>* GetDestroyFunc() {
-  static base::NoDestructor<v8::Global<v8::FunctionTemplate>> destroy_func;
-  return destroy_func.get();
-}
+v8::Eternal<v8::FunctionTemplate> destroy_func_;
 
-v8::Global<v8::FunctionTemplate>* GetIsDestroyedFunc() {
-  static base::NoDestructor<v8::Global<v8::FunctionTemplate>> is_destroyed_func;
-  return is_destroyed_func.get();
-}
+v8::Eternal<v8::FunctionTemplate> is_destroyed_func_;
 
 void DestroyFunc(const v8::FunctionCallbackInfo<v8::Value>& info) {
   v8::Local<v8::Object> holder = info.This();
@@ -53,22 +46,20 @@ bool Destroyable::IsDestroyed(v8::Local<v8::Object> object) {
 void Destroyable::MakeDestroyable(v8::Isolate* isolate,
                                   v8::Local<v8::FunctionTemplate> prototype) {
   // Cache the FunctionTemplate of "destroy" and "isDestroyed".
-  if (GetDestroyFunc()->IsEmpty()) {
+  if (destroy_func_.IsEmpty()) {
     auto templ = v8::FunctionTemplate::New(isolate, DestroyFunc);
     templ->RemovePrototype();
-    GetDestroyFunc()->Reset(isolate, templ);
+    destroy_func_.Set(isolate, templ);
     templ = v8::FunctionTemplate::New(isolate, IsDestroyedFunc);
     templ->RemovePrototype();
-    GetIsDestroyedFunc()->Reset(isolate, templ);
+    is_destroyed_func_.Set(isolate, templ);
   }
 
   auto proto_templ = prototype->PrototypeTemplate();
-  proto_templ->Set(
-      gin::StringToSymbol(isolate, "destroy"),
-      v8::Local<v8::FunctionTemplate>::New(isolate, *GetDestroyFunc()));
-  proto_templ->Set(
-      gin::StringToSymbol(isolate, "isDestroyed"),
-      v8::Local<v8::FunctionTemplate>::New(isolate, *GetIsDestroyedFunc()));
+  proto_templ->Set(gin::StringToSymbol(isolate, "destroy"),
+                   destroy_func_.Get(isolate));
+  proto_templ->Set(gin::StringToSymbol(isolate, "isDestroyed"),
+                   is_destroyed_func_.Get(isolate));
 }
 
 }  // namespace gin_helper
