@@ -93,7 +93,7 @@ Menu.prototype.popup = function (options = {}) {
     }
   }
 
-  this.popupAt(window as unknown as BaseWindow, x, y, positioningItem, sourceType, callback);
+  this.popupAt(window as unknown as BaseWindow, options.frame, x, y, positioningItem, sourceType, callback);
   return { browserWindow: window, x, y, position: positioningItem };
 };
 
