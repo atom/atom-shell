@@ -204,6 +204,8 @@ filenames = {
     "shell/common/node_bindings_mac.cc",
     "shell/common/node_bindings_mac.h",
     "shell/common/platform_util_mac.mm",
+    "shell/browser/mac/geo_utils.h",
+    "shell/browser/mac/geo_utils.mm",
   ]
 
   lib_sources_views = [

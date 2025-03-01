@@ -31,12 +31,6 @@ void ElectronBrowserMainParts::PreCreateMainMessageLoop() {
   [[NSUserDefaults standardUserDefaults]
       setObject:@"NO"
          forKey:@"NSTreatUnknownArgumentsAsOpen"];
-
-  if (!device::GeolocationSystemPermissionManager::GetInstance()) {
-    device::GeolocationSystemPermissionManager::SetInstance(
-        device::SystemGeolocationSourceApple::
-            CreateGeolocationSystemPermissionManager());
-  }
 }
 
 void ElectronBrowserMainParts::FreeAppDelegate() {
