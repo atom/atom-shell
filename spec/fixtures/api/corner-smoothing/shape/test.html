@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      /* Page is expected to be exactly 800x600 */
+      html, body {
+        width: 800px;
+        height: 600px;
+        margin: 0;
+        overflow: hidden;
+
+        display: flex;
+        flex-flow: column nowrap;
+        justify-content: space-around;
+        align-items: stretch;
+      }
+
+      .row {
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: space-around;
+        align-items: center;
+      }
+      .row.rounding-0 > .box {
+        -electron-corner-smoothing: 0%;
+      }
+      .row.rounding-30 > .box {
+        -electron-corner-smoothing: 30%;
+      }
+      .row.rounding-60 > .box {
+        -electron-corner-smoothing: 60%;
+      }
+      .row.rounding-100 > .box {
+        -electron-corner-smoothing: 100%;
+      }
+      .row.rounding-invalid > .box {
+        -electron-corner-smoothing: 200%;
+      }
+      .row.rounding-invalid > .box:nth-child(2) {
+        -electron-corner-smoothing: -10%;
+      }
+      .row.rounding-invalid > .box:nth-child(3) {
+        -electron-corner-smoothing: -200%;
+      }
+
+      .box {
+        --boxes-x: 7;
+        --boxes-y: 5;
+        --box-shadow-offset: 4px;
+        --box-shadow-spread: 2px;
+        --box-shadow-grow: 2px;
+
+        --box-gap: calc(var(--box-shadow-offset) + var(--box-shadow-spread) + var(--box-shadow-grow) + 4px);
+        --box-size: min(calc(((100vw - var(--box-gap)) / var(--boxes-x)) - var(--box-gap)), calc(((100vh - var(--box-gap)) / var(--boxes-y)) - var(--box-gap)));
+
+        width: var(--box-size);
+        height: var(--box-size);
+        border-radius: calc((var(--box-size) / 4) - 4px);
+        box-sizing: border-box;
+
+        background-color: black;
+      }
+      .box.outline {
+        background-color: bisque;
+        border: 8px solid black;
+      }
+      .box.outline.dashed {
+        background-color: darkkhaki;
+        border-style: dashed;
+      }
+      .box.outline.double {
+        background-color: darkseagreen;
+        border-style: double;
+      }
+      .box.outer {
+        overflow: clip;
+      }
+      .box.outer > .inner {
+        width: 100%;
+        height: 100%;
+        background-color: blueviolet;
+      }
+      .box.shadow {
+        background-color: skyblue;
+        box-shadow: var(--box-shadow-offset) var(--box-shadow-offset) var(--box-shadow-spread) var(--box-shadow-grow) cornflowerblue;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="row rounding-0">
+      <div class="box"></div>
+      <img class="box" src="image.png" />
+      <div class="box outline"></div>
+      <div class="box outline dashed"></div>
+      <div class="box outline double"></div>
+      <div class="box outer"><div class="inner"></div></div>
+      <div class="box shadow"></div>
+    </div>
+    <div class="row rounding-30">
+      <div class="box"></div>
+      <img class="box" src="image.png" />
+      <div class="box outline"></div>
+      <div class="box outline dashed"></div>
+      <div class="box outline double"></div>
+      <div class="box outer"><div class="inner"></div></div>
+      <div class="box shadow"></div>
+    </div>
+    <div class="row rounding-60">
+      <div class="box"></div>
+      <img class="box" src="image.png" />
+      <div class="box outline"></div>
+      <div class="box outline dashed"></div>
+      <div class="box outline double"></div>
+      <div class="box outer"><div class="inner"></div></div>
+      <div class="box shadow"></div>
+    </div>
+    <div class="row rounding-100">
+      <div class="box"></div>
+      <img class="box" src="image.png" />
+      <div class="box outline"></div>
+      <div class="box outline dashed"></div>
+      <div class="box outline double"></div>
+      <div class="box outer"><div class="inner"></div></div>
+      <div class="box shadow"></div>
+    </div>
+    <div class="row rounding-invalid">
+      <div class="box"></div>
+      <img class="box" src="image.png" />
+      <div class="box outline"></div>
+      <div class="box outline dashed"></div>
+      <div class="box outline double"></div>
+      <div class="box outer"><div class="inner"></div></div>
+      <div class="box shadow"></div>
+    </div>
+  </body>
+</html>
