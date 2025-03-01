@@ -66,7 +66,7 @@ The `session` module has the following properties:
 
 ### `session.defaultSession`
 
-A `Session` object, the default session object of the app.
+A `Session` object, the default session object of the app, available after `app.whenReady` is called.
 
 ## Class: Session
 
