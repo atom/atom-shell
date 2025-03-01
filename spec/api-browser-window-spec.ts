@@ -16,7 +16,8 @@ import { setTimeout } from 'node:timers/promises';
 import * as nodeUrl from 'node:url';
 
 import { emittedUntil, emittedNTimes } from './lib/events-helpers';
-import { HexColors, hasCapturableScreen, ScreenCapture } from './lib/screen-helpers';
+import { debugPreviewImage } from './lib/image-helpers';
+import { HexColors, hasCapturableScreen, ScreenCapture, getPixelColor } from './lib/screen-helpers';
 import { ifit, ifdescribe, defer, listen, waitUntil } from './lib/spec-helpers';
 import { closeWindow, closeAllWindows } from './lib/window-helpers';
 
@@ -6460,10 +6461,49 @@ describe('BrowserWindow module', () => {
       const [, , data] = await paint;
       expect(data.constructor.name).to.equal('NativeImage');
       expect(data.isEmpty()).to.be.false('data is empty');
+      await debugPreviewImage(data);
       const size = data.getSize();
       const { scaleFactor } = screen.getPrimaryDisplay();
       expect(size.width).to.be.closeTo(100 * scaleFactor, 2);
       expect(size.height).to.be.closeTo(100 * scaleFactor, 2);
+    });
+
+    it('creates offscreen window with opaque background', async () => {
+      w.setBackgroundColor(HexColors.RED);
+      await waitUntil(async () => {
+        const paint = once(w.webContents, 'paint') as Promise<[any, Electron.Rectangle, Electron.NativeImage]>;
+        w.loadFile(path.join(fixtures, 'api', 'offscreen-rendering.html'));
+        const [, , data] = await paint;
+        await debugPreviewImage(data);
+        expect(getPixelColor(data, { x: 0, y: 0 }, true)).to.equal('#ff0000ff');
+        return true;
+      });
+    });
+
+    it('creates offscreen window with transparent background', async () => {
+      w.setBackgroundColor(HexColors.TRANSPARENT);
+      await waitUntil(async () => {
+        const paint = once(w.webContents, 'paint') as Promise<[any, Electron.Rectangle, Electron.NativeImage]>;
+        w.loadFile(path.join(fixtures, 'api', 'offscreen-rendering.html'));
+        const [, , data] = await paint;
+        await debugPreviewImage(data);
+        expect(getPixelColor(data, { x: 0, y: 0 }, true)).to.equal(HexColors.TRANSPARENT);
+        return true;
+      });
+    });
+
+    // Semi-transparent background is not supported
+    it.skip('creates offscreen window with semi-transparent background', async () => {
+      const bgColor = '#66ffffff'; // ARGB
+      w.setBackgroundColor(bgColor);
+      await waitUntil(async () => {
+        const paint = once(w.webContents, 'paint') as Promise<[any, Electron.Rectangle, Electron.NativeImage]>;
+        w.loadFile(path.join(fixtures, 'api', 'offscreen-rendering.html'));
+        const [, , data] = await paint;
+        await debugPreviewImage(data);
+        expect(getPixelColor(data, { x: 0, y: 0 }, true)).to.equal(bgColor);
+        return true;
+      });
     });
 
     it('does not crash after navigation', () => {
