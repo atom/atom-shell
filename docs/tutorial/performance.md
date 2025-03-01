@@ -62,16 +62,16 @@ at once, consider the [Chrome Tracing](https://www.chromium.org/developers/how-t
 Chances are that your app could be a little leaner, faster, and generally less
 resource-hungry if you attempt these steps.
 
-1. [Carelessly including modules](#1-carelessly-including-modules)
-2. [Loading and running code too soon](#2-loading-and-running-code-too-soon)
-3. [Blocking the main process](#3-blocking-the-main-process)
-4. [Blocking the renderer process](#4-blocking-the-renderer-process)
-5. [Unnecessary polyfills](#5-unnecessary-polyfills)
-6. [Unnecessary or blocking network requests](#6-unnecessary-or-blocking-network-requests)
+1. [Avoid carelessly including modules](#1-avoid-carelessly-including-modules)
+2. [Avoid loading and running code too soon](#2-avoid-loading-and-running-code-too-soon)
+3. [Avoid blocking the main process](#3-avoid-blocking-the-main-process)
+4. [Avoid blocking the renderer process](#4-avoid-blocking-the-renderer-process)
+5. [Avoid unnecessary polyfills](#5-avoid-unnecessary-polyfills)
+6. [Avoid unnecessary or blocking network requests](#6-avoid-unnecessary-or-blocking-network-requests)
 7. [Bundle your code](#7-bundle-your-code)
 8. [Call `Menu.setApplicationMenu(null)` when you do not need a default menu](#8-call-menusetapplicationmenunull-when-you-do-not-need-a-default-menu)
 
-### 1. Carelessly including modules
+### 1. Avoid carelessly including modules
 
 Before adding a Node.js module to your application, examine said module. How
 many dependencies does that module include? What kind of resources does
@@ -137,7 +137,7 @@ In this example, on the author's machine, we saw that loading `request` took
 almost half a second, whereas `node-fetch` took dramatically less memory
 and less than 50ms.
 
-### 2. Loading and running code too soon
+### 2. Avoid loading and running code too soon
 
 If you have expensive setup operations, consider deferring those. Inspect all
 the work being executed right after the application starts. Instead of firing
@@ -232,7 +232,7 @@ module.exports = { parser }
 In short, allocate resources "just in time" rather than allocating them all
 when your app starts.
 
-### 3. Blocking the main process
+### 3. Avoid blocking the main process
 
 Electron's main process (sometimes called "browser process") is special: It is
 the parent process to all your app's other processes and the primary process
@@ -273,7 +273,7 @@ core Node.js modules (like `fs` or `child_process`) offer a synchronous or an
 asynchronous version, you should prefer the asynchronous and non-blocking
 variant.
 
-### 4. Blocking the renderer process
+### 4. Avoid blocking the renderer process
 
 Since Electron ships with a current version of Chrome, you can make use of the
 latest and greatest features the Web Platform offers to defer or offload heavy
@@ -309,7 +309,7 @@ some caveats to consider – consult Electron's
 for any operation that requires a lot of CPU power for an extended period of
 time.
 
-### 5. Unnecessary polyfills
+### 5. Avoid unnecessary polyfills
 
 One of Electron's great benefits is that you know exactly which engine will
 parse your JavaScript, HTML, and CSS. If you're re-purposing code that was
@@ -347,7 +347,7 @@ If you're using a transpiler/compiler like TypeScript, examine its configuration
 and ensure that you're targeting the latest ECMAScript version supported by
 Electron.
 
-### 6. Unnecessary or blocking network requests
+### 6. Avoid unnecessary or blocking network requests
 
 Avoid fetching rarely changing resources from the internet if they could easily
 be bundled with your application.
@@ -399,7 +399,7 @@ control over how resources are being loaded, consider investing in
 ### 7. Bundle your code
 
 As already pointed out in
-"[Loading and running code too soon](#2-loading-and-running-code-too-soon)",
+"[Avoid loading and running code too soon](#2-avoid-loading-and-running-code-too-soon)",
 calling `require()` is an expensive operation. If you are able to do so,
 bundle your application's code into a single file.
 
