@@ -12,11 +12,11 @@ security warnings.
 ![macOS Sonoma Gatekeeper warning: The app is damaged](../images/gatekeeper.png)
 
 Both Windows and macOS prevent users from running unsigned applications. It is
-possible to distribute applications without codesigning them - but in order to
+possible to distribute applications without code signing them - but in order to
 run them, users need to go through multiple advanced and manual steps.
 
 If you are building an Electron app that you intend to package and distribute,
-it should be code signed. The Electron ecosystem tooling makes codesigning your
+it should be code signed. The Electron ecosystem tooling makes code signing your
 apps straightforward - this documentation explains how sign your apps on both
 Windows and macOS.
 
