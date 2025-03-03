@@ -4,6 +4,9 @@ fix_disable_scope_reuse_associated_dchecks.patch
 fix_compiler_failure_on_older_clang.patch
 cherry-pick-3c2d220ad025.patch
 merged_reland_lower_the_maximum_js_parameter_count.patch
+wasm_fix_freeing_of_identical_shared_wrappers.patch
+merged_wasm_replace_dead_code_set_with_is_dying_bit.patch
+merged_fix_out_of_bound_string_access.patch
 cherry-pick-1c7ff4d5477f.patch
 cherry-pick-8834c16acfcc.patch
 cherry-pick-9209292e7898.patch

@@ -1,0 +1,397 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jakob Kummerow <jkummerow@chromium.org>
+Date: Wed, 18 Sep 2024 11:16:07 +0200
+Subject: [wasm] Fix freeing of identical shared wrappers
+
+The early-return path of WasmImportWrapperCache::Free checked the
+wrong map for emptiness: {entry_map_} can have key collisions, so
+previous Free() calls can empty it even though {codes_} is still
+non-empty.
+Drive-by: the failing test case should not have created identical
+wrappers, but could do so when running multi-threaded; while this
+is harmless, it's cleaner to avoid that.
+
+Fixed: 366007153
+Bug: 42204526
+Change-Id: I5e387c83ec9b45a650044b7243d6e68907bc5219
+Reviewed-on: https://chromium-review.googlesource.com/c/v8/v8/+/5869839
+Reviewed-by: Matthias Liedtke <mliedtke@chromium.org>
+Auto-Submit: Jakob Kummerow <jkummerow@chromium.org>
+Commit-Queue: Jakob Kummerow <jkummerow@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#96155}
+
+diff --git a/src/runtime/runtime-wasm.cc b/src/runtime/runtime-wasm.cc
+index 2fba518bb41e950da75012b95bccf240ac9ca166..bfd7408b78db6e8dd53e28d0e61085ee8e6e97f7 100644
+--- a/src/runtime/runtime-wasm.cc
++++ b/src/runtime/runtime-wasm.cc
+@@ -18,7 +18,6 @@
+ #include "src/objects/objects-inl.h"
+ #include "src/strings/unicode-inl.h"
+ #include "src/trap-handler/trap-handler.h"
+-#include "src/wasm/compilation-environment-inl.h"
+ #include "src/wasm/module-compiler.h"
+ #include "src/wasm/serialized-signature-inl.h"
+ #include "src/wasm/value-type.h"
+@@ -756,28 +755,9 @@ RUNTIME_FUNCTION(Runtime_TierUpWasmToJSWrapper) {
+   wasm::WasmCode* wasm_code =
+       cache->MaybeGet(kind, canonical_sig_index, expected_arity, suspend);
+   if (!wasm_code) {
+-    wasm::CompilationEnv env = wasm::CompilationEnv::ForModule(native_module);
+-    wasm::WasmCompilationResult result = compiler::CompileWasmImportCallWrapper(
+-        &env, kind, &sig, false, expected_arity, suspend);
+-    {
+-      wasm::WasmImportWrapperCache::ModificationScope cache_scope(cache);
+-      wasm::WasmImportWrapperCache::CacheKey key(kind, canonical_sig_index,
+-                                                 expected_arity, suspend);
+-      wasm_code = cache_scope.AddWrapper(
+-          key, std::move(result), wasm::WasmCode::Kind::kWasmToJsWrapper);
+-    }
+-    // To avoid lock order inversion, code printing must happen after the
+-    // end of the {cache_scope}.
+-    wasm_code->MaybePrint();
+-    isolate->counters()->wasm_generated_code_size()->Increment(
+-        wasm_code->instructions().length());
+-    isolate->counters()->wasm_reloc_size()->Increment(
+-        wasm_code->reloc_info().length());
+-    if (V8_UNLIKELY(native_module->log_code())) {
+-      wasm::GetWasmEngine()->LogWrapperCode(base::VectorOf(&wasm_code, 1));
+-      // Log the code immediately in the current isolate.
+-      wasm::GetWasmEngine()->LogOutstandingCodesForIsolate(isolate);
+-    }
++    wasm_code = cache->CompileWasmImportCallWrapper(
++        isolate, native_module, kind, &sig, canonical_sig_index, false,
++        expected_arity, suspend);
+   }
+   // Note: we don't need to decrement any refcounts here, because tier-up
+   // doesn't overwrite an existing compiled wrapper, and the generic wrapper
+diff --git a/src/wasm/module-compiler.cc b/src/wasm/module-compiler.cc
+index 43f1215ea5a394f93d837603de50859eef78ce3f..d5a9e007258e1d7aab33c8b0a29a6fcdaf4452b4 100644
+--- a/src/wasm/module-compiler.cc
++++ b/src/wasm/module-compiler.cc
+@@ -4622,8 +4622,9 @@ void CompileJsToWasmWrappers(Isolate* isolate, const WasmModule* module) {
+   }
+ }
+ 
+-WasmCode* CompileImportWrapperForTest(NativeModule* native_module,
+-                                      Counters* counters, ImportCallKind kind,
++WasmCode* CompileImportWrapperForTest(Isolate* isolate,
++                                      NativeModule* native_module,
++                                      ImportCallKind kind,
+                                       const FunctionSig* sig,
+                                       uint32_t canonical_type_index,
+                                       int expected_arity, Suspend suspend) {
+@@ -4637,35 +4638,9 @@ WasmCode* CompileImportWrapperForTest(NativeModule* native_module,
+     return nullptr;
+   }
+ 
+-  CompilationEnv env = CompilationEnv::ForModule(native_module);
+-  WasmCompilationResult result = compiler::CompileWasmImportCallWrapper(
+-      &env, kind, sig, source_positions, expected_arity, suspend);
+-
+-  DCHECK(result.inlining_positions.empty());
+-  DCHECK(result.deopt_data.empty());
+-  WasmCode* code;
+-  {
+-    // There was no cache entry when we called this function, but in the
+-    // meantime a different module could have created one. Simply discard the
+-    // new wrapper if so.
+-    WasmImportWrapperCache::ModificationScope cache_scope(
+-        GetWasmImportWrapperCache());
+-    WasmImportWrapperCache::CacheKey key(kind, canonical_type_index,
+-                                         expected_arity, suspend);
+-    if (V8_UNLIKELY(cache_scope[key] != nullptr)) return cache_scope[key];
+-    code = cache_scope.AddWrapper(key, std::move(result),
+-                                  WasmCode::Kind::kWasmToJsWrapper);
+-  }
+-  // To avoid lock order inversion, code printing must happen after the
+-  // end of the {cache_scope}.
+-  code->MaybePrint();
+-  counters->wasm_generated_code_size()->Increment(
+-      code->instructions().length());
+-  counters->wasm_reloc_size()->Increment(code->reloc_info().length());
+-  if (native_module->log_code()) {
+-    GetWasmEngine()->LogWrapperCode(base::VectorOf(&code, 1));
+-  }
+-  return code;
++  return GetWasmImportWrapperCache()->CompileWasmImportCallWrapper(
++      isolate, native_module, kind, sig, canonical_type_index, source_positions,
++      expected_arity, suspend);
+ }
+ 
+ }  // namespace v8::internal::wasm
+diff --git a/src/wasm/module-compiler.h b/src/wasm/module-compiler.h
+index d6cf89381ceaaf38f299f4d3f75d474d54e82633..b757e6385301af9a2d3816d3d4d3fb552c4842b8 100644
+--- a/src/wasm/module-compiler.h
++++ b/src/wasm/module-compiler.h
+@@ -70,8 +70,9 @@ V8_EXPORT_PRIVATE WasmError ValidateAndSetBuiltinImports(
+ // cache entry. Assumes the key already exists in the cache but has not been
+ // compiled yet.
+ V8_EXPORT_PRIVATE
+-WasmCode* CompileImportWrapperForTest(NativeModule* native_module,
+-                                      Counters* counters, ImportCallKind kind,
++WasmCode* CompileImportWrapperForTest(Isolate* isolate,
++                                      NativeModule* native_module,
++                                      ImportCallKind kind,
+                                       const FunctionSig* sig,
+                                       uint32_t canonical_type_index,
+                                       int expected_arity, Suspend suspend);
+diff --git a/src/wasm/module-instantiate.cc b/src/wasm/module-instantiate.cc
+index f4c2a75f7fd44d6ff2b2ab61d06d9d8b2f1965c2..8d9f81a7f1dad2f37f2b036fdf8b4da3c70e2c38 100644
+--- a/src/wasm/module-instantiate.cc
++++ b/src/wasm/module-instantiate.cc
+@@ -2007,38 +2007,9 @@ bool InstanceBuilder::ProcessImportedFunction(
+         // generic wrapper will be used (see above).
+         NativeModule* native_module = trusted_instance_data->native_module();
+         bool source_positions = is_asmjs_module(native_module->module());
+-        CompilationEnv env = CompilationEnv::ForModule(native_module);
+-        WasmCompilationResult result = compiler::CompileWasmImportCallWrapper(
+-            &env, kind, expected_sig, source_positions, expected_arity,
+-            resolved.suspend());
+-        bool code_is_new = false;
+-        {
+-          WasmImportWrapperCache::ModificationScope cache_scope(cache);
+-          WasmImportWrapperCache::CacheKey key(
+-              kind, canonical_sig_id, expected_arity, resolved.suspend());
+-          // Now that we have the lock (in the form of the cache_scope), check
+-          // again whether another thread has just created the wrapper.
+-          wasm_code = cache_scope[key];
+-          if (!wasm_code) {
+-            wasm_code = cache_scope.AddWrapper(
+-                key, std::move(result), WasmCode::Kind::kWasmToJsWrapper);
+-            code_is_new = true;
+-          }
+-        }
+-        if (code_is_new) {
+-          // To avoid lock order inversion, code printing must happen after the
+-          // end of the {cache_scope}.
+-          wasm_code->MaybePrint();
+-          isolate_->counters()->wasm_generated_code_size()->Increment(
+-              wasm_code->instructions().length());
+-          isolate_->counters()->wasm_reloc_size()->Increment(
+-              wasm_code->reloc_info().length());
+-          if (V8_UNLIKELY(native_module->log_code())) {
+-            GetWasmEngine()->LogWrapperCode(base::VectorOf(&wasm_code, 1));
+-            // Log the code immediately in the current isolate.
+-            GetWasmEngine()->LogOutstandingCodesForIsolate(isolate_);
+-          }
+-        }
++        wasm_code = cache->CompileWasmImportCallWrapper(
++            isolate_, native_module, kind, expected_sig, canonical_sig_id,
++            source_positions, expected_arity, resolved.suspend());
+       }
+ 
+       DCHECK_NOT_NULL(wasm_code);
+diff --git a/src/wasm/wasm-code-pointer-table.cc b/src/wasm/wasm-code-pointer-table.cc
+index c7b5ae3455bb1290651b5fcf7460a31772069d88..725cca9de5f59c7430c2c4f437c95342bb93d928 100644
+--- a/src/wasm/wasm-code-pointer-table.cc
++++ b/src/wasm/wasm-code-pointer-table.cc
+@@ -13,10 +13,7 @@ void WasmCodePointerTable::Initialize() { Base::Initialize(); }
+ 
+ void WasmCodePointerTable::TearDown() {
+   SweepSegments(0);
+-  // TODO(366007153): the WasmCode destructor sometimes doesn't get called and
+-  // we can have a leftover entry in the table. Re-enable the DCHECK once the
+-  // bug is fixed.
+-  // DCHECK(freelist_head_.load().is_empty());
++  DCHECK(freelist_head_.load().is_empty());
+   Base::TearDown();
+ }
+ 
+diff --git a/src/wasm/wasm-import-wrapper-cache.cc b/src/wasm/wasm-import-wrapper-cache.cc
+index 92b6470ce094a0c8b026ea4208a59c25384da3d4..0554f3d50a288b34bd4729a33ac523c4902d93e0 100644
+--- a/src/wasm/wasm-import-wrapper-cache.cc
++++ b/src/wasm/wasm-import-wrapper-cache.cc
+@@ -9,6 +9,8 @@
+ #include "src/codegen/assembler-inl.h"
+ #include "src/codegen/flush-instruction-cache.h"
+ #include "src/common/code-memory-access-inl.h"
++#include "src/compiler/wasm-compiler.h"
++#include "src/wasm/compilation-environment-inl.h"
+ #include "src/wasm/function-compiler.h"
+ #include "src/wasm/std-object-sizes.h"
+ #include "src/wasm/wasm-code-manager.h"
+@@ -134,6 +136,41 @@ WasmCode* WasmImportWrapperCache::ModificationScope::AddWrapper(
+   return code;
+ }
+ 
++WasmCode* WasmImportWrapperCache::CompileWasmImportCallWrapper(
++    Isolate* isolate, NativeModule* native_module, ImportCallKind kind,
++    const FunctionSig* sig, uint32_t canonical_sig_index, bool source_positions,
++    int expected_arity, Suspend suspend) {
++  CompilationEnv env = CompilationEnv::ForModule(native_module);
++  WasmCompilationResult result = compiler::CompileWasmImportCallWrapper(
++      &env, kind, sig, source_positions, expected_arity, suspend);
++  WasmCode* wasm_code;
++  {
++    ModificationScope cache_scope(this);
++    CacheKey key(kind, canonical_sig_index, expected_arity, suspend);
++    // Now that we have the lock (in the form of the cache_scope), check
++    // again whether another thread has just created the wrapper.
++    wasm_code = cache_scope[key];
++    if (wasm_code) return wasm_code;
++
++    wasm_code = cache_scope.AddWrapper(key, std::move(result),
++                                       WasmCode::Kind::kWasmToJsWrapper);
++  }
++
++  // To avoid lock order inversion, code printing must happen after the
++  // end of the {cache_scope}.
++  wasm_code->MaybePrint();
++  isolate->counters()->wasm_generated_code_size()->Increment(
++      wasm_code->instructions().length());
++  isolate->counters()->wasm_reloc_size()->Increment(
++      wasm_code->reloc_info().length());
++  if (V8_UNLIKELY(native_module->log_code())) {
++    GetWasmEngine()->LogWrapperCode(base::VectorOf(&wasm_code, 1));
++    // Log the code immediately in the current isolate.
++    GetWasmEngine()->LogOutstandingCodesForIsolate(isolate);
++  }
++  return wasm_code;
++}
++
+ void WasmImportWrapperCache::LogForIsolate(Isolate* isolate) {
+   for (const auto& entry : codes_) {
+     entry.second->LogCode(isolate, "", -1);  // No source URL, no ScriptId.
+@@ -142,7 +179,7 @@ void WasmImportWrapperCache::LogForIsolate(Isolate* isolate) {
+ 
+ void WasmImportWrapperCache::Free(std::vector<WasmCode*>& wrappers) {
+   base::MutexGuard lock(&mutex_);
+-  if (entry_map_.empty() || wrappers.empty()) return;
++  if (codes_.empty() || wrappers.empty()) return;
+   // {WasmCodeAllocator::FreeCode()} wants code objects to be sorted.
+   std::sort(wrappers.begin(), wrappers.end(), [](WasmCode* a, WasmCode* b) {
+     return a->instruction_start() < b->instruction_start();
+diff --git a/src/wasm/wasm-import-wrapper-cache.h b/src/wasm/wasm-import-wrapper-cache.h
+index 4768e90d0d2332650eacf093932465262676d1c7..4124bd77059c9b59e691dcc9c2bda44efe9f4609 100644
+--- a/src/wasm/wasm-import-wrapper-cache.h
++++ b/src/wasm/wasm-import-wrapper-cache.h
+@@ -98,6 +98,11 @@ class WasmImportWrapperCache {
+     return iter->second;
+   }
+ 
++  WasmCode* CompileWasmImportCallWrapper(
++      Isolate* isolate, NativeModule* native_module, ImportCallKind kind,
++      const FunctionSig* sig, uint32_t canonical_sig_index,
++      bool source_positions, int expected_arity, Suspend suspend);
++
+  private:
+   std::unique_ptr<WasmCodeAllocator> code_allocator_;
+   mutable base::Mutex mutex_;
+diff --git a/src/wasm/wasm-objects.cc b/src/wasm/wasm-objects.cc
+index f6c100687a88d8fa269ce02506ab0a82b2c5ffbb..a34d48c24cb8cd478705ecb31664186bcd9ac4f3 100644
+--- a/src/wasm/wasm-objects.cc
++++ b/src/wasm/wasm-objects.cc
+@@ -19,7 +19,6 @@
+ #include "src/roots/roots-inl.h"
+ #include "src/utils/utils.h"
+ #include "src/wasm/code-space-access.h"
+-#include "src/wasm/compilation-environment-inl.h"
+ #include "src/wasm/module-compiler.h"
+ #include "src/wasm/module-decoder.h"
+ #include "src/wasm/module-instantiate.h"
+@@ -1919,28 +1918,9 @@ void WasmTrustedInstanceData::ImportWasmJSFunctionIntoTable(
+   } else if (UseGenericWasmToJSWrapper(kind, sig, resolved.suspend())) {
+     call_target = Builtins::EntryOf(Builtin::kWasmToJsWrapperAsm, isolate);
+   } else {
+-    wasm::CompilationEnv env = wasm::CompilationEnv::ForModule(native_module);
+-    wasm::WasmCompilationResult result = compiler::CompileWasmImportCallWrapper(
+-        &env, kind, sig, false, expected_arity, suspend);
+-    {
+-      wasm::WasmImportWrapperCache::ModificationScope cache_scope(cache);
+-      wasm::WasmImportWrapperCache::CacheKey key(kind, canonical_sig_id,
+-                                                 expected_arity, suspend);
+-      wasm_code = cache_scope.AddWrapper(
+-          key, std::move(result), wasm::WasmCode::Kind::kWasmToJsWrapper);
+-    }
+-    // To avoid lock order inversion, code printing must happen after the
+-    // end of the {cache_scope}.
+-    wasm_code->MaybePrint();
+-    isolate->counters()->wasm_generated_code_size()->Increment(
+-        wasm_code->instructions().length());
+-    isolate->counters()->wasm_reloc_size()->Increment(
+-        wasm_code->reloc_info().length());
+-    if (V8_UNLIKELY(native_module->log_code())) {
+-      wasm::GetWasmEngine()->LogWrapperCode(base::VectorOf(&wasm_code, 1));
+-      // Log the code immediately in the current isolate.
+-      wasm::GetWasmEngine()->LogOutstandingCodesForIsolate(isolate);
+-    }
++    wasm_code = cache->CompileWasmImportCallWrapper(
++        isolate, native_module, kind, sig, canonical_sig_id, false,
++        expected_arity, suspend);
+     call_target = wasm_code->instruction_start();
+   }
+ 
+diff --git a/test/cctest/wasm/test-wasm-import-wrapper-cache.cc b/test/cctest/wasm/test-wasm-import-wrapper-cache.cc
+index e713648644e0d6dfc191f35d61a6e3be71ca6d38..57c5caa5eea3dd059348431270d58f48d8bb318e 100644
+--- a/test/cctest/wasm/test-wasm-import-wrapper-cache.cc
++++ b/test/cctest/wasm/test-wasm-import-wrapper-cache.cc
+@@ -42,9 +42,9 @@ TEST(CacheHit) {
+   int expected_arity = static_cast<int>(sig->parameter_count());
+   {
+     WasmCodeRefScope wasm_code_ref_scope;
+-    WasmCode* c1 = CompileImportWrapperForTest(
+-        module.get(), isolate->counters(), kind, sig, canonical_type_index,
+-        expected_arity, kNoSuspend);
++    WasmCode* c1 = CompileImportWrapperForTest(isolate, module.get(), kind, sig,
++                                               canonical_type_index,
++                                               expected_arity, kNoSuspend);
+ 
+     CHECK_NOT_NULL(c1);
+     CHECK_EQ(WasmCode::Kind::kWasmToJsWrapper, c1->kind());
+@@ -79,8 +79,8 @@ TEST(CacheMissSig) {
+   uint32_t canonical_type_index2 =
+       GetTypeCanonicalizer()->AddRecursiveGroup(sig2);
+ 
+-  WasmCode* c1 = CompileImportWrapperForTest(module.get(), isolate->counters(),
+-                                             kind, sig1, canonical_type_index1,
++  WasmCode* c1 = CompileImportWrapperForTest(isolate, module.get(), kind, sig1,
++                                             canonical_type_index1,
+                                              expected_arity1, kNoSuspend);
+ 
+   CHECK_NOT_NULL(c1);
+@@ -105,8 +105,8 @@ TEST(CacheMissKind) {
+   uint32_t canonical_type_index =
+       GetTypeCanonicalizer()->AddRecursiveGroup(sig);
+ 
+-  WasmCode* c1 = CompileImportWrapperForTest(module.get(), isolate->counters(),
+-                                             kind1, sig, canonical_type_index,
++  WasmCode* c1 = CompileImportWrapperForTest(isolate, module.get(), kind1, sig,
++                                             canonical_type_index,
+                                              expected_arity, kNoSuspend);
+ 
+   CHECK_NOT_NULL(c1);
+@@ -134,8 +134,8 @@ TEST(CacheHitMissSig) {
+   uint32_t canonical_type_index2 =
+       GetTypeCanonicalizer()->AddRecursiveGroup(sig2);
+ 
+-  WasmCode* c1 = CompileImportWrapperForTest(module.get(), isolate->counters(),
+-                                             kind, sig1, canonical_type_index1,
++  WasmCode* c1 = CompileImportWrapperForTest(isolate, module.get(), kind, sig1,
++                                             canonical_type_index1,
+                                              expected_arity1, kNoSuspend);
+ 
+   CHECK_NOT_NULL(c1);
+@@ -146,8 +146,8 @@ TEST(CacheHitMissSig) {
+ 
+   CHECK_NULL(c2);
+ 
+-  c2 = CompileImportWrapperForTest(module.get(), isolate->counters(), kind,
+-                                   sig2, canonical_type_index2, expected_arity2,
++  c2 = CompileImportWrapperForTest(isolate, module.get(), kind, sig2,
++                                   canonical_type_index2, expected_arity2,
+                                    kNoSuspend);
+ 
+   CHECK_NE(c1, c2);
+diff --git a/test/cctest/wasm/wasm-run-utils.cc b/test/cctest/wasm/wasm-run-utils.cc
+index a8b93c9ebd53cf10b0c833139358254127d5deca..fb4f0c3c39aaba90729dfd1f6b9ed3f90d25ed1d 100644
+--- a/test/cctest/wasm/wasm-run-utils.cc
++++ b/test/cctest/wasm/wasm-run-utils.cc
+@@ -99,7 +99,7 @@ TestingModuleBuilder::TestingModuleBuilder(
+         kNoSuspend);
+     if (import_wrapper == nullptr) {
+       import_wrapper = CompileImportWrapperForTest(
+-          native_module_, isolate_->counters(), kind, sig, canonical_type_index,
++          isolate_, native_module_, kind, sig, canonical_type_index,
+           static_cast<int>(sig->parameter_count()), kNoSuspend);
+     }
+ 
