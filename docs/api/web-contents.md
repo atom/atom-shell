@@ -1662,12 +1662,18 @@ console.log(requestId)
 * `opts` Object (optional)
   * `stayHidden` boolean (optional) -  Keep the page hidden instead of visible. Default is `false`.
   * `stayAwake` boolean (optional) -  Keep the system awake instead of allowing it to sleep. Default is `false`.
+  * `outputSize` [Size](structures/size.md) (optional) - The desired width and height in pixels (positive numbers) of the returned image. Default is the size of WebContents in physical pixels, that is WebContents height and WebContents width multiplied by device pixel ratio.
 
 Returns `Promise<NativeImage>` - Resolves with a [NativeImage](native-image.md)
 
 Captures a snapshot of the page within `rect`. Omitting `rect` will capture the whole visible page.
 The page is considered visible when its browser window is hidden and the capturer count is non-zero.
 If you would like the page to stay hidden, you should ensure that `stayHidden` is set to true.
+
+The size of returned [NativeImage](native-image.md) will be `outputSize`.
+**Note:** The size might be bigger than size of containing window / view.
+**Note:** When using `outputSize` it is responsibility of caller to preserve aspect ratio. If aspect ratio of `outputSize` is not the same as page aspect ratio the output image will be scaled.
+**Note:** Consider using `outputSize` when creating thumbnails. It may improve speed on low-end devices.
 
 #### `contents.isBeingCaptured()`
 
