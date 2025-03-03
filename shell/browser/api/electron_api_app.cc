@@ -405,7 +405,7 @@ int GetPathConstant(std::string_view name) {
       {"videos", chrome::DIR_USER_VIDEOS},
   });
   // clang-format on
-  const auto* iter = Lookup.find(name);
+  auto iter = Lookup.find(name);
   return iter != Lookup.end() ? iter->second : -1;
 }
 

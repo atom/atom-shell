@@ -80,7 +80,7 @@ struct UserData : public base::SupportsUserData::Data {
 };
 
 extensions::WebRequestResourceType ParseResourceType(std::string_view value) {
-  if (const auto* iter = ResourceTypes.find(value); iter != ResourceTypes.end())
+  if (auto iter = ResourceTypes.find(value); iter != ResourceTypes.end())
     return iter->second;
 
   return extensions::WebRequestResourceType::OTHER;

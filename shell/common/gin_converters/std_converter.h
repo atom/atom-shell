@@ -224,7 +224,7 @@ bool FromV8WithLookup(v8::Isolate* isolate,
   if (key_transform)
     key_transform(key);
 
-  if (const auto* iter = table.find(key); iter != table.end()) {
+  if (auto iter = table.find(key); iter != table.end()) {
     *out = iter->second;
     return true;
   }
