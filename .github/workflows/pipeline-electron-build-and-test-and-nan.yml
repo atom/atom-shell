@@ -91,3 +91,11 @@ jobs:
       test-container: ${{ inputs.test-container }}
       gn-build-type: ${{ inputs.gn-build-type }}
     secrets: inherit
+  clean:
+    uses: ./.github/workflows/pipeline-segment-electron-clean.yml
+    needs:
+      - test
+      - nn-test
+    with:
+      target-arch: ${{ inputs.target-arch }}
+      target-platform: ${{ inputs.target-platform }}
