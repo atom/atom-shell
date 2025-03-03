@@ -24,3 +24,5 @@
   application that owns the window or null if the source has a type screen.
   The size of the icon is not known in advance and depends on what
   the application provides.
+* `userProvidedSelection` boolean - `true` if the user selected the source from
+  an OS prompt, `false` otherwise.
