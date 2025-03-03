@@ -180,6 +180,68 @@ void AutoUpdater::QuitAndInstall() {
   }
 }
 
+bool AutoUpdater::PrepareUpdateFromFile(gin::Arguments* args) {
+  gin_helper::ErrorThrower thrower(args->isolate());
+
+  if (update_url_ != "") {
+    thrower.ThrowError(
+        "prepareUpdateFromFile cannot be called after setFeedUrl");
+    return false;
+  }
+
+  if (g_update_available) {
+    thrower.ThrowError("An update is already pending");
+    return false;
+  }
+
+  std::string filename;
+  v8::Local<v8::Value> first_arg = args->PeekNext();
+  if (!first_arg.IsEmpty() && first_arg->IsString()) {
+    args->GetNext(&filename);
+  } else {
+    thrower.ThrowError("missing filename of bundle");
+    return false;
+  }
+
+  Delegate* delegate = GetDelegate();
+  if (!delegate) {
+    thrower.ThrowError("updater not fully initialised!");
+    return false;
+  }
+
+  if (g_updater)
+    g_updater = nil;
+
+  // Initialize the SQRLUpdater.
+  g_updater = [SQRLUpdater alloc];
+
+  // TODO - convert better
+  NSURL* url = [NSURL URLWithString:base::SysUTF8ToNSString(filename)];
+  NSBundle* bundle = [NSBundle bundleWithURL:url];
+
+  if (!bundle) {
+    thrower.ThrowError("app bundle not found!");
+    return false;
+  }
+
+  SQRLUpdate* update =
+      [SQRLUpdate alloc];  // This appears to not really be used, but is a
+                           // necessary parameter
+
+  [[g_updater verifyAndPrepareUpdateExternal:update fromBundle:bundle]
+      subscribeError:^(NSError* error) {
+        if (delegate)
+          delegate->OnError(base::SysNSStringToUTF8(error.localizedDescription),
+                            error.code, base::SysNSStringToUTF8(error.domain));
+      }
+      completed:^() {
+        g_update_available = true;
+        delegate->OnUpdateAvailable();
+      }];
+
+  return true;
+}
+
 bool AutoUpdater::IsVersionAllowedForUpdate(const std::string& current_version,
                                             const std::string& target_version) {
   return [SQRLUpdater

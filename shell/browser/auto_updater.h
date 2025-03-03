@@ -67,6 +67,7 @@ class AutoUpdater {
   static void SetFeedURL(gin::Arguments* args);
   static void CheckForUpdates();
   static void QuitAndInstall();
+  static bool PrepareUpdateFromFile(gin::Arguments* args);
 
   static bool IsVersionAllowedForUpdate(const std::string& current_version,
                                         const std::string& target_version);

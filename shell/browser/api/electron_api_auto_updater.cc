@@ -138,6 +138,8 @@ gin::ObjectTemplateBuilder AutoUpdater::GetObjectTemplateBuilder(
       .SetMethod("isVersionAllowedForUpdate",
                  &auto_updater::AutoUpdater::IsVersionAllowedForUpdate)
 #endif
+      .SetMethod("prepareUpdateFromFile",
+                 &auto_updater::AutoUpdater::PrepareUpdateFromFile)
       .SetMethod("quitAndInstall", &AutoUpdater::QuitAndInstall);
 }
 
