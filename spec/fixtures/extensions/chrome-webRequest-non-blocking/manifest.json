@@ -1,0 +1,10 @@
+{
+  "name": "chrome-webRequest-non-blocking",
+  "version": "1.0",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["webRequest"],
+  "manifest_version": 3,
+  "host_permissions": ["<all_urls>"]
+}
