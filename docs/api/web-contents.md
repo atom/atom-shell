@@ -664,12 +664,12 @@ The usage is the same with [the `login` event of `app`](app.md#event-login).
 Returns:
 
 * `event` Event
-* `result` Object
-  * `requestId` Integer
-  * `activeMatchOrdinal` Integer - Position of the active match.
-  * `matches` Integer - Number of Matches.
-  * `selectionArea` Rectangle - Coordinates of first match region.
-  * `finalUpdate` boolean
+  * `result` Object
+    * `requestId` Integer
+    * `activeMatchOrdinal` Integer - Position of the active match.
+    * `matches` Integer - Number of Matches.
+    * `selectionArea` Rectangle - Coordinates of first match region.
+    * `finalUpdate` boolean
 
 Emitted when a result is available for
 [`webContents.findInPage`](#contentsfindinpagetext-options) request.
@@ -1648,8 +1648,8 @@ Stops any `findInPage` request for the `webContents` with the provided `action`.
 
 ```js
 const win = new BrowserWindow()
-win.webContents.on('found-in-page', (event, result) => {
-  if (result.finalUpdate) win.webContents.stopFindInPage('clearSelection')
+win.webContents.on('found-in-page', (event) => {
+  if (event.result.finalUpdate) win.webContents.stopFindInPage('clearSelection')
 })
 
 const requestId = win.webContents.findInPage('api')
