@@ -322,7 +322,7 @@ void NativeWindowMac::SetContentView(views::View* view) {
   set_content_view(view);
   root_view->AddChildView(content_view());
 
-  root_view->DeprecatedLayoutImmediately();
+  root_view->InvalidateLayout();
 }
 
 void NativeWindowMac::Close() {
