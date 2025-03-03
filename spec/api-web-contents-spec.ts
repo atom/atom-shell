@@ -2864,7 +2864,7 @@ describe('webContents module', () => {
       expect(contextMenuEmitCount).to.equal(1);
     });
 
-    ifit(process.platform !== 'win32')('emits when right-clicked in page in a draggable region', async () => {
+    it('emits when right-clicked in page in a draggable region', async () => {
       const w = new BrowserWindow({ show: false });
       await w.loadFile(path.join(fixturesPath, 'pages', 'draggable-page.html'));
 

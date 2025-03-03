@@ -1,10 +1,14 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: deepak1556 <hop2deep@gmail.com>
 Date: Fri, 29 Jul 2022 00:29:35 +0900
-Subject: chore: allow chromium to handle synthetic mouse events for touch
+Subject: chore: modify chromium handling of mouse events
 
-With WCO, allow chromium to handle synthetic mouse events generated for touch
+This patch does the following:
+
+1. When Windows Control Overlay is enabled, it allows chromium to handle synthetic mouse events generated for touch
 actions in the non-client caption area.
+2. It calls HandleMouseEvent on the delegate earlier in HandleMouseEventInternal, so that Electron can selectively disable
+draggable regions to allow events to propagate to the underlying renderer.
 
 diff --git a/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc b/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc
 index 2d05856687cd9669f72553d33c8033fd9083b4f8..645b7dd2cc20ce64ffa541c74930f541f083f931 100644
@@ -34,10 +38,29 @@ index 932351e288f37fd09ae1a43f44e8b51fb0caa4b8..4a0616bc210d234e51e564daabdd2ebd
    // Overridden from WidgetObserver.
    void OnWidgetThemeChanged(Widget* widget) override;
 diff --git a/ui/views/win/hwnd_message_handler.cc b/ui/views/win/hwnd_message_handler.cc
-index 2bd015be3178ab8dea012d6b1f71d13dd0548c14..759f00dd4e674d1dfca690b82e6e1820900ebf0c 100644
+index 2bd015be3178ab8dea012d6b1f71d13dd0548c14..1aab69e8df20c0c0fc29030ca45e15a64a1d0b74 100644
 --- a/ui/views/win/hwnd_message_handler.cc
 +++ b/ui/views/win/hwnd_message_handler.cc
-@@ -3144,15 +3144,19 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,
+@@ -3130,6 +3130,18 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,
+     is_pen_active_in_client_area_ = false;
+   }
+ 
++  LONG message_time = GetMessageTime();
++  CHROME_MSG msg = {hwnd(),
++                    message,
++                    w_param,
++                    l_param,
++                    static_cast<DWORD>(message_time),
++                    {CR_GET_X_LPARAM(l_param), CR_GET_Y_LPARAM(l_param)}};
++  ui::MouseEvent event(msg);
++
++  if (message == WM_NCRBUTTONDOWN)
++    delegate_->HandleMouseEvent(&event);
++
+   // We handle touch events in Aura. Windows generates synthesized mouse
+   // messages whenever there's a touch, but it doesn't give us the actual touch
+   // messages if it thinks the touch point is in non-client space.
+@@ -3144,15 +3156,19 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,
      }
      // We must let Windows handle the caption buttons if it's drawing them, or
      // they won't work.
@@ -58,6 +81,21 @@ index 2bd015be3178ab8dea012d6b1f71d13dd0548c14..759f00dd4e674d1dfca690b82e6e1820
 +    if (!IsHitTestOnResizeHandle(hittest) && !simulate_mouse_event_for_caption) {
        return 0;
      }
+   }
+@@ -3217,14 +3233,6 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,
+     SetCapture();
+   }
+ 
+-  LONG message_time = GetMessageTime();
+-  CHROME_MSG msg = {hwnd(),
+-                    message,
+-                    w_param,
+-                    l_param,
+-                    static_cast<DWORD>(message_time),
+-                    {CR_GET_X_LPARAM(l_param), CR_GET_Y_LPARAM(l_param)}};
+-  ui::MouseEvent event(msg);
+   if (IsSynthesizedMouseMessage(message, message_time, l_param)) {
+     event.SetFlags(event.flags() | ui::EF_FROM_TOUCH);
    }
 diff --git a/ui/views/win/hwnd_message_handler_delegate.h b/ui/views/win/hwnd_message_handler_delegate.h
 index 04dea68d74ea4f559db60f716c919e555db9ec80..2f8bd1a3c156bb6c04663c74b7279bb59926fc3d 100644
