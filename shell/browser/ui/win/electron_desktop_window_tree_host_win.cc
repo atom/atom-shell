@@ -38,15 +38,6 @@ bool ElectronDesktopWindowTreeHostWin::PreHandleMSG(UINT message,
   return native_window_view_->PreHandleMSG(message, w_param, l_param, result);
 }
 
-void ElectronDesktopWindowTreeHostWin::PostHandleMSG(UINT message,
-                                                     WPARAM w_param,
-                                                     LPARAM l_param) {
-  // See ui/views/win/hwnd_message_handler.cc:3213 for why
-  // this is WM_RBUTTONUP and not WM_NCRBUTTONUP.
-  if (message == WM_RBUTTONUP)
-    electron::api::WebContents::SetDisableDraggableRegions(false);
-}
-
 bool ElectronDesktopWindowTreeHostWin::ShouldPaintAsActive() const {
   if (force_should_paint_as_active_.has_value()) {
     return force_should_paint_as_active_.value();

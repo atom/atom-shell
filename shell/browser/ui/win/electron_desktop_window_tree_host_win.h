@@ -35,7 +35,6 @@ class ElectronDesktopWindowTreeHostWin : public views::DesktopWindowTreeHostWin,
                     WPARAM w_param,
                     LPARAM l_param,
                     LRESULT* result) override;
-  void PostHandleMSG(UINT message, WPARAM w_param, LPARAM l_param) override;
   bool ShouldPaintAsActive() const override;
   bool GetDwmFrameInsetsInPixels(gfx::Insets* insets) const override;
   bool GetClientAreaInsets(gfx::Insets* insets,
