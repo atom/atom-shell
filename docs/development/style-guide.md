@@ -195,7 +195,7 @@ required[, optional]
 More detailed information on each of the arguments is noted in an unordered list
 below the method. The type of argument is notated by either JavaScript primitives
 (e.g. `string`, `Promise`, or `Object`), a custom API structure like Electron's
-[`Cookie`](api/structures/cookie.md), or the wildcard `any`.
+[`Cookie`](../api/structures/cookie.md), or the wildcard `any`.
 
 If the argument is of type `Array`, use `[]` shorthand with the type of value
 inside the array (for example,`any[]` or `string[]`).
@@ -290,7 +290,7 @@ The purpose of the API History block is to describe when/where/how/why an API wa
 Each API change listed in the block should include a link to the
 PR where that change was made along with an optional short description of the
 change. If applicable, include the [heading id](https://gist.github.com/asabaylus/3071099)
-for that change from the [breaking changes documentation](./breaking-changes.md).
+for that change from the [breaking changes documentation](../breaking-changes.md).
 
 The [API History linting script][api-history-linting-script] (`lint:api-history`)
 validates API History blocks in the Electron documentation against the schema and
