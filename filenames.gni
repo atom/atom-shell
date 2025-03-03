@@ -720,6 +720,8 @@ filenames = {
     "shell/renderer/electron_renderer_client.h",
     "shell/renderer/electron_sandboxed_renderer_client.cc",
     "shell/renderer/electron_sandboxed_renderer_client.h",
+    "shell/renderer/electron_smooth_round_rect.cc",
+    "shell/renderer/electron_smooth_round_rect.h",
     "shell/renderer/preload_realm_context.cc",
     "shell/renderer/preload_realm_context.h",
     "shell/renderer/preload_utils.cc",
