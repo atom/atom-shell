@@ -296,6 +296,44 @@ describe('BrowserWindow module', () => {
     });
   });
 
+  ifdescribe(process.platform !== 'linux')('BrowserWindow.getContentProtection', () => {
+    afterEach(closeAllWindows);
+    it('can set content protection', async () => {
+      const w = new BrowserWindow({ show: false });
+      // @ts-expect-error This is a private API
+      expect(w._isContentProtected()).to.equal(false);
+
+      const shown = once(w, 'show');
+
+      w.show();
+      await shown;
+
+      w.setContentProtection(true);
+      // @ts-expect-error This is a private API
+      expect(w._isContentProtected()).to.equal(true);
+    });
+
+    it('does not remove content protection after the window is hidden and shown', async () => {
+      const w = new BrowserWindow({ show: false });
+
+      const hidden = once(w, 'hide');
+      const shown = once(w, 'show');
+
+      w.show();
+      await shown;
+
+      w.setContentProtection(true);
+
+      w.hide();
+      await hidden;
+      w.show();
+      await shown;
+
+      // @ts-expect-error This is a private API
+      expect(w._isContentProtected()).to.equal(true);
+    });
+  });
+
   describe('BrowserWindow.loadURL(url)', () => {
     let w: BrowserWindow;
     const scheme = 'other';
