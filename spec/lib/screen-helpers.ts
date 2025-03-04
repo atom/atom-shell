@@ -10,6 +10,7 @@ export enum HexColors {
   RED = '#ff0000',
   BLUE = '#0000ff',
   WHITE = '#ffffff',
+  TRANSPARENT = '#00000000'
 }
 
 function hexToRgba (
@@ -35,9 +36,10 @@ function formatHexByte (val: number): string {
 /**
  * Get the hex color at the given pixel coordinate in an image.
  */
-function getPixelColor (
+export function getPixelColor (
   image: Electron.NativeImage,
-  point: Electron.Point
+  point: Electron.Point,
+  includeAlpha: boolean = false
 ): string {
   // image.crop crashes if point is fractional, so round to prevent that crash
   const pixel = image.crop({
@@ -48,8 +50,10 @@ function getPixelColor (
   });
   // TODO(samuelmaddock): NativeImage.toBitmap() should return the raw pixel
   // color, but it sometimes differs. Why is that?
-  const [b, g, r] = pixel.toBitmap();
-  return `#${formatHexByte(r)}${formatHexByte(g)}${formatHexByte(b)}`;
+  const [b, g, r, a] = pixel.toBitmap();
+  let hex = `#${formatHexByte(r)}${formatHexByte(g)}${formatHexByte(b)}`;
+  if (includeAlpha) hex += `${formatHexByte(a)}`;
+  return hex;
 }
 
 /** Calculate euclidean distance between colors. */
@@ -68,7 +72,7 @@ function colorDistance (hexColorA: string, hexColorB: string): number {
  * Determine if colors are similar based on distance. This can be useful when
  * comparing colors which may differ based on lossy compression.
  */
-function areColorsSimilar (
+export function areColorsSimilar (
   hexColorA: string,
   hexColorB: string,
   distanceThreshold = 90
