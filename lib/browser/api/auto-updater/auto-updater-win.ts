@@ -65,6 +65,10 @@ class AutoUpdater extends EventEmitter implements Electron.AutoUpdater {
     }
   }
 
+  prepareUpdateFromFile () {
+    throw new Error('Not supported on Windows');
+  }
+
   // Private: Emit both error object and message, this is to keep compatibility
   // with Old APIs.
   emitError (error: Error) {
