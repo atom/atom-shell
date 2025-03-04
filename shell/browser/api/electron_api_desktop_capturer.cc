@@ -251,6 +251,20 @@ void DesktopCapturer::DesktopListListener::OnSourceThumbnailChanged(int index) {
   }
 }
 
+void DesktopCapturer::DesktopListListener::OnSourceAdded() {
+  if (have_selection_) {
+    have_selection_ = false;
+
+    std::move(update_callback_).Run();
+  } else {
+    have_thumbnail_ = false;
+  }
+}
+
+void DesktopCapturer::DesktopListListener::OnSourceRemoved() {
+  std::move(update_callback_).Run();
+}
+
 void DesktopCapturer::DesktopListListener::OnDelegatedSourceListDismissed() {
   std::move(failure_callback_).Run();
 }
