@@ -658,6 +658,14 @@ Shows the window but doesn't focus on it.
 
 Hides the window.
 
+#### `win.isOccluded()`
+
+Returns `boolean` - Whether the window is covered by other windows.
+
+On macOS, a `BrowserWindow` is occluded if the entire window is obscured by other windows. A completely transparent window may also be considered non-occluded. See [docs](https://developer.apple.com/documentation/appkit/nswindowocclusionstate?language=objc) for more details.
+
+On Windows and Linux, a window is occluded if it or one of its descendants is visible, and all visible windows have their bounds completely covered by fully opaque windows. A window is considered "fully opaque" if it is visible, it is not transparent, and its combined opacity is 1. See [Chromium Source](https://source.chromium.org/chromium/chromium/src/+/refs/heads/main:ui/aura/window.h;l=124-151;drc=7d2d8ccab2b68fbbfc5e1611d45bd4ecf87090b8) for more details.
+
 #### `win.isVisible()`
 
 Returns `boolean` - Whether the window is visible to the user in the foreground of the app.

@@ -4297,6 +4297,65 @@ describe('BrowserWindow module', () => {
     });
   });
 
+  describe('BrowserWindow.isOccluded()', () => {
+    afterEach(closeAllWindows);
+
+    it('returns false for a visible window', async () => {
+      const w = new BrowserWindow({ show: false });
+
+      const shown = once(w, 'show');
+      w.show();
+      await shown;
+
+      expect(w.isOccluded()).to.be.false('window is occluded');
+    });
+
+    it('returns false when the window is only partially obscured', async () => {
+      const w1 = new BrowserWindow({ width: 400, height: 400 });
+      const w2 = new BrowserWindow({ show: false, width: 450, height: 450 });
+
+      const focused = once(w2, 'focus');
+      w2.show();
+      await focused;
+
+      await setTimeout(1000);
+      expect(w1.isOccluded()).to.be.true('window is not occluded');
+
+      const pos = w2.getPosition();
+      const move = once(w2, 'move');
+      w2.setPosition(pos[0] - 100, pos[1]);
+      await move;
+
+      await setTimeout(1000);
+      expect(w1.isOccluded()).to.be.false('window is occluded');
+    });
+
+    // FIXME: this test fails on Linux CI due to windowing issues.
+    ifit(process.platform !== 'linux')('returns false for a visible window covered by a transparent window', async () => {
+      const w1 = new BrowserWindow({ width: 200, height: 200 });
+      const w2 = new BrowserWindow({ show: false, transparent: true, frame: false });
+
+      const focused = once(w2, 'focus');
+      w2.show();
+      await focused;
+
+      await setTimeout(1000);
+      expect(w1.isOccluded()).to.be.false('window is occluded');
+    });
+
+    it('returns true for an obscured window', async () => {
+      const w1 = new BrowserWindow({ width: 200, height: 200 });
+      const w2 = new BrowserWindow({ show: false });
+
+      const focused = once(w2, 'focus');
+      w2.show();
+      await focused;
+
+      await setTimeout(1000);
+      expect(w1.isOccluded()).to.be.true('visible window');
+    });
+  });
+
   // TODO(codebytere): figure out how to make these pass in CI on Windows.
   ifdescribe(process.platform !== 'win32')('document.visibilityState/hidden', () => {
     afterEach(closeAllWindows);
