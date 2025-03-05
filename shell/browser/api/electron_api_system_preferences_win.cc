@@ -129,7 +129,7 @@ std::string SystemPreferences::GetColor(gin_helper::ErrorThrower thrower,
       {"window-text", COLOR_WINDOWTEXT},
   });
 
-  if (const auto* iter = Lookup.find(color); iter != Lookup.end())
+  if (auto iter = Lookup.find(color); iter != Lookup.end())
     return ToRGBAHex(color_utils::GetSysSkColor(iter->second));
 
   thrower.ThrowError("Unknown color: " + color);

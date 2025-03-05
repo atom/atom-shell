@@ -108,7 +108,7 @@ CodeAndShiftedChar KeyboardCodeFromKeyIdentifier(const std::string_view str) {
           {"volumeup", {ui::VKEY_VOLUME_UP, {}}},
       });
 
-  if (auto* const iter = Lookup.find(str); iter != Lookup.end())
+  if (auto iter = Lookup.find(str); iter != Lookup.end())
     return iter->second;
 
   return {ui::VKEY_UNKNOWN, {}};

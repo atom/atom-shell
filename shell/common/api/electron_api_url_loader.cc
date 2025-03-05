@@ -568,7 +568,7 @@ gin::Handle<SimpleURLLoaderWrapper> SimpleURLLoaderWrapper::Create(
             {"no-cors", Val::kNoCors},
             {"same-origin", Val::kSameOrigin},
         });
-    if (auto* iter = Lookup.find(mode); iter != Lookup.end())
+    if (auto iter = Lookup.find(mode); iter != Lookup.end())
       request->mode = iter->second;
   }
 
@@ -597,7 +597,7 @@ gin::Handle<SimpleURLLoaderWrapper> SimpleURLLoaderWrapper::Create(
             {"worker", Val::kWorker},
             {"xslt", Val::kXslt},
         });
-    if (auto* iter = Lookup.find(destination); iter != Lookup.end())
+    if (auto iter = Lookup.find(destination); iter != Lookup.end())
       request->destination = iter->second;
   }
 

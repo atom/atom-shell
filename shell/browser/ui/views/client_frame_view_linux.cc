@@ -416,7 +416,7 @@ void ClientFrameViewLinux::LayoutButtonsOnSide(
   }
 
   for (views::FrameButton frame_button : frame_buttons) {
-    auto* button =
+    auto button =
         std::ranges::find_if(nav_buttons_, [&](const NavButton& test) {
           return test.type != skip_type && test.frame_button == frame_button;
         });
