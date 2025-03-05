@@ -283,6 +283,12 @@ GURL ServiceWorkerMain::ScopeURL() const {
   return version_info()->scope;
 }
 
+GURL ServiceWorkerMain::ScriptURL() const {
+  if (version_destroyed_)
+    return {};
+  return version_info()->script_url;
+}
+
 // static
 gin::Handle<ServiceWorkerMain> ServiceWorkerMain::New(v8::Isolate* isolate) {
   return gin::Handle<ServiceWorkerMain>();
@@ -331,6 +337,7 @@ void ServiceWorkerMain::FillObjectTemplate(
                  &ServiceWorkerMain::CountExternalRequestsForTest)
       .SetProperty("versionId", &ServiceWorkerMain::VersionID)
       .SetProperty("scope", &ServiceWorkerMain::ScopeURL)
+      .SetProperty("scriptURL", &ServiceWorkerMain::ScriptURL)
       .Build();
 }
 

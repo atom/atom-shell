@@ -314,6 +314,17 @@ describe('ServiceWorkerMain module', () => {
     });
   });
 
+  describe("'scriptURL' property", () => {
+    it('matches the expected value', async () => {
+      loadWorkerScript();
+      const serviceWorker = await waitForServiceWorker();
+      expect(serviceWorker).to.not.be.undefined();
+      if (!serviceWorker) return;
+      expect(serviceWorker).to.have.property('scriptURL').that.is.a('string');
+      expect(serviceWorker.scriptURL).to.equal(`${baseUrl}/sw.js`);
+    });
+  });
+
   describe('ipc', () => {
     beforeEach(() => {
       registerPreload('preload-tests.js');

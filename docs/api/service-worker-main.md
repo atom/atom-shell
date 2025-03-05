@@ -46,6 +46,10 @@ An [`IpcMainServiceWorker`](ipc-main-service-worker.md) instance scoped to the s
 
 A `string` representing the scope URL of the service worker.
 
+#### `serviceWorker.scriptURL` _Readonly_ _Experimental_
+
+A `string` representing the script URL of the service worker.
+
 #### `serviceWorker.versionId` _Readonly_ _Experimental_
 
 A `number` representing the ID of the specific version of the service worker script in its scope.
