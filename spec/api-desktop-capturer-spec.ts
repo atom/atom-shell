@@ -67,6 +67,14 @@ ifdescribe(!process.arch.includes('arm') && process.platform !== 'win32')('deskt
     }
   });
 
+  ifit(process.platform !== 'linux' || process.env.XDG_SESSION_TYPE !== 'wayland')('returns userProvidedSelection as false', async () => {
+    const sources = await desktopCapturer.getSources({ types: ['screen', 'window'] });
+    expect(sources).to.be.an('array').that.is.not.empty();
+    for (const { userProvidedSelection: userSelected } of sources) {
+      expect(userSelected).to.be.a('boolean').and.be.false();
+    }
+  });
+
   it('disabling thumbnail should return empty images', async () => {
     const w2 = new BrowserWindow({ show: false, width: 200, height: 200, webPreferences: { contextIsolation: false } });
     const wShown = once(w2, 'show');
