@@ -149,6 +149,7 @@
   `WebContents` when the preferred size changes. Default is `false`.
 * `transparent` boolean (optional) - Whether to enable background transparency for the guest page. Default is `true`. **Note:** The guest page's text and background colors are derived from the [color scheme](https://developer.mozilla.org/en-US/docs/Web/CSS/color-scheme) of its root element. When transparency is enabled, the text color will still change accordingly but the background will remain transparent.
 * `enableDeprecatedPaste` boolean (optional) _Deprecated_ - Whether to enable the `paste` [execCommand](https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand). Default is `false`.
+* `enableCornerSmoothingCSS` boolean (optional) _Experimental_ - Whether the [`-electron-corner-smoothing` CSS rule](../corner-smoothing-css.md) is enabled. Default is `true`.
 
 [chrome-content-scripts]: https://developer.chrome.com/extensions/content_scripts#execution-environment
 [runtime-enabled-features]: https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/runtime_enabled_features.json5
