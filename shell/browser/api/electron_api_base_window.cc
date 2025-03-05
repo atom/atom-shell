@@ -8,6 +8,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#if BUILDFLAG(IS_WIN)
+#include <winuser.h>
+#endif
 
 #include "base/task/single_thread_task_runner.h"
 #include "content/public/common/color_parser.h"
@@ -1091,6 +1094,24 @@ void BaseWindow::SetAppDetails(const gin_helper::Dictionary& options) {
                                   relaunch_command, relaunch_display_name,
                                   window_->GetAcceleratedWidget());
 }
+
+bool BaseWindow::PreventShutdown(const std::string& reason) {
+  LONG res;
+  if (reason.length() == 0)
+    res = ShutdownBlockReasonDestroy(window_->GetAcceleratedWidget());
+  else {
+    std::wstring wreason = base::UTF8ToWide(reason);
+    res = ShutdownBlockReasonCreate(window_->GetAcceleratedWidget(),
+                                    wreason.c_str());
+  }
+
+  if (res != 0)
+    return true;
+
+  DWORD shutdown_block_error = ::GetLastError();
+  base::debug::Alias(&shutdown_block_error);
+  return false;
+}
 #endif
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
@@ -1343,6 +1364,7 @@ void BaseWindow::BuildPrototype(v8::Isolate* isolate,
       .SetMethod("setThumbnailClip", &BaseWindow::SetThumbnailClip)
       .SetMethod("setThumbnailToolTip", &BaseWindow::SetThumbnailToolTip)
       .SetMethod("setAppDetails", &BaseWindow::SetAppDetails)
+      .SetMethod("preventShutdown", &BaseWindow::PreventShutdown)
 #endif
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
       .SetMethod("setTitleBarOverlay", &BaseWindow::SetTitleBarOverlay)
