@@ -13,7 +13,7 @@ Contributors guide: https://github.com/electron/electron/blob/main/CONTRIBUTING.
 - [ ] PR description included and stakeholders cc'd
 - [ ] `npm test` passes
 - [ ] tests are [changed or added](https://github.com/electron/electron/blob/main/docs/development/testing.md)
-- [ ] relevant documentation, tutorials, templates and examples are changed or added
+- [ ] relevant API documentation, tutorials, and examples are updated and follow the [documentation style guide](https://github.com/electron/electron/blob/main/docs/development/style-guide.md)
 - [ ] [PR release notes](https://github.com/electron/clerk/blob/main/README.md) describe the change in a way relevant to app developers, and are [capitalized, punctuated, and past tense](https://github.com/electron/clerk/blob/main/README.md#examples).
 
 #### Release Notes
