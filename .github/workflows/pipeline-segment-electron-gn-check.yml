@@ -81,6 +81,8 @@ jobs:
     - name: Restore src cache via AZCopy
       if: ${{ inputs.target-platform == 'macos' }}
       uses: ./src/electron/.github/actions/restore-cache-azcopy
+      with:
+        target-platform: ${{ inputs.target-platform }}      
     - name: Restore src cache via AKS
       if: ${{ inputs.target-platform == 'linux' || inputs.target-platform == 'win' }}
       uses: ./src/electron/.github/actions/restore-cache-aks

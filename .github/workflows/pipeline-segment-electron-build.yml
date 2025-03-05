@@ -153,17 +153,19 @@ jobs:
         DEPSHASH=v1-src-cache-$(cat src/electron/.depshash)
         echo "DEPSHASH=$DEPSHASH" >> $GITHUB_ENV
         echo "CACHE_PATH=$DEPSHASH.tar" >> $GITHUB_ENV
+    - name: Install 7zip on Windows
+      if: ${{ inputs.target-platform == 'win' }}
+      shell: powershell
+      run: |        
+        choco install -y --no-progress 7zip
     - name: Restore src cache via AZCopy
-      if: ${{ inputs.target-platform == 'macos' }}
+      if: ${{ inputs.target-platform != 'linux' }}
       uses: ./src/electron/.github/actions/restore-cache-azcopy
+      with:
+        target-platform: ${{ inputs.target-platform }}
     - name: Restore src cache via AKS
       if: ${{ inputs.target-platform == 'linux' }}
       uses: ./src/electron/.github/actions/restore-cache-aks
-    - name: Checkout src via gclient sync
-      if: ${{ inputs.target-platform == 'win' }}
-      uses: ./src/electron/.github/actions/checkout
-      with:
-        use-cache: 'false'
     - name: Checkout Electron
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
