@@ -1333,7 +1333,11 @@ void ElectronBrowserClient::WillCreateURLLoaderFactory(
   DCHECK(web_request.get());
 
 #if BUILDFLAG(ENABLE_ELECTRON_EXTENSIONS)
-  if (!web_request->HasListener()) {
+  // If Electron's webRequest API has no listeners, proxy requests using
+  // chrome.webRequest extension APIs.
+  // Note that Electron's net.fetch and protocol.handle APIs do not include the
+  // frame host which is required for proxying requests.
+  if (!web_request->HasListener() && frame_host) {
     auto* web_request_api = extensions::BrowserContextKeyedAPIFactory<
         extensions::WebRequestAPI>::Get(browser_context);
 

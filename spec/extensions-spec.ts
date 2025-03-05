@@ -1,4 +1,4 @@
-import { app, session, BrowserWindow, ipcMain, WebContents, Extension, Session } from 'electron/main';
+import { app, session, BrowserWindow, ipcMain, net, WebContents, Extension, Session } from 'electron/main';
 
 import { expect } from 'chai';
 import * as WebSocket from 'ws';
@@ -433,6 +433,12 @@ describe('chrome extensions', () => {
           }
         });
       });
+    });
+
+    it('does not crash when net.fetch is called', async () => {
+      await session.defaultSession.loadExtension(path.join(fixtures, 'extensions', 'chrome-webRequest-non-blocking'));
+      const requestUrl = `${url}/test.zip`;
+      await net.fetch(requestUrl);
     });
   });
 
