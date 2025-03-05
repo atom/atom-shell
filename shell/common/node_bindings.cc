@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/allocator/partition_allocator/src/partition_alloc/oom.h"
 #include "base/base_paths.h"
 #include "base/command_line.h"
 #include "base/containers/fixed_flat_set.h"
@@ -167,6 +168,33 @@ void V8FatalErrorCallback(const char* location, const char* message) {
 
   volatile int* zero = nullptr;
   *zero = 0;
+}
+
+void V8OOMErrorCallback(const char* location, const v8::OOMDetails& details) {
+  const char* message =
+      details.is_heap_oom ? "Allocation failed - JavaScript heap out of memory"
+                          : "Allocation failed - process out of memory";
+  if (location) {
+    LOG(ERROR) << "OOM error in V8: " << location << " " << message;
+  } else {
+    LOG(ERROR) << "OOM error in V8: " << message;
+  }
+  if (details.detail) {
+    LOG(ERROR) << "OOM detail: " << details.detail;
+  }
+
+#if !IS_MAS_BUILD()
+  electron::crash_keys::SetCrashKey("electron.v8-oom.is_heap_oom",
+                                    std::to_string(details.is_heap_oom));
+  if (location) {
+    electron::crash_keys::SetCrashKey("electron.v8-oom.location", location);
+  }
+  if (details.detail) {
+    electron::crash_keys::SetCrashKey("electron.v8-oom.detail", details.detail);
+  }
+#endif
+
+  OOM_CRASH(0);
 }
 
 bool AllowWasmCodeGenerationCallback(v8::Local<v8::Context> context,
@@ -688,6 +716,7 @@ std::shared_ptr<node::Environment> NodeBindings::CreateEnvironment(
   // Use a custom fatal error callback to allow us to add
   // crash message and location to CrashReports.
   is.fatal_error_callback = V8FatalErrorCallback;
+  is.oom_error_callback = V8OOMErrorCallback;
 
   // We don't want to abort either in the renderer or browser processes.
   // We already listen for uncaught exceptions and handle them there.
