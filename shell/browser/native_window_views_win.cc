@@ -10,6 +10,7 @@
 #include "base/win/scoped_handle.h"
 #include "base/win/windows_version.h"
 #include "content/public/browser/browser_accessibility_state.h"
+#include "shell/browser/api/electron_api_web_contents.h"
 #include "shell/browser/browser.h"
 #include "shell/browser/native_window_views.h"
 #include "shell/browser/ui/views/root_view.h"
@@ -293,6 +294,10 @@ bool NativeWindowViews::PreHandleMSG(UINT message,
         bool prevent_default = false;
         NotifyWindowSystemContextMenu(GET_X_LPARAM(l_param),
                                       GET_Y_LPARAM(l_param), &prevent_default);
+        // If the user prevents default behavior, emit contextmenu event to
+        // allow bringing up the custom menu.
+        if (prevent_default)
+          electron::api::WebContents::SetDisableDraggableRegions(false);
         return prevent_default;
       }
       return false;
