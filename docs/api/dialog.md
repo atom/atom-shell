@@ -78,6 +78,11 @@ dialog.showOpenDialogSync(mainWindow, {
 })
 ```
 
+**Note:** On Linux `defaultPath` is not supported when using portal file chooser
+dialogs unless the portal backend is version 4 or higher. You can use `--xdg-portal-required-version`
+[command-line switch](./command-line-switches.md#--xdg-portal-required-versionversion)
+to force gtk or kde dialogs.
+
 ### `dialog.showOpenDialog([window, ]options)`
 
 * `window` [BaseWindow](base-window.md) (optional)
@@ -149,6 +154,11 @@ dialog.showOpenDialog(mainWindow, {
   console.log(err)
 })
 ```
+
+**Note:** On Linux `defaultPath` is not supported when using portal file chooser
+dialogs unless the portal backend is version 4 or higher. You can use `--xdg-portal-required-version`
+[command-line switch](./command-line-switches.md#--xdg-portal-required-versionversion)
+to force gtk or kde dialogs.
 
 ### `dialog.showSaveDialogSync([window, ]options)`
 
