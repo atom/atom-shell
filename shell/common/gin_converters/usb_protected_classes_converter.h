@@ -13,6 +13,8 @@
 #include "gin/converter.h"
 #include "services/device/public/mojom/usb_device.mojom-forward.h"
 #include "shell/browser/electron_permission_manager.h"
+#include "shell/common/gin_converters/std_converter.h"
+#include "third_party/abseil-cpp/absl/container/inlined_vector.h"
 
 namespace gin {
 
@@ -31,15 +33,14 @@ struct Converter<electron::ElectronPermissionManager::USBProtectedClasses> {
   static v8::Local<v8::Value> ToV8(
       v8::Isolate* isolate,
       const electron::ElectronPermissionManager::USBProtectedClasses& classes) {
-    std::vector<std::string> class_strings;
-    class_strings.reserve(std::size(classes));
+    absl::InlinedVector<std::string_view, ClassMapping.size()> class_strings;
     for (const auto& itr : classes) {
       for (const auto& [usb_class, name] : ClassMapping) {
         if (usb_class == itr)
           class_strings.emplace_back(name);
       }
     }
-    return gin::ConvertToV8(isolate, class_strings);
+    return gin::ConvertToV8(isolate, std::span(class_strings));
   }
 
   static bool FromV8(

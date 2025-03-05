@@ -9,6 +9,7 @@
 #include <functional>
 #include <map>
 #include <set>
+#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -99,6 +100,32 @@ struct Converter<v8::Local<v8::String>> {
       return false;
     *out = val.As<v8::String>();
     return true;
+  }
+};
+
+template <typename T>
+struct Converter<std::span<T>> {
+  static v8::Local<v8::Value> ToV8(v8::Isolate* isolate,
+                                   const std::span<const T> vals) {
+    const auto n_vals = vals.size();
+    auto result = v8::Array::New(isolate, static_cast<int>(n_vals));
+
+    uint32_t index = 0U;
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    for (const auto& val : vals) {
+      v8::MaybeLocal<v8::Value> maybe = Converter<T>::ToV8(isolate, val);
+      v8::Local<v8::Value> element;
+      if (!maybe.ToLocal(&element))
+        return {};
+
+      bool property_created = false;
+      if (!result->CreateDataProperty(context, index++, element)
+               .To(&property_created) ||
+          !property_created) {
+        NOTREACHED() << "CreateDataProperty should always succeed here.";
+      }
+    }
+    return result;
   }
 };
 
