@@ -289,7 +289,8 @@ bool NativeWindowViews::PreHandleMSG(UINT message,
       return false;
     }
     case WM_RBUTTONUP: {
-      if (!has_frame()) {
+      gfx::Point point(GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param));
+      if (!has_frame() && NonClientHitTest(point) == HTCAPTION) {
         bool prevent_default = false;
         NotifyWindowSystemContextMenu(GET_X_LPARAM(l_param),
                                       GET_Y_LPARAM(l_param), &prevent_default);
