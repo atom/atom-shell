@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Yang Liu <ouyangliu.leo@gmail.com>
+Date: Wed, 5 Mar 2025 17:22:39 +0800
+Subject: feat: add oom_error_callback in node::IsolateSettings
+
+Expose v8::OOMErrorCallback to allow setting OOM error handler outside Node.js
+
+As described in this issue https://github.com/electron/electron/issues/45894,
+Electron fails to capture js heap oom because node::OOMErrorHandler just
+terminates the process without raising an exception.
+
+To fix this issue, provide the interface oom_error_callback to enable a
+custom oom error callback set from Electron.
+
+diff --git a/src/api/environment.cc b/src/api/environment.cc
+index 32fc075e97eebca6c47e796ac5308915746ffa2a..e72bee385865c7d34e9eea6b90c6d911d592f8af 100644
+--- a/src/api/environment.cc
++++ b/src/api/environment.cc
+@@ -241,7 +241,10 @@ void SetIsolateErrorHandlers(v8::Isolate* isolate, const IsolateSettings& s) {
+   auto* fatal_error_cb = s.fatal_error_callback ?
+       s.fatal_error_callback : OnFatalError;
+   isolate->SetFatalErrorHandler(fatal_error_cb);
+-  isolate->SetOOMErrorHandler(OOMErrorHandler);
++
++  auto* oom_error_cb = s.oom_error_callback ?
++      s.oom_error_callback : OOMErrorHandler;
++  isolate->SetOOMErrorHandler(oom_error_cb);
+ 
+   if ((s.flags & SHOULD_NOT_SET_PREPARE_STACK_TRACE_CALLBACK) == 0) {
+     auto* prepare_stack_trace_cb = s.prepare_stack_trace_callback ?
+diff --git a/src/node.h b/src/node.h
+index afb26ec5690ccd65a3c36f8b8a1b2de416b9d843..98ad0ea649eaef43d1f5231f7bc4044e100e08d7 100644
+--- a/src/node.h
++++ b/src/node.h
+@@ -489,6 +489,7 @@ struct IsolateSettings {
+   v8::Isolate::AbortOnUncaughtExceptionCallback
+       should_abort_on_uncaught_exception_callback = nullptr;
+   v8::FatalErrorCallback fatal_error_callback = nullptr;
++  v8::OOMErrorCallback oom_error_callback = nullptr;
+   v8::PrepareStackTraceCallback prepare_stack_trace_callback = nullptr;
+ 
+   // Miscellaneous callbacks
