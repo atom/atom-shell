@@ -12,7 +12,7 @@ vars = {
   'reactiveobjc_version':
     '74ab5baccc6f7202c8ac69a8d1e152c29dc1ea76',
   'mantle_version':
-    '78d3966b3c331292ea29ec38661b25df0a245948',
+    '2a8e2123a3931038179ee06105c9e6ec336b12ea',
   'engflow_reclient_configs_version':
     '955335c30a752e9ef7bff375baab5e0819b6c00d',
 

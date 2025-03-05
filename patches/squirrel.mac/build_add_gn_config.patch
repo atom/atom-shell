@@ -23,10 +23,10 @@ index 89c499e451ecb48655cfd42b01ffa1da56998c2e..98f80aad43a87ed75ca1660ad6a178db
 +vendor
 diff --git a/BUILD.gn b/BUILD.gn
 new file mode 100644
-index 0000000000000000000000000000000000000000..68beb3d10580cdb747a78407c7f5bbb205825c4b
+index 0000000000000000000000000000000000000000..a02e5f54d923513fd0676e91a99b8913bad6a57e
 --- /dev/null
 +++ b/BUILD.gn
-@@ -0,0 +1,242 @@
+@@ -0,0 +1,250 @@
 +assert(is_mac)
 +
 +import("//build/config/mac/rules.gni")
@@ -48,12 +48,16 @@ index 0000000000000000000000000000000000000000..68beb3d10580cdb747a78407c7f5bbb2
 +    "Resources",
 +  ]
 +  info_plist = "vendor/Mantle/Mantle/Info.plist"
-+  extra_substitutions = [ "CURRENT_PROJECT_VERSION=0.0.0" ]
++  extra_substitutions = [
++    "CURRENT_PROJECT_VERSION=0.0.0",
++    "PRODUCT_BUNDLE_IDENTIFIER=com.electron.mantle",
++  ]
 +
 +  configs -= [
 +    "//build/config/compiler:chromium_code",
 +    "//build/config/gcc:symbol_visibility_hidden",
 +  ]
++
 +  configs += [ "//build/config/compiler:no_chromium_code" ]
 +  public_deps = [ ":mantle_headers" ]
 +  deps = []
@@ -66,6 +70,8 @@ index 0000000000000000000000000000000000000000..68beb3d10580cdb747a78407c7f5bbb2
 +  include_dirs = [
 +    "vendor/Mantle/Mantle",
 +    "vendor/Mantle/Mantle/extobjc",
++    "vendor/Mantle/Mantle/extobjc/include",
++    "vendor/Mantle/Mantle/include",
 +  ]
 +
 +  cflags_objc = [
@@ -196,6 +202,7 @@ index 0000000000000000000000000000000000000000..68beb3d10580cdb747a78407c7f5bbb2
 +  cflags_objc = [
 +    "-fobjc-weak",
 +    "-Wno-unknown-warning-option",
++    "-Wno-deprecated-declarations",
 +    "-Wno-block-capture-autoreleasing",
 +    "-fobjc-arc",
 +  ]
@@ -262,6 +269,7 @@ index 0000000000000000000000000000000000000000..68beb3d10580cdb747a78407c7f5bbb2
 +  cflags_objc = [
 +    "-fobjc-weak",
 +    "-fobjc-arc",
++    "-Wno-deprecated-declarations",
 +    "-Wno-block-capture-autoreleasing",
 +  ]
 +
@@ -534,10 +542,10 @@ index 0000000000000000000000000000000000000000..a7aeeb7d3e187bd91ef12ed860d1e37e
 +    sys.exit(e.returncode)
 diff --git a/filenames.gni b/filenames.gni
 new file mode 100644
-index 0000000000000000000000000000000000000000..3672153140b74fe948e7102b5e1ffad49341163d
+index 0000000000000000000000000000000000000000..cee305c80588ffe2234bfadd5c211a9c301fe589
 --- /dev/null
 +++ b/filenames.gni
-@@ -0,0 +1,243 @@
+@@ -0,0 +1,249 @@
 +squirrel_filenames = {
 +  headers = [
 +    "Squirrel/NSBundle+SQRLVersionExtensions.h",
@@ -582,22 +590,25 @@ index 0000000000000000000000000000000000000000..3672153140b74fe948e7102b5e1ffad4
 +
 +mantle_filenames = {
 +  headers = [
-+    "vendor/Mantle/Mantle/MTLJSONAdapter.h",
-+    "vendor/Mantle/Mantle/MTLModel+NSCoding.h",
-+    "vendor/Mantle/Mantle/MTLModel.h",
 +    "vendor/Mantle/Mantle/MTLReflection.h",
-+    "vendor/Mantle/Mantle/MTLValueTransformer.h",
-+    "vendor/Mantle/Mantle/Mantle.h",
-+    "vendor/Mantle/Mantle/NSArray+MTLManipulationAdditions.h",
-+    "vendor/Mantle/Mantle/NSDictionary+MTLManipulationAdditions.h",
 +    "vendor/Mantle/Mantle/NSError+MTLModelException.h",
-+    "vendor/Mantle/Mantle/NSObject+MTLComparisonAdditions.h",
-+    "vendor/Mantle/Mantle/NSValueTransformer+MTLInversionAdditions.h",
-+    "vendor/Mantle/Mantle/NSValueTransformer+MTLPredefinedTransformerAdditions.h",
-+    "vendor/Mantle/Mantle/extobjc/MTLEXTKeyPathCoding.h",
-+    "vendor/Mantle/Mantle/extobjc/MTLEXTRuntimeExtensions.h",
-+    "vendor/Mantle/Mantle/extobjc/MTLEXTScope.h",
-+    "vendor/Mantle/Mantle/extobjc/metamacros.h",
++    "vendor/Mantle/Mantle/NSDictionary+MTLJSONKeyPath.h",
++    "vendor/Mantle/Mantle/include/MTLJSONAdapter.h",
++    "vendor/Mantle/Mantle/include/MTLModel+NSCoding.h",
++    "vendor/Mantle/Mantle/include/MTLModel.h",
++    "vendor/Mantle/Mantle/include/MTLTransformerErrorHandling.h",
++    "vendor/Mantle/Mantle/include/MTLValueTransformer.h",
++    "vendor/Mantle/Mantle/include/Mantle.h",
++    "vendor/Mantle/Mantle/include/NSArray+MTLManipulationAdditions.h",
++    "vendor/Mantle/Mantle/include/NSDictionary+MTLMappingAdditions.h",
++    "vendor/Mantle/Mantle/include/NSDictionary+MTLManipulationAdditions.h",
++    "vendor/Mantle/Mantle/include/NSObject+MTLComparisonAdditions.h",
++    "vendor/Mantle/Mantle/include/NSValueTransformer+MTLInversionAdditions.h",
++    "vendor/Mantle/Mantle/include/NSValueTransformer+MTLPredefinedTransformerAdditions.h",
++    "vendor/Mantle/Mantle/extobjc/include/MTLEXTKeyPathCoding.h",
++    "vendor/Mantle/Mantle/extobjc/include/MTLEXTRuntimeExtensions.h",
++    "vendor/Mantle/Mantle/extobjc/include/MTLEXTScope.h",
++    "vendor/Mantle/Mantle/extobjc/include/MTLMetamacros.h",
 +  ]
 +
 +  sources = [
@@ -605,9 +616,12 @@ index 0000000000000000000000000000000000000000..3672153140b74fe948e7102b5e1ffad4
 +    "vendor/Mantle/Mantle/MTLModel+NSCoding.m",
 +    "vendor/Mantle/Mantle/MTLModel.m",
 +    "vendor/Mantle/Mantle/MTLReflection.m",
++    "vendor/Mantle/Mantle/MTLTransformerErrorHandling.m",
 +    "vendor/Mantle/Mantle/MTLValueTransformer.m",
 +    "vendor/Mantle/Mantle/NSArray+MTLManipulationAdditions.m",
++    "vendor/Mantle/Mantle/NSDictionary+MTLJSONKeyPath.m",
 +    "vendor/Mantle/Mantle/NSDictionary+MTLManipulationAdditions.m",
++    "vendor/Mantle/Mantle/NSDictionary+MTLMappingAdditions.m",
 +    "vendor/Mantle/Mantle/NSError+MTLModelException.m",
 +    "vendor/Mantle/Mantle/NSObject+MTLComparisonAdditions.m",
 +    "vendor/Mantle/Mantle/NSValueTransformer+MTLInversionAdditions.m",
