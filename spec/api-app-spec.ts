@@ -11,6 +11,7 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import * as net from 'node:net';
 import * as path from 'node:path';
+import { setTimeout } from 'node:timers/promises';
 import { promisify } from 'node:util';
 
 import { collectStreamBody, getResponse } from './lib/net-helpers';
@@ -356,6 +357,43 @@ describe('app module', () => {
     });
   });
 
+  ifdescribe(process.platform !== 'linux')('app.{add|get|clear}RecentDocument(s)', () => {
+    const tempFiles = [
+      path.join(fixturesPath, 'foo.txt'),
+      path.join(fixturesPath, 'bar.txt'),
+      path.join(fixturesPath, 'baz.txt')
+    ];
+
+    afterEach(() => {
+      app.clearRecentDocuments();
+      for (const file of tempFiles) {
+        fs.unlinkSync(file);
+      }
+    });
+
+    beforeEach(() => {
+      for (const file of tempFiles) {
+        fs.writeFileSync(file, 'Lorem Ipsum');
+      }
+    });
+
+    it('can add a recent document', async () => {
+      app.addRecentDocument(tempFiles[0]);
+      if (process.platform === 'win32') await setTimeout(1000);
+      expect(app.getRecentDocuments()).to.include.members([tempFiles[0]]);
+    });
+
+    it('can clear recent documents', async () => {
+      app.addRecentDocument(tempFiles[1]);
+      app.addRecentDocument(tempFiles[2]);
+      if (process.platform === 'win32') await setTimeout(1000);
+      expect(app.getRecentDocuments()).to.include.members([tempFiles[1], tempFiles[2]]);
+      app.clearRecentDocuments();
+      if (process.platform === 'win32') await setTimeout(1000);
+      expect(app.getRecentDocuments()).to.deep.equal([]);
+    });
+  });
+
   describe('app.relaunch', () => {
     let server: net.Server | null = null;
     const socketPath = process.platform === 'win32' ? '\\\\.\\pipe\\electron-app-relaunch' : '/tmp/electron-app-relaunch';
@@ -553,8 +591,8 @@ describe('app module', () => {
 
   describe('app.badgeCount', () => {
     const platformIsNotSupported =
-        (process.platform === 'win32') ||
-        (process.platform === 'linux' && !app.isUnityRunning());
+      (process.platform === 'win32') ||
+      (process.platform === 'linux' && !app.isUnityRunning());
 
     const expectedBadgeCount = 42;
 

@@ -125,6 +125,9 @@ class Browser : private WindowListObserver {
   // Clear the recent documents list.
   void ClearRecentDocuments();
 
+  // Return the recent documents list.
+  std::vector<std::string> GetRecentDocuments();
+
 #if BUILDFLAG(IS_WIN)
   // Set the application user model ID.
   void SetAppUserModelID(const std::wstring& name);
