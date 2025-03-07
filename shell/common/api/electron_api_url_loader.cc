@@ -504,25 +504,28 @@ SimpleURLLoaderWrapper::GetURLLoaderFactoryForURL(const GURL& url) {
 
     if (const auto* const protocol_handler =
             protocol_registry->FindIntercepted(scheme)) {
-      return network::SharedURLLoaderFactory::Create(
-          std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-              ElectronURLLoaderFactory::Create(protocol_handler->first,
-                                               protocol_handler->second)));
+      return browser_context_->InterceptURLLoaderFactory(
+          network::SharedURLLoaderFactory::Create(
+              std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+                  ElectronURLLoaderFactory::Create(protocol_handler->first,
+                                                   protocol_handler->second))));
     }
 
     if (const auto* const protocol_handler =
             protocol_registry->FindRegistered(scheme)) {
-      return network::SharedURLLoaderFactory::Create(
-          std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-              ElectronURLLoaderFactory::Create(protocol_handler->first,
-                                               protocol_handler->second)));
+      return browser_context_->InterceptURLLoaderFactory(
+          network::SharedURLLoaderFactory::Create(
+              std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+                  ElectronURLLoaderFactory::Create(protocol_handler->first,
+                                                   protocol_handler->second))));
     }
   }
 
   if (url.SchemeIsFile()) {
-    return network::SharedURLLoaderFactory::Create(
-        std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-            AsarURLLoaderFactory::Create()));
+    return browser_context_->InterceptURLLoaderFactory(
+        network::SharedURLLoaderFactory::Create(
+            std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+                AsarURLLoaderFactory::Create())));
   }
 
   return browser_context_->GetURLLoaderFactory();

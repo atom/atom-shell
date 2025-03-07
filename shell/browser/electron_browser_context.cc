@@ -570,6 +570,26 @@ ElectronBrowserContext::GetURLLoaderFactory() {
   return url_loader_factory_;
 }
 
+scoped_refptr<network::SharedURLLoaderFactory>
+ElectronBrowserContext::InterceptURLLoaderFactory(
+    scoped_refptr<network::SharedURLLoaderFactory> terminal) {
+  network::URLLoaderFactoryBuilder factory_builder;
+
+  // Consult the embedder.
+  mojo::PendingRemote<network::mojom::TrustedURLLoaderHeaderClient>
+      header_client;
+
+  static_cast<content::ContentBrowserClient*>(ElectronBrowserClient::Get())
+      ->WillCreateURLLoaderFactory(
+          this, nullptr, -1,
+          content::ContentBrowserClient::URLLoaderFactoryType::kNavigation,
+          url::Origin(), net::IsolationInfo(), std::nullopt,
+          ukm::kInvalidSourceIdObj, factory_builder, &header_client, nullptr,
+          nullptr, nullptr, nullptr);
+
+  return std::move(factory_builder).Finish(terminal);
+}
+
 content::PushMessagingService*
 ElectronBrowserContext::GetPushMessagingService() {
   return nullptr;
