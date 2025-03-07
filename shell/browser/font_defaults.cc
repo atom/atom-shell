@@ -18,7 +18,7 @@
 namespace {
 
 // The following list of font defaults was copied from
-// https://chromium.googlesource.com/chromium/src/+/69.0.3497.106/chrome/browser/ui/prefs/prefs_tab_helper.cc#152
+// https://chromium.googlesource.com/chromium/src/+/116.0.5845.228/chrome/browser/ui/prefs/prefs_tab_helper.cc#152
 //
 // The only updates that should be made to this list are copying updates that
 // were made in Chromium.
@@ -41,7 +41,8 @@ const FontDefault kFontDefaults[] = {
     {prefs::kWebKitSansSerifFontFamily, IDS_SANS_SERIF_FONT_FAMILY},
     {prefs::kWebKitCursiveFontFamily, IDS_CURSIVE_FONT_FAMILY},
     {prefs::kWebKitFantasyFontFamily, IDS_FANTASY_FONT_FAMILY},
-#if BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
+    {prefs::kWebKitMathFontFamily, IDS_MATH_FONT_FAMILY},
+#if BUILDFLAG(IS_CHROMEOS_ASH) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN)
     {prefs::kWebKitStandardFontFamilyJapanese,
      IDS_STANDARD_FONT_FAMILY_JAPANESE},
     {prefs::kWebKitFixedFontFamilyJapanese, IDS_FIXED_FONT_FAMILY_JAPANESE},
@@ -71,7 +72,7 @@ const FontDefault kFontDefaults[] = {
     {prefs::kWebKitCursiveFontFamilyTraditionalHan,
      IDS_CURSIVE_FONT_FAMILY_TRADITIONAL_HAN},
 #endif
-#if BUILDFLAG(IS_CHROMEOS)
+#if BUILDFLAG(IS_CHROMEOS_ASH)
     {prefs::kWebKitStandardFontFamilyArabic, IDS_STANDARD_FONT_FAMILY_ARABIC},
     {prefs::kWebKitSerifFontFamilyArabic, IDS_SERIF_FONT_FAMILY_ARABIC},
     {prefs::kWebKitSansSerifFontFamilyArabic,
