@@ -5,6 +5,7 @@ import { expect } from 'chai';
 import * as dns from 'node:dns';
 
 import { collectStreamBody, getResponse, respondNTimes, respondOnce } from './lib/net-helpers';
+import { defer } from './lib/spec-helpers';
 
 // See https://github.com/nodejs/node/issues/40702.
 dns.setDefaultResultOrder('ipv4first');
@@ -659,6 +660,67 @@ describe('net module (session)', () => {
         credentials: 'include'
       });
       expect(response.headers.get('x-cookie')).to.equal(`wild_cookie=${cookieVal}`);
+    });
+
+    describe('webRequest', () => {
+      afterEach(() => {
+        session.defaultSession.webRequest.onBeforeRequest(null);
+      });
+
+      it('triggers webRequest handlers for https', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        await expect(net.fetch('https://foo')).to.eventually.be.rejectedWith('net::ERR_BLOCKED_BY_CLIENT');
+      });
+
+      it('triggers webRequest handlers for intercepted https', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        session.defaultSession.protocol.handle('https', () => new Response());
+        defer(() => {
+          session.defaultSession.protocol.unhandle('https');
+        });
+
+        await expect(net.fetch('https://foo')).to.eventually.be.rejectedWith('net::ERR_BLOCKED_BY_CLIENT');
+      });
+
+      it('triggers webRequest handlers for file urls', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        await expect(net.fetch('file://foo')).to.eventually.be.rejectedWith('net::ERR_BLOCKED_BY_CLIENT');
+      });
+
+      it('triggers webRequest handlers for intercepted file urls', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        session.defaultSession.protocol.handle('file', () => new Response());
+        defer(() => {
+          session.defaultSession.protocol.unhandle('file');
+        });
+
+        await expect(net.fetch('file://foo')).to.eventually.be.rejectedWith('net::ERR_BLOCKED_BY_CLIENT');
+      });
+
+      it('triggers webRequest handlers for registered protocols', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        session.defaultSession.protocol.handle('custom-protocol', () => new Response());
+        defer(() => {
+          session.defaultSession.protocol.unhandle('custom-protocol');
+        });
+
+        await expect(net.fetch('custom-protocol://foo')).to.eventually.be.rejectedWith('net::ERR_BLOCKED_BY_CLIENT');
+      });
     });
   });
 });
