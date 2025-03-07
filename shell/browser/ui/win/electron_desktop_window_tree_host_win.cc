@@ -6,6 +6,7 @@
 
 #include "base/win/windows_version.h"
 #include "electron/buildflags/buildflags.h"
+#include "shell/browser/api/electron_api_web_contents.h"
 #include "shell/browser/native_window_views.h"
 #include "shell/browser/ui/views/win_frame_view.h"
 #include "shell/browser/win/dark_mode.h"
@@ -116,6 +117,12 @@ bool ElectronDesktopWindowTreeHostWin::HandleMouseEvent(ui::MouseEvent* event) {
     bool prevent_default = false;
     native_window_view_->NotifyWindowSystemContextMenu(event->x(), event->y(),
                                                        &prevent_default);
+    // If the user prevents default behavior, emit contextmenu event to
+    // allow bringing up the custom menu.
+    if (prevent_default) {
+      electron::api::WebContents::SetDisableDraggableRegions(true);
+      views::DesktopWindowTreeHostWin::HandleMouseEvent(event);
+    }
     return prevent_default;
   }
 

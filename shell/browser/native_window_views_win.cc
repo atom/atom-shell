@@ -10,6 +10,7 @@
 #include "base/win/scoped_handle.h"
 #include "base/win/windows_version.h"
 #include "content/public/browser/browser_accessibility_state.h"
+#include "shell/browser/api/electron_api_web_contents.h"
 #include "shell/browser/browser.h"
 #include "shell/browser/native_window_views.h"
 #include "shell/browser/ui/views/root_view.h"
@@ -288,6 +289,11 @@ bool NativeWindowViews::PreHandleMSG(UINT message,
 
       return false;
     }
+    case WM_RBUTTONUP: {
+      if (!has_frame())
+        electron::api::WebContents::SetDisableDraggableRegions(false);
+      return false;
+    }
     case WM_GETMINMAXINFO: {
       WINDOWPLACEMENT wp;
       wp.length = sizeof(WINDOWPLACEMENT);
@@ -411,10 +417,16 @@ bool NativeWindowViews::PreHandleMSG(UINT message,
       return false;
     }
     case WM_CONTEXTMENU: {
-      bool prevent_default = false;
-      NotifyWindowSystemContextMenu(GET_X_LPARAM(l_param),
-                                    GET_Y_LPARAM(l_param), &prevent_default);
-      return prevent_default;
+      // We don't want to trigger system-context-menu here if we have a
+      // frameless window as it'll already be emitted in
+      // ElectronDesktopWindowTreeHostWin::HandleMouseEvent.
+      if (has_frame()) {
+        bool prevent_default = false;
+        NotifyWindowSystemContextMenu(GET_X_LPARAM(l_param),
+                                      GET_Y_LPARAM(l_param), &prevent_default);
+        return prevent_default;
+      }
+      return false;
     }
     case WM_SYSCOMMAND: {
       // Mask is needed to account for double clicking title bar to maximize
