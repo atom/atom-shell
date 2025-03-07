@@ -36,6 +36,7 @@ ProxyingURLLoaderFactory::InProgressRequest::FollowRedirectParams::
 
 ProxyingURLLoaderFactory::InProgressRequest::InProgressRequest(
     ProxyingURLLoaderFactory* factory,
+    mojo::PendingRemote<network::mojom::URLLoaderFactory> target_factory,
     uint64_t web_request_id,
     int32_t frame_routing_id,
     int32_t network_service_request_id,
@@ -45,6 +46,7 @@ ProxyingURLLoaderFactory::InProgressRequest::InProgressRequest(
     mojo::PendingReceiver<network::mojom::URLLoader> loader_receiver,
     mojo::PendingRemote<network::mojom::URLLoaderClient> client)
     : factory_(factory),
+      target_factory_(std::move(target_factory)),
       request_(request),
       original_initiator_(request.request_initiator),
       request_id_(web_request_id),
@@ -82,7 +84,10 @@ ProxyingURLLoaderFactory::InProgressRequest::InProgressRequest(
       frame_routing_id_(frame_routing_id),
       proxied_loader_receiver_(this),
       for_cors_preflight_(true),
-      has_any_extra_headers_listeners_(true) {}
+      has_any_extra_headers_listeners_(true) {
+  factory_->target_factory_->Clone(
+      target_factory_.BindNewPipeAndPassReceiver());
+}
 
 ProxyingURLLoaderFactory::InProgressRequest::~InProgressRequest() {
   // This is important to ensure that no outstanding blocking requests continue
@@ -492,7 +497,7 @@ void ProxyingURLLoaderFactory::InProgressRequest::ContinueToStartRequest(
     return;
   }
 
-  if (!target_loader_.is_bound() && factory_->target_factory_.is_bound()) {
+  if (!target_loader_.is_bound() && target_factory_.is_bound()) {
     // No extensions have cancelled us up to this point, so it's now OK to
     // initiate the real network request.
     uint32_t options = options_;
@@ -500,7 +505,7 @@ void ProxyingURLLoaderFactory::InProgressRequest::ContinueToStartRequest(
     // might, so we need to set the option on the loader.
     if (has_any_extra_headers_listeners_)
       options |= network::mojom::kURLLoadOptionUseHeaderClient;
-    factory_->target_factory_->CreateLoaderAndStart(
+    target_factory_->CreateLoaderAndStart(
         target_loader_.BindNewPipeAndPassReceiver(),
         network_service_request_id_, options, request_,
         proxied_client_receiver_.BindNewPipeAndPassRemote(),
@@ -793,24 +798,22 @@ void ProxyingURLLoaderFactory::CreateLoaderAndStart(
     request.load_flags |= net::LOAD_IGNORE_LIMITS;
   }
 
+  mojo::PendingRemote<network::mojom::URLLoaderFactory> request_target_factory;
+
   // Check if user has intercepted this scheme.
   bool bypass_custom_protocol_handlers =
       options & kBypassCustomProtocolHandlers;
   if (!bypass_custom_protocol_handlers) {
     auto it = intercepted_handlers_->find(request.url.scheme_piece());
     if (it != intercepted_handlers_->end()) {
-      mojo::PendingRemote<network::mojom::URLLoaderFactory> loader_remote;
-      this->Clone(loader_remote.InitWithNewPipeAndPassReceiver());
-
-      // <scheme, <type, handler>>
-      it->second.second.Run(
-          request,
-          base::BindOnce(&ElectronURLLoaderFactory::StartLoading,
-                         std::move(loader), request_id, options, request,
-                         std::move(client), traffic_annotation,
-                         std::move(loader_remote), it->second.first));
-      return;
+      request_target_factory =
+          ElectronURLLoaderFactory::Create(it->second.first, it->second.second);
     }
+  }
+
+  if (!request_target_factory.is_valid()) {
+    target_factory_->Clone(
+        request_target_factory.InitWithNewPipeAndPassReceiver());
   }
 
   // The loader of ServiceWorker forbids loading scripts from file:// URLs, and
@@ -826,9 +829,11 @@ void ProxyingURLLoaderFactory::CreateLoaderAndStart(
 
   if (!web_request_api()->HasListener()) {
     // Pass-through to the original factory.
-    target_factory_->CreateLoaderAndStart(std::move(loader), request_id,
-                                          options, request, std::move(client),
-                                          traffic_annotation);
+    mojo::Remote<network::mojom::URLLoaderFactory> target_factory(
+        std::move(request_target_factory));
+    target_factory->CreateLoaderAndStart(std::move(loader), request_id, options,
+                                         request, std::move(client),
+                                         traffic_annotation);
     return;
   }
 
@@ -848,8 +853,9 @@ void ProxyingURLLoaderFactory::CreateLoaderAndStart(
   auto result = requests_.emplace(
       web_request_id,
       std::make_unique<InProgressRequest>(
-          this, web_request_id, frame_routing_id_, request_id, options, request,
-          traffic_annotation, std::move(loader), std::move(client)));
+          this, std::move(request_target_factory), web_request_id,
+          frame_routing_id_, request_id, options, request, traffic_annotation,
+          std::move(loader), std::move(client)));
   result.first->second->Restart();
 }
 
