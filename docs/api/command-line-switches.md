@@ -48,6 +48,10 @@ Disables the disk cache for HTTP requests.
 
 Disable HTTP/2 and SPDY/3.1 protocols.
 
+### --disable-geolocation-mac
+
+Disables the Geolocation API on macOS. Has no effect on other platforms.
+
 ### --disable-renderer-backgrounding
 
 Prevents Chromium from lowering the priority of invisible pages' renderer
