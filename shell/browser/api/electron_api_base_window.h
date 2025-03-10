@@ -252,6 +252,7 @@ class BaseWindow : public gin_helper::TrackableObject<BaseWindow>,
   bool SetThumbnailClip(const gfx::Rect& region);
   bool SetThumbnailToolTip(const std::string& tooltip);
   void SetAppDetails(const gin_helper::Dictionary& options);
+  bool PreventShutdown(const std::string& tooltip);
 #endif
 
 #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_LINUX)
