@@ -1527,20 +1527,7 @@ void NativeWindowViews::SetVisibleOnAllWorkspaces(
 }
 
 bool NativeWindowViews::IsVisibleOnAllWorkspaces() const {
-#if BUILDFLAG(IS_LINUX)
-  if (IsX11()) {
-    // Use the presence/absence of _NET_WM_STATE_STICKY in _NET_WM_STATE to
-    // determine whether the current window is visible on all workspaces.
-    x11::Atom sticky_atom = x11::GetAtom("_NET_WM_STATE_STICKY");
-    std::vector<x11::Atom> wm_states;
-    auto* connection = x11::Connection::Get();
-    connection->GetArrayProperty(
-        static_cast<x11::Window>(GetAcceleratedWidget()),
-        x11::GetAtom("_NET_WM_STATE"), &wm_states);
-    return base::Contains(wm_states, sticky_atom);
-  }
-#endif
-  return false;
+  return widget()->IsVisibleOnAllWorkspaces();
 }
 
 content::DesktopMediaID NativeWindowViews::GetDesktopMediaID() const {
