@@ -1,0 +1,30 @@
+name: Pipeline Segment - Electron Clean
+
+on:
+  workflow_call:
+    inputs:
+      target-platform:
+        type: string
+        description: 'Platform to run on, can be macos or linux'
+        required: true
+      target-arch:
+        type: string
+        description: 'Arch to build for, can be x64, arm64 or arm'
+        required: true
+
+concurrency:
+  group: electron-clean-${{ inputs.target-platform }}-${{ inputs.target-arch }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !endsWith(github.ref, '-x-y') }}
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type: ${{ inputs.target-platform == 'macos' && fromJSON('["darwin","mas"]') || fromJSON('["linux"]') }}
+    steps:
+    - uses: geekyeggo/delete-artifact@v5
+      with:
+        name: src_artifacts_${{ matrix.build-type }}_${{ inputs.target-arch }}
+        failOnError: false
