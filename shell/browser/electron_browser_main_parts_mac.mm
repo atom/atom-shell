@@ -8,13 +8,13 @@
 
 #include "base/apple/bundle_locations.h"
 #include "base/apple/foundation_util.h"
+#include "base/command_line.h"
 #include "services/device/public/cpp/geolocation/geolocation_system_permission_manager.h"
 #include "services/device/public/cpp/geolocation/system_geolocation_source_apple.h"
 #include "shell/browser/browser_process_impl.h"
 #include "shell/browser/mac/electron_application.h"
 #include "shell/browser/mac/electron_application_delegate.h"
 #include "ui/base/l10n/l10n_util_mac.h"
-
 namespace electron {
 
 static ElectronApplicationDelegate* __strong delegate_;
@@ -32,10 +32,15 @@ void ElectronBrowserMainParts::PreCreateMainMessageLoop() {
       setObject:@"NO"
          forKey:@"NSTreatUnknownArgumentsAsOpen"];
 
-  if (!device::GeolocationSystemPermissionManager::GetInstance()) {
-    device::GeolocationSystemPermissionManager::SetInstance(
-        device::SystemGeolocationSourceApple::
-            CreateGeolocationSystemPermissionManager());
+  auto* command_line = base::CommandLine::ForCurrentProcess();
+  bool disable_geolocation = command_line->HasSwitch("disable-geolocation-mac");
+
+  if (!disable_geolocation) {
+    if (!device::GeolocationSystemPermissionManager::GetInstance()) {
+      device::GeolocationSystemPermissionManager::SetInstance(
+          device::SystemGeolocationSourceApple::
+              CreateGeolocationSystemPermissionManager());
+    }
   }
 }
 
