@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "shell/browser/api/electron_api_base_window.h"
+#include "shell/browser/api/electron_api_web_frame_main.h"
 #include "shell/browser/native_window_views.h"
 #include "ui/display/screen.h"
 
@@ -20,6 +21,7 @@ MenuViews::MenuViews(gin::Arguments* args) : Menu(args) {}
 MenuViews::~MenuViews() = default;
 
 void MenuViews::PopupAt(BaseWindow* window,
+                        std::optional<WebFrameMain*> frame,
                         int x,
                         int y,
                         int positioning_item,

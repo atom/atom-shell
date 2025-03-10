@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "shell/browser/api/electron_api_base_window.h"
+#include "shell/browser/api/electron_api_web_frame_main.h"
 #include "shell/browser/api/ui_event.h"
 #include "shell/browser/javascript_environment.h"
 #include "shell/browser/native_window.h"
@@ -16,6 +17,7 @@
 #include "shell/common/gin_converters/file_path_converter.h"
 #include "shell/common/gin_converters/gurl_converter.h"
 #include "shell/common/gin_converters/image_converter.h"
+#include "shell/common/gin_converters/optional_converter.h"
 #include "shell/common/gin_helper/dictionary.h"
 #include "shell/common/gin_helper/object_template_builder.h"
 #include "shell/common/node_includes.h"

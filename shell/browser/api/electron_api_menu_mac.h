@@ -13,6 +13,7 @@
 
 namespace electron {
 class NativeWindow;
+class WebFrameMain;
 
 namespace api {
 
@@ -23,12 +24,14 @@ class MenuMac : public Menu {
 
   // Menu
   void PopupAt(BaseWindow* window,
+               std::optional<WebFrameMain*> frame,
                int x,
                int y,
                int positioning_item,
                ui::mojom::MenuSourceType source_type,
                base::OnceClosure callback) override;
   void PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
+                 const base::WeakPtr<WebFrameMain>& frame,
                  int32_t window_id,
                  int x,
                  int y,

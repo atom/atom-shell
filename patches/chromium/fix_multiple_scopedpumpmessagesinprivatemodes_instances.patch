@@ -1,0 +1,51 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Calvin Watford <watfordcalvin@gmail.com>
+Date: Wed, 5 Mar 2025 15:26:28 -0700
+Subject: fix: multiple ScopedPumpMessagesInPrivateModes instances
+
+Context: When swapping `Menu.popup` to use `ui::ShowContextMenu`, we
+found that its use of `ScopedPumpMessagesInPrivateModes` may potentially
+be used multiple times simultaneously. This class was designed to work
+with only one global instance.
+
+This patch adds a global reference count to keep track of
+`ScopedPumpMessagesInPrivateModes` instances and gate its
+enable/disable behavior on this reference count.
+
+diff --git a/base/message_loop/message_pump_apple.mm b/base/message_loop/message_pump_apple.mm
+index 52ed68ac3150bdeef3c5032f3f5f7df3d5aaac51..1658aece3e8fbcef89944a849e311f7949a68de9 100644
+--- a/base/message_loop/message_pump_apple.mm
++++ b/base/message_loop/message_pump_apple.mm
+@@ -760,20 +760,29 @@ explicit OptionalAutoreleasePool(MessagePumpCFRunLoopBase* pump) {
+ 
+ #else
+ 
++static int g_private_mode_ref_count = 0;
++
+ ScopedPumpMessagesInPrivateModes::ScopedPumpMessagesInPrivateModes() {
+   DCHECK(g_app_pump);
+-  DCHECK_EQ(kNSApplicationModalSafeModeMask, g_app_pump->GetModeMask());
+   // Pumping events in private runloop modes is known to interact badly with
+   // app modal windows like NSAlert.
+   if (NSApp.modalWindow) {
+     return;
+   }
+-  g_app_pump->SetModeMask(kAllModesMask);
++
++  g_private_mode_ref_count += 1;
++  if (g_private_mode_ref_count == 1) {
++    g_app_pump->SetModeMask(kAllModesMask);
++  }
+ }
+ 
+ ScopedPumpMessagesInPrivateModes::~ScopedPumpMessagesInPrivateModes() {
+   DCHECK(g_app_pump);
+-  g_app_pump->SetModeMask(kNSApplicationModalSafeModeMask);
++  DCHECK(g_private_mode_ref_count > 0);
++  g_private_mode_ref_count -= 1;
++  if (g_private_mode_ref_count == 0) {
++    g_app_pump->SetModeMask(kNSApplicationModalSafeModeMask);
++  }
+ }
+ 
+ int ScopedPumpMessagesInPrivateModes::GetModeMaskForTest() {

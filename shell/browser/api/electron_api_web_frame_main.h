@@ -73,6 +73,10 @@ class WebFrameMain final : public gin::Wrappable<WebFrameMain>,
 
   content::RenderFrameHost* render_frame_host() const;
 
+  base::WeakPtr<WebFrameMain> GetWeakPtr() {
+    return weak_factory_.GetWeakPtr();
+  }
+
   // disable copy
   WebFrameMain(const WebFrameMain&) = delete;
   WebFrameMain& operator=(const WebFrameMain&) = delete;

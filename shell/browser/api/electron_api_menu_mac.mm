@@ -11,11 +11,15 @@
 #include "base/strings/sys_string_conversions.h"
 #include "base/task/current_thread.h"
 #include "base/task/sequenced_task_runner.h"
+#include "content/app_shim_remote_cocoa/render_widget_host_view_cocoa.h"  // nogncheck
+#include "content/browser/renderer_host/render_widget_host_view_mac.h"  // nogncheck
 #include "content/public/browser/browser_task_traits.h"
 #include "shell/browser/api/electron_api_base_window.h"
+#include "shell/browser/api/electron_api_web_frame_main.h"
 #include "shell/browser/native_window.h"
 #include "shell/common/keyboard_util.h"
 #include "shell/common/node_includes.h"
+#include "ui/base/cocoa/menu_utils.h"
 
 namespace {
 
@@ -48,6 +52,7 @@ MenuMac::MenuMac(gin::Arguments* args) : Menu(args) {}
 MenuMac::~MenuMac() = default;
 
 void MenuMac::PopupAt(BaseWindow* window,
+                      std::optional<WebFrameMain*> frame,
                       int x,
                       int y,
                       int positioning_item,
@@ -57,14 +62,19 @@ void MenuMac::PopupAt(BaseWindow* window,
   if (!native_window)
     return;
 
+  base::WeakPtr<WebFrameMain> weak_frame;
+  if (frame && frame.value()) {
+    weak_frame = frame.value()->GetWeakPtr();
+  }
+
   // Make sure the Menu object would not be garbage-collected until the callback
   // has run.
   base::OnceClosure callback_with_ref = BindSelfToClosure(std::move(callback));
 
-  auto popup =
-      base::BindOnce(&MenuMac::PopupOnUI, weak_factory_.GetWeakPtr(),
-                     native_window->GetWeakPtr(), window->weak_map_id(), x, y,
-                     positioning_item, std::move(callback_with_ref));
+  auto popup = base::BindOnce(&MenuMac::PopupOnUI, weak_factory_.GetWeakPtr(),
+                              native_window->GetWeakPtr(), weak_frame,
+                              window->weak_map_id(), x, y, positioning_item,
+                              std::move(callback_with_ref));
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
                                                            std::move(popup));
 }
@@ -95,6 +105,7 @@ v8::Local<v8::Value> Menu::GetUserAcceleratorAt(int command_id) const {
 }
 
 void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
+                        const base::WeakPtr<WebFrameMain>& frame,
                         int32_t window_id,
                         int x,
                         int y,
@@ -145,18 +156,27 @@ void MenuMac::PopupOnUI(const base::WeakPtr<NativeWindow>& native_window,
     position.x = position.x - [menu size].width;
 
   [popup_controllers_[window_id] setCloseCallback:std::move(close_callback)];
-  // Make sure events can be pumped while the menu is up.
-  base::CurrentThread::ScopedAllowApplicationTasksInNativeNestedLoop allow;
 
-  // One of the events that could be pumped is |window.close()|.
-  // User-initiated event-tracking loops protect against this by
-  // setting flags in -[CrApplication sendEvent:], but since
-  // web-content menus are initiated by IPC message the setup has to
-  // be done manually.
-  base::mac::ScopedSendingEvent sendingEventScoper;
+  if (frame) {
+    auto* rfh = frame->render_frame_host()->GetOutermostMainFrameOrEmbedder();
+    if (rfh->IsRenderFrameLive()) {
+      auto* rwhvm =
+          static_cast<content::RenderWidgetHostViewMac*>(rfh->GetView());
+      RenderWidgetHostViewCocoa* cocoa_view = rwhvm->GetInProcessNSView();
+      view = cocoa_view;
+    }
+  }
 
-  // Don't emit unresponsive event when showing menu.
-  [menu popUpMenuPositioningItem:item atLocation:position inView:view];
+  NSEvent* dummy_event = [NSEvent mouseEventWithType:NSEventTypeRightMouseDown
+                                            location:position
+                                       modifierFlags:0
+                                           timestamp:0
+                                        windowNumber:nswindow.windowNumber
+                                             context:nil
+                                         eventNumber:0
+                                          clickCount:1
+                                            pressure:0];
+  ui::ShowContextMenu(menu, dummy_event, view, true);
 }
 
 void MenuMac::ClosePopupAt(int32_t window_id) {
