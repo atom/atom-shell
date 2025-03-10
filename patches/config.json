@@ -8,7 +8,6 @@
   { "patch_dir": "src/electron/patches/nan", "repo": "src/third_party/nan" },
   { "patch_dir": "src/electron/patches/perfetto", "repo": "src/third_party/perfetto" },
   { "patch_dir": "src/electron/patches/squirrel.mac", "repo": "src/third_party/squirrel.mac" },
-  { "patch_dir": "src/electron/patches/Mantle", "repo": "src/third_party/squirrel.mac/vendor/Mantle" },
   { "patch_dir": "src/electron/patches/ReactiveObjC", "repo": "src/third_party/squirrel.mac/vendor/ReactiveObjC" },
   { "patch_dir": "src/electron/patches/webrtc", "repo": "src/third_party/webrtc" },
   { "patch_dir": "src/electron/patches/reclient-configs", "repo": "src/third_party/engflow-reclient-configs" },
