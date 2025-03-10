@@ -128,11 +128,13 @@ void ElectronBrowserMainParts::DetectOzonePlatform() {
         command_line->GetSwitchValueASCII(switches::kOzonePlatformHint);
     if (ozone_platform_hint.empty()) {
       env->GetVar(kElectronOzonePlatformHint, &ozone_platform_hint);
+
+      if (ozone_platform_hint.empty()) {
+        ozone_platform_hint = "auto";
+      }
     }
-    if (!ozone_platform_hint.empty()) {
-      command_line->AppendSwitchASCII(
-          switches::kOzonePlatform, MaybeFixPlatformName(ozone_platform_hint));
-    }
+    command_line->AppendSwitchASCII(switches::kOzonePlatform,
+                                    MaybeFixPlatformName(ozone_platform_hint));
   }
 
   std::string desktop_startup_id;
