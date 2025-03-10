@@ -17,6 +17,9 @@
 #include "shell/browser/native_window_views.h"
 #include "shell/browser/ui/views/client_frame_view_linux.h"
 #include "third_party/skia/include/core/SkRegion.h"
+#include "ui/aura/window_delegate.h"
+#include "ui/base/hit_test.h"
+#include "ui/display/screen.h"
 #include "ui/gfx/geometry/rect.h"
 #include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/linux/linux_ui.h"
@@ -251,13 +254,45 @@ void ElectronDesktopWindowTreeHostLinux::DispatchEvent(ui::Event* event) {
         is_mousedown &&
         (mouse_event->IsRightMouseButton() ||
          (mouse_event->IsLeftMouseButton() && mouse_event->IsControlDown()));
-    if (is_system_menu_trigger) {
-      electron::api::WebContents::SetDisableDraggableRegions(true);
+
+    if (!is_system_menu_trigger) {
       views::DesktopWindowTreeHostLinux::DispatchEvent(event);
-      electron::api::WebContents::SetDisableDraggableRegions(false);
       return;
     }
+
+    // Determine the non-client area and dispatch 'system-context-menu'.
+    if (GetContentWindow() && GetContentWindow()->delegate()) {
+      ui::LocatedEvent* located_event = event->AsLocatedEvent();
+      gfx::PointF location = located_event->location_f();
+      gfx::PointF location_in_dip =
+          GetRootTransform().InverseMapPoint(location).value_or(location);
+      int hit_test_code = GetContentWindow()->delegate()->GetNonClientComponent(
+          gfx::ToRoundedPoint(location_in_dip));
+      if (hit_test_code != HTCLIENT && hit_test_code != HTNOWHERE) {
+        bool prevent_default = false;
+        native_window_view_->NotifyWindowSystemContextMenu(
+            located_event->x(), located_event->y(), &prevent_default);
+
+        // If |prevent_default| is true, then the user might want to show a
+        // custom menu - proceed propagation and emit context-menu in the
+        // renderer. Otherwise, show the native system window controls menu.
+        if (prevent_default) {
+          electron::api::WebContents::SetDisableDraggableRegions(true);
+          views::DesktopWindowTreeHostLinux::DispatchEvent(event);
+          electron::api::WebContents::SetDisableDraggableRegions(false);
+        } else {
+          if (ui::OzonePlatform::GetInstance()
+                  ->GetPlatformRuntimeProperties()
+                  .supports_server_window_menus) {
+            views::DesktopWindowTreeHostLinux::ShowWindowControlsMenu(
+                display::Screen::GetScreen()->GetCursorScreenPoint());
+          }
+        }
+        return;
+      }
+    }
   }
+
   views::DesktopWindowTreeHostLinux::DispatchEvent(event);
 }
 
