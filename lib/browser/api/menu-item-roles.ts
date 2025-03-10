@@ -8,7 +8,7 @@ type RoleId = 'about' | 'close' | 'copy' | 'cut' | 'delete' | 'forcereload' | 'f
   'paste' | 'pasteandmatchstyle' | 'quit' | 'redo' | 'reload' | 'resetzoom' | 'selectall' | 'services' | 'recentdocuments' | 'clearrecentdocuments' |
   'showsubstitutions' | 'togglesmartquotes' | 'togglesmartdashes' | 'toggletextreplacement' | 'startspeaking' | 'stopspeaking' |
   'toggledevtools' | 'togglefullscreen' | 'undo' | 'unhide' | 'window' | 'zoom' | 'zoomin' | 'zoomout' | 'togglespellchecker' |
-  'appmenu' | 'filemenu' | 'editmenu' | 'viewmenu' | 'windowmenu' | 'sharemenu'
+  'appmenu' | 'filemenu' | 'editmenu' | 'viewmenu' | 'windowmenu' | 'sharemenu' | 'palette' | 'header'
 interface Role {
   label: string;
   accelerator?: string;
@@ -317,6 +317,13 @@ export const roleList: Record<RoleId, Role> = {
   sharemenu: {
     label: 'Share',
     submenu: []
+  },
+  palette: {
+    label: 'Palette',
+    submenu: []
+  },
+  header: {
+    label: 'Section Header'
   }
 };
 
