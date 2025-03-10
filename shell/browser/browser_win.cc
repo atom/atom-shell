@@ -17,6 +17,7 @@
 #include "base/base_paths.h"
 #include "base/command_line.h"
 #include "base/file_version_info.h"
+#include "base/files/file_enumerator.h"
 #include "base/files/file_path.h"
 #include "base/logging.h"
 #include "base/path_service.h"
@@ -314,20 +315,66 @@ void GetApplicationInfoForProtocolUsingAssocQuery(
               app_display_name, std::move(promise));
 }
 
+std::string ResolveShortcut(const base::FilePath& lnk_path) {
+  std::string target_path;
+
+  CComPtr<IShellLink> shell_link;
+  if (SUCCEEDED(CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER,
+                                 IID_PPV_ARGS(&shell_link)))) {
+    CComPtr<IPersistFile> persist_file;
+    if (SUCCEEDED(shell_link->QueryInterface(IID_PPV_ARGS(&persist_file)))) {
+      if (SUCCEEDED(persist_file->Load(lnk_path.value().c_str(), STGM_READ))) {
+        WCHAR resolved_path[MAX_PATH];
+        if (SUCCEEDED(
+                shell_link->GetPath(resolved_path, MAX_PATH, nullptr, 0))) {
+          target_path = base::FilePath(resolved_path).MaybeAsASCII();
+        }
+      }
+    }
+  }
+
+  return target_path;
+}
+
 void Browser::AddRecentDocument(const base::FilePath& path) {
   CComPtr<IShellItem> item;
   HRESULT hr = SHCreateItemFromParsingName(path.value().c_str(), nullptr,
                                            IID_PPV_ARGS(&item));
   if (SUCCEEDED(hr)) {
-    SHARDAPPIDINFO info;
-    info.psi = item;
-    info.pszAppID = GetAppUserModelID();
+    SHARDAPPIDINFO info = {item, GetAppUserModelID()};
     SHAddToRecentDocs(SHARD_APPIDINFO, &info);
   }
 }
 
 void Browser::ClearRecentDocuments() {
   SHAddToRecentDocs(SHARD_APPIDINFO, nullptr);
+}
+
+std::vector<std::string> Browser::GetRecentDocuments() {
+  ScopedAllowBlockingForElectron allow_blocking;
+  std::vector<std::string> docs;
+
+  PWSTR recent_path_ptr = nullptr;
+  HRESULT hr =
+      SHGetKnownFolderPath(FOLDERID_Recent, 0, nullptr, &recent_path_ptr);
+  if (SUCCEEDED(hr) && recent_path_ptr) {
+    base::FilePath recent_folder(recent_path_ptr);
+    CoTaskMemFree(recent_path_ptr);
+
+    base::FileEnumerator enumerator(recent_folder, /*recursive=*/false,
+                                    base::FileEnumerator::FILES,
+                                    FILE_PATH_LITERAL("*.lnk"));
+
+    for (base::FilePath file = enumerator.Next(); !file.empty();
+         file = enumerator.Next()) {
+      std::string resolved_path = ResolveShortcut(file);
+      if (!resolved_path.empty()) {
+        docs.push_back(resolved_path);
+      }
+    }
+  }
+
+  return docs;
 }
 
 void Browser::SetAppUserModelID(const std::wstring& name) {

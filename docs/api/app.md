@@ -759,6 +759,21 @@ bar, and on macOS, you can visit it from dock menu.
 
 Clears the recent documents list.
 
+### `app.getRecentDocuments()` _macOS_ _Windows_
+
+Returns `string[]` - An array containing documents in the most recent documents list.
+
+```js
+const { app } = require('electron')
+const path = require('node:path')
+
+const file = path.join(app.getPath('desktop'), 'foo.txt')
+app.addRecentDocument(file)
+
+const recents = app.getRecentDocuments()
+console.log(recents) // ['/path/to/desktop/foo.txt'}
+```
+
 ### `app.setAsDefaultProtocolClient(protocol[, path, args])`
 
 * `protocol` string - The name of your protocol, without `://`. For example,
