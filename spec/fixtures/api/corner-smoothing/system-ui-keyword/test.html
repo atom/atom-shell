@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      /* Page is expected to be exactly 800x600 */
+      html, body {
+        width: 800px;
+        height: 600px;
+        margin: 0;
+        overflow: hidden;
+
+        display: flex;
+        flex-flow: row nowrap;
+        justify-content: space-around;
+        align-items: center;
+      }
+
+      .box {
+        width: 256px;
+        height: 256px;
+        border-radius: 48px;
+
+        background-color: cornflowerblue;
+      }
+
+      .box.rounding-0 {
+        -electron-corner-smoothing: 0%;
+      }
+      .box.rounding-system-ui {
+        -electron-corner-smoothing: system-ui;
+      }
+      .box.rounding-100 {
+        -electron-corner-smoothing: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box rounding-0"></div>
+    <div class="box rounding-system-ui"></div>
+    <div class="box rounding-100"></div>
+  </body>
+</html>

@@ -149,6 +149,7 @@ void WebContentsPreferences::Clear() {
   preload_path_ = std::nullopt;
   v8_cache_options_ = blink::mojom::V8CacheOptions::kDefault;
   deprecated_paste_enabled_ = false;
+  corner_smoothing_css_ = true;
 
 #if BUILDFLAG(IS_MAC)
   scroll_bounce_ = false;
@@ -228,6 +229,8 @@ void WebContentsPreferences::SetFromDictionary(
   if (web_preferences.Get(options::kDisableBlinkFeatures,
                           &disable_blink_features))
     disable_blink_features_ = disable_blink_features;
+  web_preferences.Get(options::kEnableCornerSmoothingCSS,
+                      &corner_smoothing_css_);
 
   base::FilePath::StringType preload_path;
   if (web_preferences.Get(options::kPreloadScript, &preload_path)) {
@@ -478,6 +481,8 @@ void WebContentsPreferences::OverrideWebkitPrefs(
   prefs->v8_cache_options = v8_cache_options_;
 
   prefs->dom_paste_enabled = deprecated_paste_enabled_;
+
+  renderer_prefs->electron_corner_smoothing_css = corner_smoothing_css_;
 }
 
 WEB_CONTENTS_USER_DATA_KEY_IMPL(WebContentsPreferences);

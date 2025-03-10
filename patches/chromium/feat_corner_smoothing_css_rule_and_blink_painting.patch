@@ -1,0 +1,693 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Calvin Watford <watfordcalvin@gmail.com>
+Date: Mon, 9 Dec 2024 16:58:15 -0700
+Subject: feat: Corner Smoothing CSS rule and Blink painting
+
+This patch implements the `-electron-corner-smoothing` CSS rule by
+making three primary changes to Blink:
+
+1. Adds the `-electron-corner-smoothing` CSS rule:
+    * Metadata in `blink/renderer/core/css/css_properties.json5`
+    * Parsing in `blink/renderer/core/css/properties/longhands/longhands_custom.cc`
+    * Other required definitions for all CSS rules (`css_property_id.mojom`, `css_property_equality.cc`)
+
+2. Modifies how Blink paints rounded rectangles:
+    * Augments `blink::FloatRoundedRect` to store smoothness & hook into
+      drawing smooth corners.
+    * Modifies all call sites of `blink::FloatRoundedRect::operator SkRRect`
+      to identify and use smooth rounded corners.
+
+3. Adds a renderer preference / web setting:
+    * Controls whether the CSS rule is available.
+
+diff --git a/third_party/blink/common/renderer_preferences/renderer_preferences_mojom_traits.cc b/third_party/blink/common/renderer_preferences/renderer_preferences_mojom_traits.cc
+index 25cf6b544dcee15a9616b6963eaae0264aba3db6..13d5b30d00ce8dca96eb3bc5454f9d353375d4c6 100644
+--- a/third_party/blink/common/renderer_preferences/renderer_preferences_mojom_traits.cc
++++ b/third_party/blink/common/renderer_preferences/renderer_preferences_mojom_traits.cc
+@@ -128,6 +128,8 @@ bool StructTraits<blink::mojom::RendererPreferencesDataView,
+     return false;
+   }
+ 
++  out->electron_corner_smoothing_css = data.electron_corner_smoothing_css();
++
+   return true;
+ }
+ 
+diff --git a/third_party/blink/public/common/renderer_preferences/renderer_preferences.h b/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
+index cae096396b0635f1c4bba6ac8fee47fd957dc698..03db6cddab5cd1b9f3f7c90390bc53baa9e14b65 100644
+--- a/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
++++ b/third_party/blink/public/common/renderer_preferences/renderer_preferences.h
+@@ -91,6 +91,7 @@ struct BLINK_COMMON_EXPORT RendererPreferences {
+   bool caret_browsing_enabled{false};
+   bool uses_platform_autofill{false};
+   std::vector<uint16_t> explicitly_allowed_network_ports;
++  bool electron_corner_smoothing_css;
+ 
+   RendererPreferences();
+   RendererPreferences(const RendererPreferences& other);
+diff --git a/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h b/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h
+index 33b4bd3f0c9488f1013aea026c7fe559ba750cd8..6b4157199c14a4c276e65512e89f2429253aec5c 100644
+--- a/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h
++++ b/third_party/blink/public/common/renderer_preferences/renderer_preferences_mojom_traits.h
+@@ -275,6 +275,11 @@ struct BLINK_COMMON_EXPORT
+     return data.explicitly_allowed_network_ports;
+   }
+ 
++  static const bool& electron_corner_smoothing_css(
++      const ::blink::RendererPreferences& data) {
++    return data.electron_corner_smoothing_css;
++  }
++
+   static bool Read(blink::mojom::RendererPreferencesDataView,
+                    ::blink::RendererPreferences* out);
+ };
+diff --git a/third_party/blink/public/mojom/renderer_preferences.mojom b/third_party/blink/public/mojom/renderer_preferences.mojom
+index bbcec1dcdaaaf932b3d82c64e8aeb2e7c04b05bf..689205607a763c1d6e040069b1357d84e8ba4bd5 100644
+--- a/third_party/blink/public/mojom/renderer_preferences.mojom
++++ b/third_party/blink/public/mojom/renderer_preferences.mojom
+@@ -201,4 +201,6 @@ struct RendererPreferences {
+   bool uses_platform_autofill = false;
+ 
+   array<uint16> explicitly_allowed_network_ports;
++
++  bool electron_corner_smoothing_css;
+ };
+diff --git a/third_party/blink/public/mojom/use_counter/metrics/css_property_id.mojom b/third_party/blink/public/mojom/use_counter/metrics/css_property_id.mojom
+index d331ef957b2e9c4f3a8c49b7630e08f8420a0411..1cd76bdf8851a16b7d2f875d4c10fb15ee036f81 100644
+--- a/third_party/blink/public/mojom/use_counter/metrics/css_property_id.mojom
++++ b/third_party/blink/public/mojom/use_counter/metrics/css_property_id.mojom
+@@ -48,6 +48,7 @@ enum CSSSampleId {
+     kInternalForcedVisitedColor = 0,
+     kInternalOverflowBlock = 0,
+     kInternalOverflowInline = 0,
++    kElectronCornerSmoothing = 0,
+ 
+     // This CSSSampleId represents page load for CSS histograms. It is recorded once
+     // per page visit for each CSS histogram being logged on the blink side and the
+diff --git a/third_party/blink/public/web/web_settings.h b/third_party/blink/public/web/web_settings.h
+index 0255879e4ae048554041ca03891fbc7ba8484187..8248d8f54eb5d35caa39a306a6477ace6597b03a 100644
+--- a/third_party/blink/public/web/web_settings.h
++++ b/third_party/blink/public/web/web_settings.h
+@@ -284,6 +284,7 @@ class WebSettings {
+   virtual void SetModalContextMenu(bool) = 0;
+   virtual void SetRequireTransientActivationAndAuthorizationForSubAppsAPIs(
+       bool) = 0;
++  virtual void SetCornerSmoothingCSS(bool) = 0;
+ 
+  protected:
+   ~WebSettings() = default;
+diff --git a/third_party/blink/renderer/core/css/css_properties.json5 b/third_party/blink/renderer/core/css/css_properties.json5
+index 6c9f77493feb5e8e4b7735b4b2f229a4ca8432b1..0cf6d126eca5b3d4123259cab3d5bc795320511b 100644
+--- a/third_party/blink/renderer/core/css/css_properties.json5
++++ b/third_party/blink/renderer/core/css/css_properties.json5
+@@ -8935,6 +8935,25 @@
+       converter: "ConvertInternalAlignContentBlock",
+       invalidate: ["layout"],
+     },
++
++    {
++      name: "-electron-corner-smoothing",
++      property_methods: ["ParseSingleValue"],
++      field_group: "*",
++      field_template: "external",
++      // To keep this patch small, Length is used instead of a more descriptive
++      // custom type.
++      // - `system-ui` = `Length::Auto()`
++      // - percent     = `Length::Percent`
++      type_name: "Length",
++      converter: "ConvertCornerSmoothing",
++      keywords: ["system-ui"],
++      default_value: "Length::None()",
++      typedom_types: ["Keyword", "Percentage"],
++      is_border_radius: true,
++      invalidate: ["paint", "border-radius", "clip"],
++    },
++
+     // Aliases; these map to the same CSSPropertyID
+     {
+       name: "-epub-caption-side",
+diff --git a/third_party/blink/renderer/core/css/css_property_equality.cc b/third_party/blink/renderer/core/css/css_property_equality.cc
+index 7cc962e1b47de5c045f7e4b77c1ad4f17f39f4b1..db3c7f349696a1b63e7ca7d0b5c458f354d11331 100644
+--- a/third_party/blink/renderer/core/css/css_property_equality.cc
++++ b/third_party/blink/renderer/core/css/css_property_equality.cc
+@@ -336,6 +336,8 @@ bool CSSPropertyEquality::PropertiesEqual(const PropertyHandle& property,
+       return a.DominantBaseline() == b.DominantBaseline();
+     case CSSPropertyID::kDynamicRangeLimit:
+       return a.GetDynamicRangeLimit() == b.GetDynamicRangeLimit();
++    case CSSPropertyID::kElectronCornerSmoothing:
++      return a.ElectronCornerSmoothing() == b.ElectronCornerSmoothing();
+     case CSSPropertyID::kEmptyCells:
+       return a.EmptyCells() == b.EmptyCells();
+     case CSSPropertyID::kFill:
+diff --git a/third_party/blink/renderer/core/css/properties/longhands/longhands_custom.cc b/third_party/blink/renderer/core/css/properties/longhands/longhands_custom.cc
+index 67bdcc29ef6ab7948cc2a38f49e721553a691cf0..77b80e0511239d9984cd9579863704e386879142 100644
+--- a/third_party/blink/renderer/core/css/properties/longhands/longhands_custom.cc
++++ b/third_party/blink/renderer/core/css/properties/longhands/longhands_custom.cc
+@@ -11657,5 +11657,25 @@ const CSSValue* InternalEmptyLineHeight::ParseSingleValue(
+                                          CSSValueID::kNone>(stream);
+ }
+ 
++const CSSValue* ElectronCornerSmoothing::ParseSingleValue(
++    CSSParserTokenStream& stream,
++    const CSSParserContext& context,
++    const CSSParserLocalContext&) const {
++  // Fail parsing if this rule is disabled by document settings.
++  if (Settings* settings = context.GetDocument()->GetSettings();
++      settings && !settings->GetElectronCornerSmoothingCSS()) {
++    return nullptr;
++  }
++
++  // Try to parse `system-ui` keyword first.
++  if (auto* ident =
++          css_parsing_utils::ConsumeIdent<CSSValueID::kSystemUi>(stream)) {
++    return ident;
++  }
++  // Try to parse as percent.
++  return css_parsing_utils::ConsumePercent(
++      stream, context, CSSPrimitiveValue::ValueRange::kNonNegative);
++}
++
+ }  // namespace css_longhand
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc b/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc
+index 36535bb2fee49b515ba9c45a4fb2a7db9c8a7587..ca73a2e6ca9437a654a16d360dd1da1b6aad8899 100644
+--- a/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc
++++ b/third_party/blink/renderer/core/css/resolver/style_builder_converter.cc
+@@ -3867,4 +3867,12 @@ PositionArea StyleBuilderConverter::ConvertPositionArea(
+   return PositionArea(span[0], span[1], span[2], span[3]);
+ }
+ 
++Length StyleBuilderConverter::ConvertCornerSmoothing(StyleResolverState& state, const CSSValue& value) {
++  auto* ident = DynamicTo<CSSIdentifierValue>(value);
++  if (ident && ident->GetValueID() == CSSValueID::kSystemUi) {
++    return Length::Auto();
++  }
++  return ConvertLength(state, value);
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/css/resolver/style_builder_converter.h b/third_party/blink/renderer/core/css/resolver/style_builder_converter.h
+index 30d9c6e1d848f534f7750e9ffa02d9aa578ee4f6..604759231a3f7613807abff8524d672ff6bed9ee 100644
+--- a/third_party/blink/renderer/core/css/resolver/style_builder_converter.h
++++ b/third_party/blink/renderer/core/css/resolver/style_builder_converter.h
+@@ -423,6 +423,8 @@ class StyleBuilderConverter {
+                                                  const CSSValue&);
+ 
+   static PositionArea ConvertPositionArea(StyleResolverState&, const CSSValue&);
++
++  static Length ConvertCornerSmoothing(StyleResolverState&, const CSSValue&);
+ };
+ 
+ template <typename T>
+diff --git a/third_party/blink/renderer/core/exported/web_settings_impl.cc b/third_party/blink/renderer/core/exported/web_settings_impl.cc
+index 673bafce059a21da812155ef1c6c5577fe211a91..40dfafd5828cac131bb1b4bbc0c8d64f2d09d4f2 100644
+--- a/third_party/blink/renderer/core/exported/web_settings_impl.cc
++++ b/third_party/blink/renderer/core/exported/web_settings_impl.cc
+@@ -809,4 +809,8 @@ void WebSettingsImpl::
+       is_required);
+ }
+ 
++void WebSettingsImpl::SetCornerSmoothingCSS(bool available) {
++  settings_->SetElectronCornerSmoothingCSS(available);
++}
++
+ }  // namespace blink
+diff --git a/third_party/blink/renderer/core/exported/web_settings_impl.h b/third_party/blink/renderer/core/exported/web_settings_impl.h
+index ea27e0cfabfec4cba6d39b4dbfbaca59cae84f8e..48abf7909b9e6b095d431739094bf8145282a01c 100644
+--- a/third_party/blink/renderer/core/exported/web_settings_impl.h
++++ b/third_party/blink/renderer/core/exported/web_settings_impl.h
+@@ -236,6 +236,7 @@ class CORE_EXPORT WebSettingsImpl final : public WebSettings {
+   void SetModalContextMenu(bool) override;
+   void SetRequireTransientActivationAndAuthorizationForSubAppsAPIs(
+       bool) override;
++  void SetCornerSmoothingCSS(bool) override;
+ 
+   bool RenderVSyncNotificationEnabled() const {
+     return render_v_sync_notification_enabled_;
+diff --git a/third_party/blink/renderer/core/exported/web_view_impl.cc b/third_party/blink/renderer/core/exported/web_view_impl.cc
+index 6852fed1b09408857d42727c5bcd422f0fe7322b..1fb4ffe38918d09e6336ca766aa67e45fb96ac02 100644
+--- a/third_party/blink/renderer/core/exported/web_view_impl.cc
++++ b/third_party/blink/renderer/core/exported/web_view_impl.cc
+@@ -3583,6 +3583,9 @@ void WebViewImpl::UpdateRendererPreferences(
+ #endif
+ 
+   MaybePreloadSystemFonts(GetPage());
++
++  GetSettings()->SetCornerSmoothingCSS(
++      renderer_preferences_.electron_corner_smoothing_css);
+ }
+ 
+ void WebViewImpl::SetHistoryIndexAndLength(int32_t history_index,
+diff --git a/third_party/blink/renderer/core/frame/settings.json5 b/third_party/blink/renderer/core/frame/settings.json5
+index e974941a5a2b8e32165af41dc1b5649d09ea18c5..0f27178fb72da94eec62fe31c3a0b8b4191ab4eb 100644
+--- a/third_party/blink/renderer/core/frame/settings.json5
++++ b/third_party/blink/renderer/core/frame/settings.json5
+@@ -1253,5 +1253,10 @@
+       initial: false,
+       type: "bool"
+     },
++    {
++      name: "electronCornerSmoothingCSS",
++      initial: true,
++      invalidate: ["Style"],
++    },
+   ],
+ }
+diff --git a/third_party/blink/renderer/core/paint/box_border_painter.cc b/third_party/blink/renderer/core/paint/box_border_painter.cc
+index 6eb5ad4ddd265c379efde17a0c3a2f954e0d4d82..6534eaecc914f84b5bab6941e487d99cf12c19e5 100644
+--- a/third_party/blink/renderer/core/paint/box_border_painter.cc
++++ b/third_party/blink/renderer/core/paint/box_border_painter.cc
+@@ -245,7 +245,7 @@ FloatRoundedRect CalculateAdjustedInnerBorder(
+       break;
+   }
+ 
+-  return FloatRoundedRect(new_rect, new_radii);
++  return FloatRoundedRect(new_rect, new_radii, inner_border.Smoothness());
+ }
+ 
+ void DrawSolidBorderRect(GraphicsContext& context,
+@@ -281,7 +281,11 @@ void DrawBleedAdjustedDRRect(GraphicsContext& context,
+       // *outside* of inner rrect, all the way to the layer bounds (enclosing
+       // int rect for the clip, in device space).
+       SkPath path;
+-      path.addRRect(SkRRect(inner));
++      if (inner.IsSmooth()) {
++        path.addPath(inner.SmoothPath());
++      } else {
++        path.addRRect(SkRRect(inner));
++      }
+       path.setFillType(SkPathFillType::kInverseWinding);
+ 
+       cc::PaintFlags flags;
+diff --git a/third_party/blink/renderer/core/paint/box_painter_base.cc b/third_party/blink/renderer/core/paint/box_painter_base.cc
+index 7eb05137650f1221a51f6fbc8277b493078bac68..20af18254c2ca301964859c81bccd6d05e8a4487 100644
+--- a/third_party/blink/renderer/core/paint/box_painter_base.cc
++++ b/third_party/blink/renderer/core/paint/box_painter_base.cc
+@@ -319,7 +319,7 @@ void BoxPainterBase::PaintNormalBoxShadow(const PaintInfo& info,
+     context.SetDrawLooper(draw_looper_builder.DetachDrawLooper());
+ 
+     if (has_border_radius) {
+-      FloatRoundedRect rounded_fill_rect(fill_rect, border.GetRadii());
++      FloatRoundedRect rounded_fill_rect(fill_rect, border.GetRadii(), border.Smoothness());
+       ApplySpreadToShadowShape(rounded_fill_rect, shadow.Spread());
+       context.FillRoundedRect(
+           rounded_fill_rect, Color::kBlack,
+@@ -403,7 +403,7 @@ void BoxPainterBase::PaintInsetBoxShadow(const PaintInfo& info,
+ 
+     gfx::RectF inner_rect = bounds.Rect();
+     AdjustRectForSideClipping(inner_rect, shadow, sides_to_include);
+-    FloatRoundedRect inner_rounded_rect(inner_rect, bounds.GetRadii());
++    FloatRoundedRect inner_rounded_rect(inner_rect, bounds.GetRadii(), bounds.Smoothness());
+     ApplySpreadToShadowShape(inner_rounded_rect, -shadow.Spread());
+     if (inner_rounded_rect.IsEmpty()) {
+       // |AutoDarkMode::Disabled()| is used because |shadow_color| has already
+diff --git a/third_party/blink/renderer/core/paint/rounded_border_geometry.cc b/third_party/blink/renderer/core/paint/rounded_border_geometry.cc
+index 1641321846aeaca69df21125141c722f76b27ebc..54461eb691cdd66d92bdd3120a0ee26f6ae43099 100644
+--- a/third_party/blink/renderer/core/paint/rounded_border_geometry.cc
++++ b/third_party/blink/renderer/core/paint/rounded_border_geometry.cc
+@@ -32,6 +32,21 @@ FloatRoundedRect::Radii CalcRadiiFor(const ComputedStyle& style,
+           : gfx::SizeF());
+ }
+ 
++static float SmoothnessFromLength(const Length& length) {
++  if (length.IsNone()) {
++    return 0.0f;
++  }
++  // `system-ui` keyword
++  if (length.HasAuto()) {
++#if BUILDFLAG(IS_MAC)
++    return 0.6f;
++#else
++    return 0.0f;
++#endif  // BUILDFLAG(IS_MAC)
++  }
++  return length.Percent() / 100.0f;
++}
++
+ }  // anonymous namespace
+ 
+ FloatRoundedRect RoundedBorderGeometry::RoundedBorder(
+@@ -42,6 +57,8 @@ FloatRoundedRect RoundedBorderGeometry::RoundedBorder(
+     rounded_rect.SetRadii(
+         CalcRadiiFor(style, gfx::SizeF(border_rect.size), PhysicalBoxSides()));
+     rounded_rect.ConstrainRadii();
++    rounded_rect.SetSmoothness(
++        SmoothnessFromLength(style.ElectronCornerSmoothing()));
+   }
+   return rounded_rect;
+ }
+@@ -55,6 +72,8 @@ FloatRoundedRect RoundedBorderGeometry::PixelSnappedRoundedBorder(
+     rounded_rect.SetRadii(
+         CalcRadiiFor(style, gfx::SizeF(border_rect.size), sides_to_include));
+     rounded_rect.ConstrainRadii();
++    rounded_rect.SetSmoothness(
++        SmoothnessFromLength(style.ElectronCornerSmoothing()));
+   }
+   return rounded_rect;
+ }
+@@ -68,6 +87,8 @@ FloatRoundedRect RoundedBorderGeometry::RoundedInnerBorder(
+                            .set_right(style.BorderRightWidth())
+                            .set_bottom(style.BorderBottomWidth())
+                            .set_left(style.BorderLeftWidth()));
++  rounded_border.SetSmoothness(
++      SmoothnessFromLength(style.ElectronCornerSmoothing()));
+   return rounded_border;
+ }
+ 
+@@ -113,6 +134,8 @@ FloatRoundedRect RoundedBorderGeometry::PixelSnappedRoundedBorderWithOutsets(
+         PixelSnappedRoundedBorder(style, border_rect, sides_to_include);
+     pixel_snapped_rounded_border.Outset(gfx::OutsetsF(adjusted_outsets));
+     rounded_rect.SetRadii(pixel_snapped_rounded_border.GetRadii());
++    rounded_rect.SetSmoothness(
++        SmoothnessFromLength(style.ElectronCornerSmoothing()));
+   }
+   return rounded_rect;
+ }
+diff --git a/third_party/blink/renderer/core/paint/rounded_inner_rect_clipper.cc b/third_party/blink/renderer/core/paint/rounded_inner_rect_clipper.cc
+index f9f0cc13c043e4653d8a616d0ef4f2f776aace74..d4dd4351b763814d86c8e4828cf42204ba0b828d 100644
+--- a/third_party/blink/renderer/core/paint/rounded_inner_rect_clipper.cc
++++ b/third_party/blink/renderer/core/paint/rounded_inner_rect_clipper.cc
+@@ -28,16 +28,16 @@ RoundedInnerRectClipper::RoundedInnerRectClipper(
+                             rect.Bottom() - clip_rect.Rect().y());
+       FloatRoundedRect::Radii top_corner_radii;
+       top_corner_radii.SetTopLeft(clip_rect.GetRadii().TopLeft());
+-      rounded_rect_clips.push_back(
+-          FloatRoundedRect(top_corner, top_corner_radii));
++      rounded_rect_clips.push_back(FloatRoundedRect(
++          top_corner, top_corner_radii, clip_rect.Smoothness()));
+ 
+       gfx::RectF bottom_corner(rect.X().ToFloat(), rect.Y().ToFloat(),
+                                clip_rect.Rect().right() - rect.X().ToFloat(),
+                                clip_rect.Rect().bottom() - rect.Y().ToFloat());
+       FloatRoundedRect::Radii bottom_corner_radii;
+       bottom_corner_radii.SetBottomRight(clip_rect.GetRadii().BottomRight());
+-      rounded_rect_clips.push_back(
+-          FloatRoundedRect(bottom_corner, bottom_corner_radii));
++      rounded_rect_clips.push_back(FloatRoundedRect(
++          bottom_corner, bottom_corner_radii, clip_rect.Smoothness()));
+     }
+ 
+     if (!clip_rect.GetRadii().TopRight().IsEmpty() ||
+@@ -47,16 +47,16 @@ RoundedInnerRectClipper::RoundedInnerRectClipper(
+                             rect.Bottom() - clip_rect.Rect().y());
+       FloatRoundedRect::Radii top_corner_radii;
+       top_corner_radii.SetTopRight(clip_rect.GetRadii().TopRight());
+-      rounded_rect_clips.push_back(
+-          FloatRoundedRect(top_corner, top_corner_radii));
++      rounded_rect_clips.push_back(FloatRoundedRect(
++          top_corner, top_corner_radii, clip_rect.Smoothness()));
+ 
+       gfx::RectF bottom_corner(clip_rect.Rect().x(), rect.Y().ToFloat(),
+                                rect.Right() - clip_rect.Rect().x(),
+                                clip_rect.Rect().bottom() - rect.Y().ToFloat());
+       FloatRoundedRect::Radii bottom_corner_radii;
+       bottom_corner_radii.SetBottomLeft(clip_rect.GetRadii().BottomLeft());
+-      rounded_rect_clips.push_back(
+-          FloatRoundedRect(bottom_corner, bottom_corner_radii));
++      rounded_rect_clips.push_back(FloatRoundedRect(
++          bottom_corner, bottom_corner_radii, clip_rect.Smoothness()));
+     }
+   }
+ 
+diff --git a/third_party/blink/renderer/platform/BUILD.gn b/third_party/blink/renderer/platform/BUILD.gn
+index 871916a18d58d124f41df811e6214836cfab0083..24e9190f391e895f0faec3ab5e0899d2bc2dcf89 100644
+--- a/third_party/blink/renderer/platform/BUILD.gn
++++ b/third_party/blink/renderer/platform/BUILD.gn
+@@ -1623,6 +1623,8 @@ component("platform") {
+     "widget/widget_base.h",
+     "widget/widget_base_client.h",
+     "windows_keyboard_codes.h",
++    "//electron/shell/renderer/electron_smooth_round_rect.h",
++    "//electron/shell/renderer/electron_smooth_round_rect.cc",
+   ]
+ 
+   sources -= blink_platform_avx_files
+diff --git a/third_party/blink/renderer/platform/geometry/float_rounded_rect.h b/third_party/blink/renderer/platform/geometry/float_rounded_rect.h
+index 95d4498a0e0b3484ecbf9fe50f5aef49a68b5dcb..6affe36a214e93ef1128c65456997678ded87faf 100644
+--- a/third_party/blink/renderer/platform/geometry/float_rounded_rect.h
++++ b/third_party/blink/renderer/platform/geometry/float_rounded_rect.h
+@@ -34,6 +34,7 @@
+ #include <iosfwd>
+ #include <optional>
+ 
++#include "electron/shell/renderer/electron_smooth_round_rect.h"
+ #include "third_party/blink/renderer/platform/platform_export.h"
+ #include "third_party/blink/renderer/platform/wtf/allocator/allocator.h"
+ #include "third_party/blink/renderer/platform/wtf/text/wtf_string.h"
+@@ -132,14 +133,19 @@ class PLATFORM_EXPORT FloatRoundedRect {
+       : rect_(rect), radii_(radius) {}
+   FloatRoundedRect(const gfx::RectF& r, float radius_x, float radius_y)
+       : FloatRoundedRect(r, Radii(radius_x, radius_y)) {}
++  FloatRoundedRect(const gfx::RectF& r, const Radii& radii, float smoothness)
++      : rect_(r), radii_(radii), smoothness_(smoothness) {}
+ 
+   constexpr const gfx::RectF& Rect() const { return rect_; }
+   constexpr const Radii& GetRadii() const { return radii_; }
++  constexpr float Smoothness() const { return smoothness_; }
+   constexpr bool IsRounded() const { return !radii_.IsZero(); }
+   constexpr bool IsEmpty() const { return rect_.IsEmpty(); }
++  constexpr bool IsSmooth() const { return smoothness_ > 0.0f; }
+ 
+   void SetRect(const gfx::RectF& rect) { rect_ = rect; }
+   void SetRadii(const Radii& radii) { radii_ = radii; }
++  void SetSmoothness(float smoothness) { smoothness_ = smoothness; }
+ 
+   void Move(const gfx::Vector2dF& offset) { rect_.Offset(offset); }
+ 
+@@ -214,6 +220,14 @@ class PLATFORM_EXPORT FloatRoundedRect {
+   // the rounded border.
+   void ConstrainRadii();
+ 
++  SkPath SmoothPath() const {
++    return electron::DrawSmoothRoundRect(
++        rect_.x(), rect_.y(), rect_.width(), rect_.height(),
++        std::min(smoothness_, 1.0f), radii_.TopLeft().width(),
++        radii_.TopRight().width(), radii_.BottomRight().width(),
++        radii_.BottomLeft().width());
++  }
++
+   explicit operator SkRRect() const;
+   explicit operator gfx::RRectF() const { return gfx::RRectF(SkRRect(*this)); }
+ 
+@@ -222,9 +236,13 @@ class PLATFORM_EXPORT FloatRoundedRect {
+  private:
+   gfx::RectF rect_;
+   Radii radii_;
++  float smoothness_ = 0.0f;
+ };
+ 
+ inline FloatRoundedRect::operator SkRRect() const {
++  DCHECK(!IsSmooth()) << "This smooth rounded rect should be converted to an "
++                         "SkPath using SmoothPath() instead";
++
+   SkRRect rrect;
+ 
+   if (IsRounded()) {
+@@ -259,7 +277,8 @@ constexpr bool operator!=(const FloatRoundedRect::Radii& a,
+ 
+ constexpr bool operator==(const FloatRoundedRect& a,
+                           const FloatRoundedRect& b) {
+-  return a.Rect() == b.Rect() && a.GetRadii() == b.GetRadii();
++  return a.Rect() == b.Rect() && a.GetRadii() == b.GetRadii() &&
++         a.Smoothness() == b.Smoothness();
+ }
+ 
+ constexpr bool operator!=(const FloatRoundedRect& a,
+diff --git a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc
+index 2c93e80934604151d455f864c867f4cc7d7bef8d..95d0b0cb8a1ca1897cf4f0e0962bcf18ab215fe1 100644
+--- a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc
++++ b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc
+@@ -796,7 +796,7 @@ void SynthesizedClip::UpdateLayer(const ClipPaintPropertyNode& clip,
+   CHECK_EQ(layer_->client(), this);
+ 
+   const auto& path = clip.ClipPath();
+-  SkRRect new_rrect(clip.PaintClipRect());
++  FloatRoundedRect new_rrect = clip.PaintClipRect();
+   gfx::Rect layer_rect = gfx::ToEnclosingRect(clip.PaintClipRect().Rect());
+   bool needs_display = false;
+ 
+@@ -810,7 +810,7 @@ void SynthesizedClip::UpdateLayer(const ClipPaintPropertyNode& clip,
+ 
+   if (!path && new_projection.IsIdentityOr2dTranslation()) {
+     gfx::Vector2dF translation = new_projection.To2dTranslation();
+-    new_rrect.offset(translation.x(), translation.y());
++    new_rrect.Move(gfx::Vector2dF(translation.x(), translation.y()));
+     needs_display = !rrect_is_local_ || new_rrect != rrect_;
+     projection_.MakeIdentity();
+     rrect_is_local_ = true;
+@@ -838,7 +838,11 @@ SynthesizedClip::PaintContentsToDisplayList() {
+   flags.setAntiAlias(true);
+   cc_list->StartPaint();
+   if (rrect_is_local_) {
+-    cc_list->push<cc::DrawRRectOp>(rrect_, flags);
++    if (rrect_.IsSmooth()) {
++      cc_list->push<cc::DrawPathOp>(rrect_.SmoothPath(), flags);
++    } else {
++      cc_list->push<cc::DrawRRectOp>(SkRRect(rrect_), flags);
++    }
+   } else {
+     cc_list->push<cc::SaveOp>();
+     if (projection_.IsIdentityOr2dTranslation()) {
+@@ -851,7 +855,11 @@ SynthesizedClip::PaintContentsToDisplayList() {
+       cc_list->push<cc::ClipPathOp>(path_->GetSkPath(), SkClipOp::kIntersect,
+                                     true);
+     }
+-    cc_list->push<cc::DrawRRectOp>(rrect_, flags);
++    if (rrect_.IsSmooth()) {
++      cc_list->push<cc::DrawPathOp>(rrect_.SmoothPath(), flags);
++    } else {
++      cc_list->push<cc::DrawRRectOp>(SkRRect(rrect_), flags);
++    }
+     cc_list->push<cc::RestoreOp>();
+   }
+   cc_list->EndPaintOfUnpaired(gfx::Rect(layer_->bounds()));
+diff --git a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h
+index 718a9d8092395f8acc69b914162d29eedbf1f735..0672acb7db81eaf84226fc32dfff937f89f82ae7 100644
+--- a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h
++++ b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h
+@@ -94,7 +94,7 @@ class SynthesizedClip : public cc::ContentLayerClient {
+   scoped_refptr<cc::PictureLayer> layer_;
+   gfx::Transform projection_;
+   bool rrect_is_local_ = false;
+-  SkRRect rrect_;
++  FloatRoundedRect rrect_;
+   std::optional<Path> path_;
+   CompositorElementId mask_isolation_id_;
+   CompositorElementId mask_effect_id_;
+diff --git a/third_party/blink/renderer/platform/graphics/compositing/paint_chunks_to_cc_layer.cc b/third_party/blink/renderer/platform/graphics/compositing/paint_chunks_to_cc_layer.cc
+index 3492a5cb0aede1cc2bb11e04694121e289d70044..a74d5ee2f9ca15dbd6168e225286d85b0d1067f5 100644
+--- a/third_party/blink/renderer/platform/graphics/compositing/paint_chunks_to_cc_layer.cc
++++ b/third_party/blink/renderer/platform/graphics/compositing/paint_chunks_to_cc_layer.cc
+@@ -551,8 +551,13 @@ ScrollTranslationAction ConversionContext<Result>::StartClip(
+     ApplyTransform(local_transform);
+     const bool antialias = true;
+     if (combined_clip_rect.IsRounded()) {
+-      push<cc::ClipRRectOp>(SkRRect(combined_clip_rect), SkClipOp::kIntersect,
+-                            antialias);
++      if (combined_clip_rect.IsSmooth()) {
++        push<cc::ClipPathOp>(combined_clip_rect.SmoothPath(),
++                             SkClipOp::kIntersect, antialias);
++      } else {
++        push<cc::ClipRRectOp>(SkRRect(combined_clip_rect), SkClipOp::kIntersect,
++                              antialias);
++      }
+     } else {
+       push<cc::ClipRectOp>(gfx::RectFToSkRect(combined_clip_rect.Rect()),
+                            SkClipOp::kIntersect, antialias);
+diff --git a/third_party/blink/renderer/platform/graphics/compositing/property_tree_manager.cc b/third_party/blink/renderer/platform/graphics/compositing/property_tree_manager.cc
+index c77a1b2fa029f69c7607a24c4dd1afb8e0a01e00..8bd659f91171a201bcd4805e98aefb382f982701 100644
+--- a/third_party/blink/renderer/platform/graphics/compositing/property_tree_manager.cc
++++ b/third_party/blink/renderer/platform/graphics/compositing/property_tree_manager.cc
+@@ -930,7 +930,7 @@ std::optional<gfx::RRectF> PropertyTreeManager::ShaderBasedRRect(
+   if (type & CcEffectType::kSyntheticFor2dAxisAlignment) {
+     return std::nullopt;
+   }
+-  if (clip.ClipPath()) {
++  if (clip.ClipPath() || clip.PaintClipRect().IsSmooth()) {
+     return std::nullopt;
+   }
+ 
+diff --git a/third_party/blink/renderer/platform/graphics/graphics_context.cc b/third_party/blink/renderer/platform/graphics/graphics_context.cc
+index 1d0d3310234fe84c0b6ec8c74b6c2106fc49ce57..4ee3d691da74991df88cfb1ad808aa11b8761003 100644
+--- a/third_party/blink/renderer/platform/graphics/graphics_context.cc
++++ b/third_party/blink/renderer/platform/graphics/graphics_context.cc
+@@ -654,11 +654,19 @@ void GraphicsContext::DrawImageRRect(
+     image_flags.setFilterQuality(
+         ComputeFilterQuality(image, dest.Rect(), src_rect));
+     // Shader-based fast path.
+-    canvas_->drawRRect(SkRRect(dest), image_flags);
++    if (dest.IsSmooth()) {
++      canvas_->drawPath(dest.SmoothPath(), image_flags);
++    } else {
++      canvas_->drawRRect(SkRRect(dest), image_flags);
++    }
+   } else {
+     // Clip-based fallback.
+     PaintCanvasAutoRestore auto_restore(canvas_, true);
+-    canvas_->clipRRect(SkRRect(dest), image_flags.isAntiAlias());
++    if (dest.IsSmooth()) {
++      canvas_->clipPath(dest.SmoothPath(), image_flags.isAntiAlias());
++    } else {
++      canvas_->clipRRect(SkRRect(dest), image_flags.isAntiAlias());
++    }
+     image.Draw(canvas_, image_flags, dest.Rect(), src_rect, draw_options);
+   }
+ 
+@@ -815,15 +823,24 @@ void GraphicsContext::FillRoundedRect(const FloatRoundedRect& rrect,
+ 
+   const cc::PaintFlags& fill_flags = ImmutableState()->FillFlags();
+   const SkColor4f sk_color = color.toSkColor4f();
++
+   if (sk_color == fill_flags.getColor4f()) {
+-    DrawRRect(SkRRect(rrect), fill_flags, auto_dark_mode);
++    if (rrect.IsSmooth()) {
++      DrawPath(rrect.SmoothPath(), fill_flags, auto_dark_mode);
++    } else {
++      DrawRRect(SkRRect(rrect), fill_flags, auto_dark_mode);
++    }
+     return;
+   }
+ 
+   cc::PaintFlags flags = fill_flags;
+   flags.setColor(sk_color);
+ 
+-  DrawRRect(SkRRect(rrect), flags, auto_dark_mode);
++  if (rrect.IsSmooth()) {
++    DrawPath(rrect.SmoothPath(), flags, auto_dark_mode);
++  } else {
++    DrawRRect(SkRRect(rrect), flags, auto_dark_mode);
++  }
+ }
+ 
+ namespace {
+@@ -875,6 +892,13 @@ void GraphicsContext::FillDRRect(const FloatRoundedRect& outer,
+                                  const AutoDarkMode& auto_dark_mode) {
+   DCHECK(canvas_);
+ 
++  if (outer.IsSmooth() || inner.IsSmooth()) {
++    PaintCanvasAutoRestore auto_restore(canvas_, true);
++    ClipOutRoundedRect(inner);
++    FillRoundedRect(outer, color, auto_dark_mode);
++    return;
++  }
++
+   const cc::PaintFlags& fill_flags = ImmutableState()->FillFlags();
+   const SkColor4f sk_color = color.toSkColor4f();
+   if (!IsSimpleDRRect(outer, inner)) {
+@@ -909,6 +933,10 @@ void GraphicsContext::FillRectWithRoundedHole(
+     const FloatRoundedRect& rounded_hole_rect,
+     const Color& color,
+     const AutoDarkMode& auto_dark_mode) {
++  if (rounded_hole_rect.IsSmooth()) {
++    FillDRRect(FloatRoundedRect(rect), rounded_hole_rect, color, auto_dark_mode);
++    return;
++  }
+   cc::PaintFlags flags(ImmutableState()->FillFlags());
+   flags.setColor(color.toSkColor4f());
+   canvas_->drawDRRect(SkRRect::MakeRect(gfx::RectFToSkRect(rect)),
+@@ -957,6 +985,10 @@ void GraphicsContext::ClipRoundedRect(const FloatRoundedRect& rrect,
+     ClipRect(gfx::RectFToSkRect(rrect.Rect()), should_antialias, clip_op);
+     return;
+   }
++  if (rrect.IsSmooth()) {
++    ClipPath(rrect.SmoothPath(), should_antialias, clip_op);
++    return;
++  }
+ 
+   ClipRRect(SkRRect(rrect), should_antialias, clip_op);
+ }
+diff --git a/third_party/blink/renderer/platform/graphics/path.cc b/third_party/blink/renderer/platform/graphics/path.cc
+index e97c0ca8e7e9d875ddb81dbcb5515db70d9d6222..b26020f3c65c4f7a9c7c40f17b533e8989e248c8 100644
+--- a/third_party/blink/renderer/platform/graphics/path.cc
++++ b/third_party/blink/renderer/platform/graphics/path.cc
+@@ -500,6 +500,10 @@ void Path::AddEllipse(const gfx::PointF& center,
+ void Path::AddRoundedRect(const FloatRoundedRect& rect, bool clockwise) {
+   if (rect.IsEmpty())
+     return;
++  if (rect.IsSmooth()) {
++    AddPath(rect.SmoothPath(), AffineTransform());
++    return;
++  }
+ 
+   path_.addRRect(SkRRect(rect),
+                  clockwise ? SkPathDirection::kCW : SkPathDirection::kCCW,

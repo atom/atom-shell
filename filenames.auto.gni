@@ -14,6 +14,7 @@ auto_filenames = {
     "docs/api/content-tracing.md",
     "docs/api/context-bridge.md",
     "docs/api/cookies.md",
+    "docs/api/corner-smoothing-css.md",
     "docs/api/crash-reporter.md",
     "docs/api/debugger.md",
     "docs/api/desktop-capturer.md",
