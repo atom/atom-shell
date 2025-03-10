@@ -1,2 +1,4 @@
-console.log(import.meta.url);
-process.exit(0);
+const write = (writable, chunk) => new Promise((resolve) => writable.write(chunk, resolve));
+
+write(process.stdout, `${import.meta.url}\n`)
+  .then(() => process.exit(0));
