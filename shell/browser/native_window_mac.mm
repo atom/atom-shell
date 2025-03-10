@@ -601,11 +601,13 @@ void NativeWindowMac::AttachChildren() {
     if ([child_nswindow parentWindow] == window_)
       continue;
 
-    // Attaching a window as a child window resets its window level, so
-    // save and restore it afterwards.
+    // Attaching a window as a child window resets window levels, so
+    // save and restore them afterwards.
     NSInteger level = window_.level;
+    NSInteger child_level = [child_nswindow level];
     [window_ addChildWindow:child_nswindow ordered:NSWindowAbove];
     [window_ setLevel:level];
+    [child_nswindow setLevel:child_level];
   }
 }
 
