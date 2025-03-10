@@ -146,3 +146,4 @@ reland_lzma_sdk_update_to_24_09.patch
 fix_drag_and_drop_icons_on_windows.patch
 cherry-pick-521faebc8a7c.patch
 cherry-pick-9dacf5694dfd.patch
+revert_blink_fix_over_invalidation_with_view_transitions.patch

@@ -1,0 +1,388 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Xianzhu Wang <wangxianzhu@chromium.org>
+Date: Fri, 14 Feb 2025 08:58:16 -0800
+Subject: Revert "blink: Fix over invalidation with view transitions"
+
+This reverts commit bde2842dd31e89215d395470964797c92773819f.
+
+Reason for revert: The CL caused crbug.com/391907157.
+
+Original change's description:
+> blink: Fix over invalidation with view transitions
+>
+> View Transition conditionally generates the view transition effect node
+> for the LayoutView during the transition. This results in invalidation
+> of it's scrolling background layer at the start/end of the transition.
+>
+> Avoid this by always generating this node for the LayoutView. This is
+> not necessary for the child LayoutObjects. If they are composited, they
+> already have an EffectNode which avoids invalidation from paint property
+> node changes.
+>
+> Fixed: 361370195
+> Change-Id: I1c8c309dea5bb1d2572995bbaafb2fb8003be96e
+> Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/5996658
+> Reviewed-by: Xianzhu Wang <wangxianzhu@chromium.org>
+> Auto-Submit: Khushal Sagar <khushalsagar@chromium.org>
+> Commit-Queue: Khushal Sagar <khushalsagar@chromium.org>
+> Cr-Commit-Position: refs/heads/main@{#1380843}
+
+Bug: 391907157, 361370195
+Change-Id: Ifc7bb6fedb326867e5ed608b2c8152844ae2dd95
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/6262017
+Auto-Submit: Xianzhu Wang <wangxianzhu@chromium.org>
+Commit-Queue: Vladimir Levin <vmpstr@chromium.org>
+Reviewed-by: Vladimir Levin <vmpstr@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1420533}
+
+diff --git a/third_party/blink/renderer/core/paint/paint_property_tree_builder.cc b/third_party/blink/renderer/core/paint/paint_property_tree_builder.cc
+index 4dd99f130cb99355e4d58766a322e8db1e69bca9..9b9851dbb92977d76a842b0a943e969493231275 100644
+--- a/third_party/blink/renderer/core/paint/paint_property_tree_builder.cc
++++ b/third_party/blink/renderer/core/paint/paint_property_tree_builder.cc
+@@ -1834,32 +1834,25 @@ void FragmentPaintPropertyTreeBuilder::UpdateViewTransitionEffect() {
+         properties_->ViewTransitionEffect()
+             ->SelfOrAncestorParticipatesInViewTransition();
+ 
+-    const bool is_view_transition_element =
++    const bool needs_view_transition_effect =
+         full_context_.direct_compositing_reasons &
+         CompositingReason::kViewTransitionElement;
+ 
+-    const bool needs_view_transition_effect =
+-        is_view_transition_element ||
+-        (object_.IsLayoutView() && !IsInLocalSubframe(object_) &&
+-         !object_.GetDocument().IsSVGDocument());
+-
+     if (needs_view_transition_effect) {
+       auto* transition =
+           ViewTransitionUtils::GetTransition(object_.GetDocument());
+-      DCHECK(!is_view_transition_element || transition);
++      DCHECK(transition);
+ 
+       EffectPaintPropertyNode::State state;
++      state.direct_compositing_reasons =
++          CompositingReason::kViewTransitionElement;
+       state.local_transform_space = context_.current.transform;
+       state.output_clip = context_.current.clip;
+       state.compositor_element_id = CompositorElementIdFromUniqueObjectId(
+           object_.UniqueId(),
+           CompositorElementIdNamespace::kViewTransitionElement);
+-      if (is_view_transition_element) {
+-        state.direct_compositing_reasons =
+-            CompositingReason::kViewTransitionElement;
+-        state.view_transition_element_resource_id =
+-            transition->GetSnapshotId(object_);
+-      }
++      state.view_transition_element_resource_id =
++          transition->GetSnapshotId(object_);
+ 
+       // The value isn't set on the root, since clipping rules are different for
+       // the root view transition element.
+diff --git a/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.cc b/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.cc
+index b3da3b381113fb6ea17d3d6de7bf2cf43e175362..aa57763835d2e8dbf4d021d58c14e1dd605d5cd6 100644
+--- a/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.cc
++++ b/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.cc
+@@ -77,17 +77,6 @@ const ScrollPaintPropertyNode* PaintPropertyTreeBuilderTest::DocScroll(
+   return document->GetLayoutView()->FirstFragment().PaintProperties()->Scroll();
+ }
+ 
+-const EffectPaintPropertyNode* PaintPropertyTreeBuilderTest::DocEffect(
+-    const Document* document) {
+-  if (!document) {
+-    document = &GetDocument();
+-  }
+-  return document->GetLayoutView()
+-      ->FirstFragment()
+-      .PaintProperties()
+-      ->ViewTransitionEffect();
+-}
+-
+ const ObjectPaintProperties*
+ PaintPropertyTreeBuilderTest::PaintPropertiesForElement(const char* name) {
+   return GetDocument()
+@@ -1058,7 +1047,8 @@ TEST_P(PaintPropertyTreeBuilderTest, EffectNodesInSVG) {
+       PaintPropertiesForElement("groupWithOpacity");
+   EXPECT_EQ(0.6f, group_with_opacity_properties->Effect()->Opacity());
+   EXPECT_EQ(svg_clip, group_with_opacity_properties->Effect()->OutputClip());
+-  EXPECT_EQ(DocEffect(), group_with_opacity_properties->Effect()->Parent());
++  EXPECT_EQ(&EffectPaintPropertyNode::Root(),
++            group_with_opacity_properties->Effect()->Parent());
+ 
+   EXPECT_EQ(nullptr, PaintPropertiesForElement("rectWithoutOpacity"));
+ 
+@@ -4762,7 +4752,7 @@ TEST_P(PaintPropertyTreeBuilderTest, Reflection) {
+             filter_properties->PaintOffsetTranslation()->Parent());
+   EXPECT_EQ(gfx::Vector2dF(8, 8),
+             filter_properties->PaintOffsetTranslation()->Get2dTranslation());
+-  EXPECT_EQ(filter_properties->Filter()->Parent(), DocEffect());
++  EXPECT_TRUE(filter_properties->Filter()->Parent()->IsRoot());
+   EXPECT_EQ(filter_properties->PaintOffsetTranslation(),
+             &filter_properties->Filter()->LocalTransformSpace());
+   EXPECT_EQ(DocContentClip(), filter_properties->Filter()->OutputClip());
+@@ -4775,7 +4765,7 @@ TEST_P(PaintPropertyTreeBuilderTest, SimpleFilter) {
+   const ObjectPaintProperties* filter_properties =
+       GetLayoutObjectByElementId("filter")->FirstFragment().PaintProperties();
+   EXPECT_FALSE(filter_properties->PaintOffsetTranslation());
+-  EXPECT_EQ(filter_properties->Filter()->Parent(), DocEffect());
++  EXPECT_TRUE(filter_properties->Filter()->Parent()->IsRoot());
+   EXPECT_FALSE(filter_properties->PixelMovingFilterClipExpander());
+   EXPECT_EQ(DocScrollTranslation(),
+             &filter_properties->Filter()->LocalTransformSpace());
+@@ -4792,7 +4782,7 @@ TEST_P(PaintPropertyTreeBuilderTest, PixelMovingFilter) {
+ 
+   auto* filter = filter_properties->Filter();
+   ASSERT_TRUE(filter);
+-  EXPECT_EQ(filter->Parent(), DocEffect());
++  EXPECT_TRUE(filter->Parent()->IsRoot());
+   EXPECT_TRUE(filter->HasFilterThatMovesPixels());
+   EXPECT_EQ(DocScrollTranslation(), &filter->LocalTransformSpace());
+   EXPECT_EQ(DocContentClip(), filter->OutputClip());
+@@ -4847,7 +4837,7 @@ TEST_P(PaintPropertyTreeBuilderTest, FilterReparentClips) {
+       GetLayoutObjectByElementId("clip")->FirstFragment().PaintProperties();
+   const ObjectPaintProperties* filter_properties =
+       GetLayoutObjectByElementId("filter")->FirstFragment().PaintProperties();
+-  EXPECT_TRUE(DocEffect());
++  EXPECT_TRUE(filter_properties->Filter()->Parent()->IsRoot());
+   EXPECT_EQ(clip_properties->OverflowClip(),
+             filter_properties->Filter()->OutputClip());
+   EXPECT_EQ(DocScrollTranslation(),
+@@ -5089,7 +5079,7 @@ TEST_P(PaintPropertyTreeBuilderTest, MaskSimple) {
+ 
+   EXPECT_EQ(properties->Effect(),
+             &target->FirstFragment().LocalBorderBoxProperties().Effect());
+-  EXPECT_TRUE(DocEffect());
++  EXPECT_TRUE(properties->Effect()->Parent()->IsRoot());
+   EXPECT_EQ(SkBlendMode::kSrcOver, properties->Effect()->BlendMode());
+   EXPECT_EQ(mask_clip->Parent(), properties->Effect()->OutputClip());
+ 
+@@ -5118,7 +5108,7 @@ TEST_P(PaintPropertyTreeBuilderTest, MaskWithOutset) {
+ 
+   EXPECT_EQ(properties->Effect(),
+             &target->FirstFragment().LocalBorderBoxProperties().Effect());
+-  EXPECT_TRUE(DocEffect());
++  EXPECT_TRUE(properties->Effect()->Parent()->IsRoot());
+   EXPECT_EQ(SkBlendMode::kSrcOver, properties->Effect()->BlendMode());
+   EXPECT_EQ(mask_clip->Parent(), properties->Effect()->OutputClip());
+ 
+@@ -5172,7 +5162,7 @@ TEST_P(PaintPropertyTreeBuilderTest, MaskEscapeClip) {
+ 
+   EXPECT_EQ(target_properties->Effect(),
+             &target->FirstFragment().LocalBorderBoxProperties().Effect());
+-  EXPECT_TRUE(DocEffect());
++  EXPECT_TRUE(target_properties->Effect()->Parent()->IsRoot());
+   EXPECT_EQ(SkBlendMode::kSrcOver, target_properties->Effect()->BlendMode());
+   EXPECT_EQ(nullptr, target_properties->Effect()->OutputClip());
+ 
+@@ -5215,7 +5205,7 @@ TEST_P(PaintPropertyTreeBuilderTest, MaskInline) {
+ 
+   EXPECT_EQ(properties->Effect(),
+             &target->FirstFragment().LocalBorderBoxProperties().Effect());
+-  EXPECT_TRUE(DocEffect());
++  EXPECT_TRUE(properties->Effect()->Parent()->IsRoot());
+   EXPECT_EQ(SkBlendMode::kSrcOver, properties->Effect()->BlendMode());
+   EXPECT_EQ(mask_clip->Parent(), properties->Effect()->OutputClip());
+ 
+@@ -5316,7 +5306,8 @@ TEST_P(PaintPropertyTreeBuilderTest, SVGBlending) {
+   ASSERT_TRUE(svg_root_properties->Effect());
+   EXPECT_EQ(SkBlendMode::kSrcOver, svg_root_properties->Effect()->BlendMode());
+ 
+-  EXPECT_EQ(DocEffect(), svg_root_properties->Effect()->Parent());
++  EXPECT_EQ(&EffectPaintPropertyNode::Root(),
++            svg_root_properties->Effect()->Parent());
+   EXPECT_EQ(svg_root_properties->Effect(), rect_properties->Effect()->Parent());
+ }
+ 
+@@ -5338,7 +5329,8 @@ TEST_P(PaintPropertyTreeBuilderTest, SVGRootBlending) {
+   ASSERT_TRUE(svg_root_properties->Effect());
+   EXPECT_EQ(SkBlendMode::kMultiply, svg_root_properties->Effect()->BlendMode());
+ 
+-  EXPECT_EQ(DocEffect(), html_properties->Effect()->Parent());
++  EXPECT_EQ(&EffectPaintPropertyNode::Root(),
++            html_properties->Effect()->Parent());
+   EXPECT_EQ(html_properties->Effect(), svg_root_properties->Effect()->Parent());
+ }
+ 
+@@ -6454,7 +6446,7 @@ TEST_P(PaintPropertyTreeBuilderTest, SVGRootCompositedClipPathSimple) {
+ 
+   const auto* effect = properties->Effect();
+   ASSERT_NE(nullptr, effect);
+-  EXPECT_EQ(DocEffect(), effect->Parent());
++  EXPECT_EQ(&EffectPaintPropertyNode::Root(), effect->Parent());
+   EXPECT_EQ(transform, &effect->LocalTransformSpace());
+   EXPECT_EQ(clip_path_clip, effect->OutputClip());
+   EXPECT_EQ(SkBlendMode::kSrcOver, effect->BlendMode());
+@@ -6492,7 +6484,7 @@ TEST_P(PaintPropertyTreeBuilderTest, SVGRootCompositedClipPathComplex) {
+   const auto* effect = properties->Effect();
+   ASSERT_NE(nullptr, effect);
+   EXPECT_TRUE(effect->HasDirectCompositingReasons());
+-  EXPECT_EQ(DocEffect(), effect->Parent());
++  EXPECT_EQ(&EffectPaintPropertyNode::Root(), effect->Parent());
+   EXPECT_EQ(transform, &effect->LocalTransformSpace());
+   EXPECT_EQ(clip_path_clip, effect->OutputClip());
+   EXPECT_EQ(SkBlendMode::kSrcOver, effect->BlendMode());
+diff --git a/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.h b/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.h
+index 7ab50dfc1dbfacba271f1a189f990e8dd78c4b21..252f6e568fbecb29c210e52bc8a43b34d002417d 100644
+--- a/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.h
++++ b/third_party/blink/renderer/core/paint/paint_property_tree_builder_test.h
+@@ -34,7 +34,6 @@ class PaintPropertyTreeBuilderTest : public PaintControllerPaintTest {
+       const Document* = nullptr);
+   const ClipPaintPropertyNode* DocContentClip(const Document* = nullptr);
+   const ScrollPaintPropertyNode* DocScroll(const Document* = nullptr);
+-  const EffectPaintPropertyNode* DocEffect(const Document* = nullptr);
+ 
+   // Return the local border box's paint offset. For more details, see
+   // ObjectPaintProperties::localBorderBoxProperties().
+diff --git a/third_party/blink/renderer/core/view_transition/view_transition_test.cc b/third_party/blink/renderer/core/view_transition/view_transition_test.cc
+index a6fa914af41568cde2fbbe59c7bbbb1de5f59d0f..bb0473719d38c049c0a92bd5f533a351e8cd8484 100644
+--- a/third_party/blink/renderer/core/view_transition/view_transition_test.cc
++++ b/third_party/blink/renderer/core/view_transition/view_transition_test.cc
+@@ -22,6 +22,7 @@
+ #include "third_party/blink/renderer/core/dom/dom_token_list.h"
+ #include "third_party/blink/renderer/core/dom/element.h"
+ #include "third_party/blink/renderer/core/dom/node_computed_style.h"
++#include "third_party/blink/renderer/core/dom/layout_tree_builder_traversal.h"
+ #include "third_party/blink/renderer/core/dom/pseudo_element.h"
+ #include "third_party/blink/renderer/core/frame/frame_test_helpers.h"
+ #include "third_party/blink/renderer/core/html/html_element.h"
+@@ -32,7 +33,6 @@
+ #include "third_party/blink/renderer/core/layout/physical_box_fragment.h"
+ #include "third_party/blink/renderer/core/navigation_api/navigation_api.h"
+ #include "third_party/blink/renderer/core/navigation_api/navigation_history_entry.h"
+-#include "third_party/blink/renderer/core/paint/paint_and_raster_invalidation_test.h"
+ #include "third_party/blink/renderer/core/paint/paint_layer.h"
+ #include "third_party/blink/renderer/core/style/computed_style_constants.h"
+ #include "third_party/blink/renderer/core/testing/core_unit_test_helper.h"
+@@ -706,100 +706,6 @@ TEST_P(ViewTransitionTest, ViewTransitionElementInvalidation) {
+   UpdateAllLifecyclePhasesAndFinishDirectives();
+ }
+ 
+-namespace {
+-void AssertOnlyViewTransitionElementsInvalidated(
+-    PaintArtifactCompositor* compositor) {
+-  const char kViewTransition[] = "view-transition";
+-  const char kLayoutViewTransition[] = "ViewTransition";
+-  compositor->ForAllContentLayersForTesting(
+-      [&](ContentLayerClientImpl* client) {
+-        if (::testing::Matcher<std::string>(
+-                ::testing::ContainsRegex(kViewTransition))
+-                .Matches(client->Layer().DebugName())) {
+-          return;
+-        }
+-        if (::testing::Matcher<std::string>(
+-                ::testing::ContainsRegex(kLayoutViewTransition))
+-                .Matches(client->Layer().DebugName())) {
+-          return;
+-        }
+-        auto* tracking = client->GetRasterInvalidator().GetTracking();
+-        EXPECT_FALSE(tracking->HasInvalidations())
+-            << client->Layer().DebugName();
+-        for (const auto& invalidation : tracking->Invalidations()) {
+-          LOG(ERROR) << "Invalidation " << invalidation;
+-        }
+-      });
+-}
+-}  // namespace
+-
+-TEST_P(ViewTransitionTest, NoInvalidationOnRoot) {
+-  SetHtmlInnerHTML(R"HTML(
+-    <style>
+-      /* TODO(crbug.com/1336462): html.css is parsed before runtime flags are enabled */
+-      html { view-transition-name: root; backgrond: grey; }
+-      #element {
+-        width: 100px;
+-        height: 100px;
+-        view-transition-name: shared;
+-        will-change: transform;
+-      }
+-    </style>
+-
+-    <div id=element></div>
+-    <div>test</div>
+-  )HTML");
+-
+-  // Run all lifecycle phases to ensure paint is clean.
+-  UpdateAllLifecyclePhasesForTest();
+-
+-  GetDocument().View()->SetTracksRasterInvalidations(true);
+-
+-  ScriptState* script_state = GetScriptState();
+-  ScriptState::Scope scope(script_state);
+-
+-  auto start_setup_lambda =
+-      [](const v8::FunctionCallbackInfo<v8::Value>& info) {};
+-
+-  // This callback sets the elements for the start phase of the transition.
+-  auto start_setup_callback =
+-      v8::Function::New(script_state->GetContext(), start_setup_lambda, {})
+-          .ToLocalChecked();
+-
+-  auto* compositor = GetLocalFrameView()->GetPaintArtifactCompositor();
+-  auto* transition = ViewTransitionSupplement::startViewTransition(
+-      script_state, GetDocument(),
+-      V8ViewTransitionCallback::Create(start_setup_callback),
+-      ASSERT_NO_EXCEPTION);
+-
+-  UpdateAllLifecyclePhasesForTest();
+-  {
+-    SCOPED_TRACE("old dom capture");
+-    AssertOnlyViewTransitionElementsInvalidated(compositor);
+-  }
+-
+-  // Finish the prepare phase, mutate the DOM and start the animation.
+-  UpdateAllLifecyclePhasesAndFinishDirectives();
+-  test::RunPendingTasks();
+-  EXPECT_EQ(GetState(transition), State::kAnimating);
+-
+-  // The start phase should generate pseudo elements for rendering new live
+-  // content.
+-  UpdateAllLifecyclePhasesAndFinishDirectives();
+-  {
+-    SCOPED_TRACE("animation started");
+-    AssertOnlyViewTransitionElementsInvalidated(compositor);
+-  }
+-
+-  // Finish the animations which should remove the pseudo element tree.
+-  FinishTransition();
+-  UpdateAllLifecyclePhasesAndFinishDirectives();
+-  {
+-    SCOPED_TRACE("transition finished");
+-    AssertOnlyViewTransitionElementsInvalidated(compositor);
+-  }
+-}
+-
+ TEST_P(ViewTransitionTest, InspectorStyleResolver) {
+   SetHtmlInnerHTML(R"HTML(
+     <style>
+diff --git a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc
+index 4952082b87f80611b16a0730615bc0eaabe79791..d8568a1052ec82a8d56736aee7929ca9c4a4656c 100644
+--- a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc
++++ b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.cc
+@@ -1524,15 +1524,6 @@ void PaintArtifactCompositor::ShowDebugData() {
+ }
+ #endif
+ 
+-void PaintArtifactCompositor::ForAllContentLayersForTesting(
+-    base::FunctionRef<void(ContentLayerClientImpl*)> func) const {
+-  for (auto& pending_layer : pending_layers_) {
+-    if (auto* client = pending_layer.GetContentLayerClient()) {
+-      func(client);
+-    }
+-  }
+-}
+-
+ ContentLayerClientImpl* PaintArtifactCompositor::ContentLayerClientForTesting(
+     wtf_size_t i) const {
+   for (auto& pending_layer : pending_layers_) {
+diff --git a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h
+index fc4339bff1763d6dd6e99e3332e0e3bd1729e859..7d8a4526c9adcedf3ee0955aa2e7736a1d5e9e20 100644
+--- a/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h
++++ b/third_party/blink/renderer/platform/graphics/compositing/paint_artifact_compositor.h
+@@ -231,8 +231,6 @@ class PLATFORM_EXPORT PaintArtifactCompositor final
+   void ShowDebugData();
+ #endif
+ 
+-  void ForAllContentLayersForTesting(
+-      base::FunctionRef<void(ContentLayerClientImpl*)> func) const;
+   // Returns the ith ContentLayerClientImpl for testing.
+   ContentLayerClientImpl* ContentLayerClientForTesting(wtf_size_t i) const;
+ 
