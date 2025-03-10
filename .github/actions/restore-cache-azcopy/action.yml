@@ -1,22 +1,25 @@
 name: 'Restore Cache AZCopy'
 description: 'Restores Electron src cache via AZCopy'
+inputs:
+  target-platform:
+    description: 'Target platform, should be linux, win, macos'
 runs:
   using: "composite"
   steps:
   - name: Obtain SAS Key
     continue-on-error: true
-    uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57
+    uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf
     with:
-      path: |
-        sas-token
-      key: sas-key-${{ github.run_number }}-1
+      path: sas-token
+      key: sas-key-${{ inputs.target-platform }}-${{ github.run_number }}-1
+      enableCrossOsArchive: true
   - name: Obtain SAS Key
     continue-on-error: true
-    uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57
+    uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf
     with:
-      path: |
-        sas-token
-      key: sas-key-${{ github.run_number }}-${{ github.run_attempt }}
+      path: sas-token
+      key: sas-key-${{ inputs.target-platform }}-${{ github.run_number }}-${{ github.run_attempt }}
+      enableCrossOsArchive: true
   - name: Download Src Cache from AKS
     # The cache will always exist here as a result of the checkout job
     # Either it was uploaded to Azure in the checkout job for this commit
@@ -26,21 +29,30 @@ runs:
       timeout_minutes: 30
       max_attempts: 3
       retry_on: error
+      shell: bash
       command: |
         sas_token=$(cat sas-token)
         if [ -z $sas-token ]; then
           echo "SAS Token not found; exiting src cache download early..."
           exit 1
+        else
+          if [ "${{ inputs.target-platform }}" = "win" ]; then
+            azcopy copy --log-level=ERROR \
+            "https://${{ env.AZURE_AKS_CACHE_STORAGE_ACCOUNT }}.file.core.windows.net/${{ env.AZURE_AKS_WIN_CACHE_SHARE_NAME }}/${{ env.CACHE_PATH }}?$sas_token" $DEPSHASH.tgz
+          else
+            azcopy copy --log-level=ERROR \
+            "https://${{ env.AZURE_AKS_CACHE_STORAGE_ACCOUNT }}.file.core.windows.net/${{ env.AZURE_AKS_CACHE_SHARE_NAME }}/${{ env.CACHE_PATH }}?$sas_token" $DEPSHASH.tar
+          fi            
         fi
-        azcopy copy --log-level=ERROR \
-          "https://${{ env.AZURE_AKS_CACHE_STORAGE_ACCOUNT }}.file.core.windows.net/${{ env.AZURE_AKS_CACHE_SHARE_NAME }}/${{ env.CACHE_PATH }}?$sas_token" $DEPSHASH.tar
     env:
       AZURE_AKS_CACHE_STORAGE_ACCOUNT: f723719aa87a34622b5f7f3
       AZURE_AKS_CACHE_SHARE_NAME: pvc-f6a4089f-b082-4bee-a3f9-c3e1c0c02d8f
+      AZURE_AKS_WIN_CACHE_SHARE_NAME: pvc-71dec4f2-0d44-4fd1-a2c3-add049d70bdf
   - name: Clean SAS Key
     shell: bash
     run: rm -f sas-token
   - name: Unzip and Ensure Src Cache
+    if: ${{ inputs.target-platform == 'macos' }}
     shell: bash
     run: |
       echo "Downloaded cache is $(du -sh $DEPSHASH.tar | cut -f1)"
@@ -69,3 +81,34 @@ runs:
 
       echo "Wiping Electron Directory"
       rm -rf src/electron
+
+  - name: Unzip and Ensure Src Cache (Windows)
+    if: ${{ inputs.target-platform == 'win' }}
+    shell: powershell
+    run: |
+      $src_cache = "$env:DEPSHASH.tgz"
+      $cache_size = $(Get-Item $src_cache).length
+      Write-Host "Downloaded cache is $cache_size"
+      if ($cache_size -eq 0) {
+        Write-Host "Cache is empty - exiting"
+        exit 1
+      }
+
+      $TEMP_DIR=New-Item -ItemType Directory -Path temp-cache
+      C:\ProgramData\Chocolatey\bin\7z.exe -aoa x -o$TEMP_DIR.FullPath $src_cache
+      Get-ChildItem -Recurse -Directory
+      if (Test-Path "temp-cache\src") {
+        Write-Host "Relocating Cache"
+        Remove-Item -Recurse -Force src
+        Move-Item temp-cache\src src
+
+        Write-Host "Deleting zip file"
+        Remove-Item -Force $src_cache
+      }
+      if (-Not (Test-Path "src\third_party\blink")) {
+        Write-Host "Cache was not correctly restored - exiting"
+        exit 1
+      }
+
+      Write-Host "Wiping Electron Directory"
+      Remove-Item -Recurse -Force src\electron

@@ -9,6 +9,8 @@ inputs:
     description: 'Whether to persist the cache to the shared drive'
     required: false
     default: 'true'
+  target-platform:
+    description: 'Target platform, should be linux, win, macos'    
 runs:
   using: "composite"
   steps:
@@ -39,19 +41,27 @@ runs:
     shell: bash
     run: |
       node src/electron/script/generate-deps-hash.js
-      echo "DEPSHASH=v1-src-cache-$(cat src/electron/.depshash)" >> $GITHUB_ENV
+      DEPSHASH="v1-src-cache-$(cat src/electron/.depshash)"
+      echo "DEPSHASH=$DEPSHASH" >> $GITHUB_ENV
+      if [ "${{ inputs.target-platform }}" = "win" ]; then
+        echo "CACHE_FILE=$DEPSHASH.tgz" >> $GITHUB_ENV
+        echo "CACHE_DRIVE=/mnt/win-cache" >> $GITHUB_ENV
+      else
+        echo "CACHE_FILE=$DEPSHASH.tar" >> $GITHUB_ENV
+        echo "CACHE_DRIVE=/mnt/cross-instance-cache" >> $GITHUB_ENV
+      fi
   - name: Generate SAS Key
     if: ${{ inputs.generate-sas-token == 'true' }}
     shell: bash
     run: |
-      curl --unix-socket /var/run/sas/sas.sock --fail "http://foo/$DEPSHASH.tar" > sas-token
+      curl --unix-socket /var/run/sas/sas.sock --fail "http://foo/$CACHE_FILE?platform=${{ inputs.target-platform }}" > sas-token
   - name: Save SAS Key
     if: ${{ inputs.generate-sas-token == 'true' }}
-    uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57
+    uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf
     with:
-      path: |
-        sas-token
-      key: sas-key-${{ github.run_number }}-${{ github.run_attempt }}
+      path: sas-token
+      key: sas-key-${{ inputs.target-platform }}-${{ github.run_number }}-${{ github.run_attempt }}
+      enableCrossOsArchive: true
   - name: Check If Cache Exists
     id: check-cache
     shell: bash
@@ -60,7 +70,7 @@ runs:
         echo "Not using cache this time..."
         echo "cache_exists=false" >> $GITHUB_OUTPUT
       else
-        cache_path=/mnt/cross-instance-cache/$DEPSHASH.tar
+        cache_path=$CACHE_DRIVE/$CACHE_FILE
         echo "Using cache key: $DEPSHASH"
         echo "Checking for cache in: $cache_path"
         if [ ! -f "$cache_path" ] || [ `du $cache_path | cut -f1` = "0" ]; then
@@ -76,8 +86,8 @@ runs:
     shell: bash
     run: |    
       # if there is less than 35 GB free space then creating the cache might fail so exit early
-      freespace=`df -m /mnt/cross-instance-cache | grep -w /mnt/cross-instance-cache | awk '{print $4}'`
-      freespace_human=`df -h /mnt/cross-instance-cache | grep -w /mnt/cross-instance-cache | awk '{print $4}'`
+      freespace=`df -m $CACHE_DRIVE | grep -w $CACHE_DRIVE | awk '{print $4}'`
+      freespace_human=`df -h $CACHE_DRIVE | grep -w $CACHE_DRIVE | awk '{print $4}'`
       if [ $freespace -le 35000 ]; then
         echo "The cross mount cache has $freespace_human free space which is not enough - exiting"
         exit 1
@@ -165,14 +175,18 @@ runs:
     shell: bash
     run: |
       echo "Uncompressed src size: $(du -sh src | cut -f1 -d' ')"
-      tar -cf $DEPSHASH.tar src
-      echo "Compressed src to $(du -sh $DEPSHASH.tar | cut -f1 -d' ')"
-      cp ./$DEPSHASH.tar /mnt/cross-instance-cache/
+      if [ "${{ inputs.target-platform }}" = "macos" ]; then
+        tar -cf $CACHE_FILE src
+      else
+        tar -czf $CACHE_FILE src
+      fi
+      echo "Compressed src to $(du -sh $CACHE_FILE | cut -f1 -d' ')"
+      cp ./$CACHE_FILE $CACHE_DRIVE/
   - name: Persist Src Cache
     if: ${{ steps.check-cache.outputs.cache_exists == 'false' && inputs.use-cache == 'true' }}
     shell: bash
     run: |
-      final_cache_path=/mnt/cross-instance-cache/$DEPSHASH.tar
+      final_cache_path=$CACHE_DRIVE/$CACHE_FILE
       echo "Using cache key: $DEPSHASH"
       echo "Checking path: $final_cache_path"
       if [ ! -f "$final_cache_path" ]; then

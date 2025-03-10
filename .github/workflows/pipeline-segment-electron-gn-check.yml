@@ -77,13 +77,21 @@ jobs:
         node src/electron/script/generate-deps-hash.js
         DEPSHASH=v1-src-cache-$(cat src/electron/.depshash)
         echo "DEPSHASH=$DEPSHASH" >> $GITHUB_ENV
-        echo "CACHE_PATH=$DEPSHASH.tar" >> $GITHUB_ENV
+        if [ "${{ inputs.target-platform }}" = "win" ]; then
+          echo "CACHE_PATH=$DEPSHASH.tgz" >> $GITHUB_ENV
+        else          
+          echo "CACHE_PATH=$DEPSHASH.tar" >> $GITHUB_ENV
+        fi
     - name: Restore src cache via AZCopy
       if: ${{ inputs.target-platform == 'macos' }}
       uses: ./src/electron/.github/actions/restore-cache-azcopy
+      with:
+        target-platform: ${{ inputs.target-platform }}      
     - name: Restore src cache via AKS
       if: ${{ inputs.target-platform == 'linux' || inputs.target-platform == 'win' }}
       uses: ./src/electron/.github/actions/restore-cache-aks
+      with:
+        target-platform: ${{ inputs.target-platform }}
     - name: Run Electron Only Hooks
       run: |
         echo "solutions=[{'name':'src/electron','url':None,'deps_file':'DEPS','custom_vars':{'process_deps':False},'managed':False}]" > tmpgclient

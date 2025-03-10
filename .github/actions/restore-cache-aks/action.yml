@@ -1,12 +1,20 @@
 name: 'Restore Cache AKS'
 description: 'Restores Electron src cache via AKS'
+inputs:
+  target-platform:
+    description: 'Target platform, should be linux, win, macos'
 runs:
   using: "composite"
   steps:
   - name: Restore and Ensure Src Cache
     shell: bash
     run: |
-      cache_path=/mnt/cross-instance-cache/$DEPSHASH.tar
+      if [ "${{ inputs.target-platform }}" = "win" ]; then
+        cache_path=/mnt/win-cache/$DEPSHASH.tgz
+      else
+        cache_path=/mnt/cross-instance-cache/$DEPSHASH.tar
+      fi
+
       echo "Using cache key: $DEPSHASH"
       echo "Checking for cache in: $cache_path"
       if [ ! -f "$cache_path" ]; then
@@ -23,7 +31,11 @@ runs:
       fi
 
       mkdir temp-cache
-      tar -xf $cache_path -C temp-cache
+      if [ "${{ inputs.target-platform }}" = "win" ]; then
+        tar -xzf $cache_path -C temp-cache
+      else
+        tar -xf $cache_path -C temp-cache
+      fi
       echo "Unzipped cache is $(du -sh temp-cache/src | cut -f1)"
 
       if [ -d "temp-cache/src" ]; then

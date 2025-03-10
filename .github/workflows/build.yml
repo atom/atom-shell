@@ -115,6 +115,7 @@ jobs:
       uses: ./src/electron/.github/actions/checkout
       with:
         generate-sas-token: 'true'
+        target-platform: macos
 
   checkout-linux:
     needs: setup
@@ -150,7 +151,8 @@ jobs:
       image: ghcr.io/electron/build:${{ needs.setup.outputs.build-image-sha }}
       options: --user root --device /dev/fuse --cap-add SYS_ADMIN
       volumes:
-        - /mnt/cross-instance-cache:/mnt/cross-instance-cache
+        - /mnt/win-cache:/mnt/win-cache
+        - /var/run/sas:/var/run/sas
     env:
       CHROMIUM_GIT_COOKIE: ${{ secrets.CHROMIUM_GIT_COOKIE }}
       CHROMIUM_GIT_COOKIE_WINDOWS_STRING: ${{ secrets.CHROMIUM_GIT_COOKIE_WINDOWS_STRING }}
@@ -168,6 +170,9 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
     - name: Checkout & Sync & Save
       uses: ./src/electron/.github/actions/checkout
+      with:
+        generate-sas-token: 'true'
+        target-platform: win
 
   # GN Check Jobs
   macos-gn-check:
@@ -198,7 +203,7 @@ jobs:
       target-platform: win
       target-archs: x64 x86 arm64
       check-runs-on: electron-arc-linux-amd64-8core
-      check-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-windows.outputs.build-image-sha }}","options":"--user root --device /dev/fuse --cap-add SYS_ADMIN","volumes":["/mnt/cross-instance-cache:/mnt/cross-instance-cache"]}'
+      check-container: '{"image":"ghcr.io/electron/build:${{ needs.checkout-windows.outputs.build-image-sha }}","options":"--user root --device /dev/fuse --cap-add SYS_ADMIN","volumes":["/mnt/win-cache:/mnt/win-cache"]}'
       gn-build-type: testing
     secrets: inherit
 
@@ -326,7 +331,7 @@ jobs:
       issues: read
       pull-requests: read
     uses: ./.github/workflows/pipeline-electron-build-and-test.yml
-    needs: setup
+    needs: checkout-windows
     if: ${{ needs.setup.outputs.src == 'true' && !inputs.skip-windows }}
     with:
       build-runs-on: electron-arc-windows-amd64-16core
@@ -345,7 +350,7 @@ jobs:
       issues: read
       pull-requests: read
     uses: ./.github/workflows/pipeline-electron-build-and-test.yml
-    needs: setup
+    needs: checkout-windows
     if: ${{ needs.setup.outputs.src == 'true' && !inputs.skip-windows }}
     with:
       build-runs-on: electron-arc-windows-amd64-16core
@@ -364,7 +369,7 @@ jobs:
       issues: read
       pull-requests: read
     uses: ./.github/workflows/pipeline-electron-build-and-test.yml
-    needs: setup
+    needs: checkout-windows
     if: ${{ needs.setup.outputs.src == 'true' && !inputs.skip-windows }}
     with:
       build-runs-on: electron-arc-windows-amd64-16core
