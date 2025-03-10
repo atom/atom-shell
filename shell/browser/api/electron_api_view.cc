@@ -417,12 +417,12 @@ gin_helper::WrappableBase* View::New(gin::Arguments* args) {
 
 // static
 v8::Local<v8::Function> View::GetConstructor(v8::Isolate* isolate) {
-  static base::NoDestructor<v8::Global<v8::Function>> constructor;
-  if (constructor.get()->IsEmpty()) {
-    constructor->Reset(isolate, gin_helper::CreateConstructor<View>(
-                                    isolate, base::BindRepeating(&View::New)));
+  static v8::Eternal<v8::Function> constructor;
+  if (constructor.IsEmpty()) {
+    constructor.Set(isolate, gin_helper::CreateConstructor<View>(
+                                 isolate, base::BindRepeating(&View::New)));
   }
-  return v8::Local<v8::Function>::New(isolate, *constructor.get());
+  return constructor.Get(isolate);
 }
 
 // static

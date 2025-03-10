@@ -4,7 +4,6 @@
 
 #include "shell/browser/api/electron_api_web_contents_view.h"
 
-#include "base/no_destructor.h"
 #include "gin/data_object_builder.h"
 #include "shell/browser/api/electron_api_web_contents.h"
 #include "shell/browser/browser.h"
@@ -143,13 +142,13 @@ gin::Handle<WebContentsView> WebContentsView::Create(
 
 // static
 v8::Local<v8::Function> WebContentsView::GetConstructor(v8::Isolate* isolate) {
-  static base::NoDestructor<v8::Global<v8::Function>> constructor;
-  if (constructor.get()->IsEmpty()) {
-    constructor->Reset(
-        isolate, gin_helper::CreateConstructor<WebContentsView>(
-                     isolate, base::BindRepeating(&WebContentsView::New)));
+  static v8::Eternal<v8::Function> constructor;
+  if (constructor.IsEmpty()) {
+    constructor.Set(isolate,
+                    gin_helper::CreateConstructor<WebContentsView>(
+                        isolate, base::BindRepeating(&WebContentsView::New)));
   }
-  return v8::Local<v8::Function>::New(isolate, *constructor.get());
+  return constructor.Get(isolate);
 }
 
 // static
