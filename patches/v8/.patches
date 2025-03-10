@@ -1,3 +1,2 @@
 chore_allow_customizing_microtask_policy_per_context.patch
 deps_add_v8_object_setinternalfieldfornodecore.patch
-revert_api_delete_deprecated_attachcppheap_and_detachcppheap.patch
