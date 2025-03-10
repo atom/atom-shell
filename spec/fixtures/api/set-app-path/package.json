@@ -1,0 +1,4 @@
+{
+  "name": "electron-test-set-app-path",
+  "main": "lib/index.js"
+}
