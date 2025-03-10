@@ -85,6 +85,9 @@ void WebWorkerObserver::WorkerScriptReadyForEvaluation(
     }
   }
 
+  // We do not want to crash Web Workers on unhandled rejections.
+  env->options()->unhandled_rejections = "warn-with-error-code";
+
   // Add Electron extended APIs.
   electron_bindings_->BindTo(env->isolate(), env->process_object());
 

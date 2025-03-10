@@ -155,6 +155,9 @@ void NodeService::Initialize(
 
   node_env_->set_trace_sync_io(node_env_->options()->trace_sync_io);
 
+  // We do not want to crash the utility process on unhandled rejections.
+  node_env_->options()->unhandled_rejections = "warn-with-error-code";
+
   // Add Electron extended APIs.
   electron_bindings_->BindTo(node_env_->isolate(), node_env_->process_object());
 
