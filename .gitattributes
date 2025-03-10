@@ -1,9 +1,13 @@
 # `git apply` and friends don't understand CRLF, even on windows. Force those
 # files to be checked out with LF endings even if core.autocrlf is true.
+*.patch text eol=lf
 DEPS text eol=lf
 yarn.lock text eol=lf
 script/zip_manifests/*.manifest text eol=lf
 patches/**/.patches merge=union
+
+# Patch file line ending exceptions (patches that affect CRLF files)
+reland_lzma_sdk_update_to_24_09.patch -text
 
 # Source code and markdown files should always use LF as line ending.
 *.c text eol=lf
