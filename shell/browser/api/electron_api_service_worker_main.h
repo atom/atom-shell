@@ -149,6 +149,7 @@ class ServiceWorkerMain final
 
   int64_t VersionID() const;
   GURL ScopeURL() const;
+  GURL ScriptURL() const;
 
   // Version ID unique only to the StoragePartition.
   int64_t version_id_;
