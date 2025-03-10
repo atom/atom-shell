@@ -108,6 +108,17 @@ bool ElectronDesktopWindowTreeHostWin::HandleMouseEventForCaption(
   return native_window_view_->IsWindowControlsOverlayEnabled();
 }
 
+bool ElectronDesktopWindowTreeHostWin::HandleMouseEvent(ui::MouseEvent* event) {
+  if (event->is_system_menu() && !native_window_view_->has_frame()) {
+    bool prevent_default = false;
+    native_window_view_->NotifyWindowSystemContextMenu(event->x(), event->y(),
+                                                       &prevent_default);
+    return prevent_default;
+  }
+
+  return views::DesktopWindowTreeHostWin::HandleMouseEvent(event);
+}
+
 void ElectronDesktopWindowTreeHostWin::OnNativeThemeUpdated(
     ui::NativeTheme* observed_theme) {
   HWND hWnd = GetAcceleratedWidget();

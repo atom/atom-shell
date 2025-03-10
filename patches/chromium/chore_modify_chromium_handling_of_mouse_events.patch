@@ -1,11 +1,38 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: deepak1556 <hop2deep@gmail.com>
 Date: Fri, 29 Jul 2022 00:29:35 +0900
-Subject: chore: allow chromium to handle synthetic mouse events for touch
+Subject: chore: modify chromium handling of mouse events
 
-With WCO, allow chromium to handle synthetic mouse events generated for touch
+This patch does the following:
+
+1. When Windows Control Overlay is enabled, it allows chromium to handle synthetic mouse events generated for touch
 actions in the non-client caption area.
+2. It calls HandleMouseEvent on the delegate earlier in HandleMouseEventInternal, so that Electron can selectively disable
+draggable regions to allow events to propagate to the underlying renderer.
 
+diff --git a/ui/events/event.h b/ui/events/event.h
+index 39b5a8fdd165efd74b00256552b51b5413107958..bfc4ef4f50efff4a77f2aef64335bb7e34c69f34 100644
+--- a/ui/events/event.h
++++ b/ui/events/event.h
+@@ -587,6 +587,9 @@ class EVENTS_EXPORT MouseEvent : public LocatedEvent {
+ 
+   const PointerDetails& pointer_details() const { return pointer_details_; }
+ 
++  bool is_system_menu() const { return is_system_menu_; }
++  void set_is_system_menu(bool is_menu) { is_system_menu_ = is_menu; }
++
+   // Event:
+   std::string ToString() const override;
+   std::unique_ptr<Event> Clone() const override;
+@@ -619,6 +622,8 @@ class EVENTS_EXPORT MouseEvent : public LocatedEvent {
+ 
+   // Structure for holding pointer details for implementing PointerEvents API.
+   PointerDetails pointer_details_;
++
++  bool is_system_menu_ = false;
+ };
+ 
+ class ScrollEvent;
 diff --git a/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc b/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc
 index 2d05856687cd9669f72553d33c8033fd9083b4f8..645b7dd2cc20ce64ffa541c74930f541f083f931 100644
 --- a/ui/views/widget/desktop_aura/desktop_window_tree_host_win.cc
@@ -34,7 +61,7 @@ index 932351e288f37fd09ae1a43f44e8b51fb0caa4b8..4a0616bc210d234e51e564daabdd2ebd
    // Overridden from WidgetObserver.
    void OnWidgetThemeChanged(Widget* widget) override;
 diff --git a/ui/views/win/hwnd_message_handler.cc b/ui/views/win/hwnd_message_handler.cc
-index 7f29d902ae0a2f980a56e77e6e25935dab3c0685..679efe5af4954d9ddca7bc5ccee6b8d6fac966a3 100644
+index 7f29d902ae0a2f980a56e77e6e25935dab3c0685..ad844f4d6d150aee3e00fd6465600bfb248d79d2 100644
 --- a/ui/views/win/hwnd_message_handler.cc
 +++ b/ui/views/win/hwnd_message_handler.cc
 @@ -3146,15 +3146,19 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,
@@ -59,6 +86,33 @@ index 7f29d902ae0a2f980a56e77e6e25935dab3c0685..679efe5af4954d9ddca7bc5ccee6b8d6
        return 0;
      }
    }
+@@ -3177,6 +3181,7 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,
+     // handle alt-space, or in the frame itself.
+     is_right_mouse_pressed_on_caption_ = false;
+     ReleaseCapture();
++
+     // |point| is in window coordinates, but WM_NCHITTEST and TrackPopupMenu()
+     // expect screen coordinates.
+     POINT screen_point = CR_POINT_INITIALIZER_FROM_LPARAM(l_param);
+@@ -3184,7 +3189,17 @@ LRESULT HWNDMessageHandler::HandleMouseEventInternal(UINT message,
+     w_param = static_cast<WPARAM>(SendMessage(
+         hwnd(), WM_NCHITTEST, 0, MAKELPARAM(screen_point.x, screen_point.y)));
+     if (w_param == HTCAPTION || w_param == HTSYSMENU) {
+-      ShowSystemMenuAtScreenPixelLocation(hwnd(), gfx::Point(screen_point));
++      LONG message_time = GetMessageTime();
++      CHROME_MSG msg = {hwnd(),
++                        message,
++                        w_param,
++                        l_param,
++                        static_cast<DWORD>(message_time),
++                        {CR_GET_X_LPARAM(l_param), CR_GET_Y_LPARAM(l_param)}};
++      ui::MouseEvent event(msg);
++      event.set_is_system_menu(true);
++      if (!delegate_->HandleMouseEvent(&event))
++        ShowSystemMenuAtScreenPixelLocation(hwnd(), gfx::Point(screen_point));
+       return 0;
+     }
+   } else if (message == WM_NCLBUTTONDOWN &&
 diff --git a/ui/views/win/hwnd_message_handler_delegate.h b/ui/views/win/hwnd_message_handler_delegate.h
 index 04dea68d74ea4f559db60f716c919e555db9ec80..2f8bd1a3c156bb6c04663c74b7279bb59926fc3d 100644
 --- a/ui/views/win/hwnd_message_handler_delegate.h
