@@ -1,0 +1,97 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julian Waller <git@julusian.co.uk>
+Date: Fri, 31 Jan 2025 01:10:05 +0000
+Subject: hack: expose verifyAndPrepareUpdateExternal
+
+
+diff --git a/Squirrel/SQRLUpdater.h b/Squirrel/SQRLUpdater.h
+index 87119399e8548e04134d1ee0cd18f85c2ad672c2..3d0435b80b8f23f129edff9b188f32c8af3b48d5 100644
+--- a/Squirrel/SQRLUpdater.h
++++ b/Squirrel/SQRLUpdater.h
+@@ -9,6 +9,8 @@
+ #import <Foundation/Foundation.h>
+ #import <ReactiveObjC/ReactiveObjC.h>
+ 
++#import "SQRLUpdate.h"
++
+ // Represents the current state of the updater.
+ //
+ // SQRLUpdaterStateIdle              - Doing absolutely diddly squat.
+@@ -144,7 +146,7 @@ typedef enum {
+ //
+ // Returns the initialized `SQRLUpdater`.
+ - (id)initWithUpdateRequest:(NSURLRequest *)updateRequest
+-					   forVersion:(NSString*)version;
++					forVersion:(NSString*)version;
+ 
+ // Initializes an updater that will send the given request to check for updates
+ // and passes a block to provide requests for the update downloads.
+@@ -197,6 +199,15 @@ typedef enum {
+ // wrong before termination. The signal will never complete.
+ - (RACSignal *)relaunchToInstallUpdate;
+ 
++// Validates the code signature of the given update bundle, then prepares it for
++// installation.
++//
++// Upon success, the update will be automatically installed after the
++// application terminates.
++//
++// update - Describes the update to verify and prepare. This must not be nil.
++- (RACSignal *)verifyAndPrepareUpdateExternal:(SQRLUpdate *)update fromBundle:(NSBundle *)updateBundle;
++
+ - (BOOL)isRunningOnReadOnlyVolume;
+ - (RACSignal *)updateFromJSONData:(NSData *)data;
+ 
+diff --git a/Squirrel/SQRLUpdater.m b/Squirrel/SQRLUpdater.m
+index 592c7ea51515aab96934e0117df3c8065494fa09..9039276910b6a8b26aabfb385827f9430b3a6e9b 100644
+--- a/Squirrel/SQRLUpdater.m
++++ b/Squirrel/SQRLUpdater.m
+@@ -722,6 +722,48 @@ - (RACSignal *)truncateLogs {
+ 
+ #pragma mark Installing Updates
+ 
++- (RACSignal *)verifyAndPrepareUpdateExternal:(SQRLUpdate *)update fromBundle:(NSBundle *)updateBundle {
++	NSParameterAssert(update != nil);
++	NSParameterAssert(updateBundle != nil);
++
++	if (_signature == nil) {
++		NSError *error = nil;
++		_signature = [SQRLCodeSignature currentApplicationSignature:&error];
++		if (_signature == nil) {
++	#if DEBUG
++			NSLog(@"Could not get code signature for running application, application updates are disabled: %@", error);
++			return nil;
++	#else
++			NSDictionary *exceptionInfo = @{ NSUnderlyingErrorKey: error };
++			@throw [NSException exceptionWithName:NSInternalInconsistencyException reason:@"Could not get code signature for running application" userInfo:exceptionInfo];
++	#endif
++		}
++	}
++
++	if (!_shipItLauncher) {
++		@weakify(self)
++		_shipItLauncher = [[[RACSignal
++			defer:^{
++				@strongify(self);
++
++				NSURL *targetURL = NSRunningApplication.currentApplication.bundleURL;
++
++				BOOL targetWritable = [self canWriteToURL:targetURL];
++				BOOL parentWritable = [self canWriteToURL:targetURL.URLByDeletingLastPathComponent];
++				BOOL launchPrivileged = !targetWritable || !parentWritable;
++				if ([[NSUserDefaults standardUserDefaults] boolForKey:@"SquirrelMacEnableDirectContentsWrite"]) {
++					// If SquirrelMacEnableDirectContentsWrite is enabled we don't care if the parent directory is writeable or not
++					BOOL launchPrivileged = !targetWritable;
++				}
++				return [SQRLShipItLauncher launchPrivileged:launchPrivileged];
++			}]
++			replayLazily]
++			setNameWithFormat:@"shipItLauncher"];
++	}
++
++	return [self verifyAndPrepareUpdate:update fromBundle:updateBundle];
++}
++
+ - (RACSignal *)verifyAndPrepareUpdate:(SQRLUpdate *)update fromBundle:(NSBundle *)updateBundle {
+ 	NSParameterAssert(update != nil);
+ 	NSParameterAssert(updateBundle != nil);
