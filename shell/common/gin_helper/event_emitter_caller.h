@@ -26,10 +26,10 @@ v8::Local<v8::Value> CallMethodWithArgs(v8::Isolate* isolate,
 
 // obj.emit(name, args...);
 // The caller is responsible of allocating a HandleScope.
-template <typename StringType, typename... Args>
+template <typename... Args>
 v8::Local<v8::Value> EmitEvent(v8::Isolate* isolate,
                                v8::Local<v8::Object> obj,
-                               const StringType& name,
+                               const std::string_view name,
                                Args&&... args) {
   v8::EscapableHandleScope scope{isolate};
   std::array<v8::Local<v8::Value>, 1U + sizeof...(args)> converted_args = {
