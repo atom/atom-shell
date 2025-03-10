@@ -55,6 +55,16 @@ There are a few rules to follow for the purposes of this tutorial:
 - _author_, _license_, and _description_ can be any value, but will be necessary for
   [packaging][packaging] later on.
 
+:::caution When using Yarn, use `node_modules` instead of PnP
+
+Modern versions of Yarn uses [Plug'n'Play (PnP)](https://yarnpkg.com/features/pnp) to manage project dependencies, whereas older versions of Yarn used a `node_modules` directory for the same task. Electron is not compatible with the modern PnP. Therefore one must configure modern Yarn to use a `node_modules` directory by creating a `.yarnrc.yml` configuration file at the root of the project directory and set the attribute `nodeLinker` to `node-modules`. Read more in [Yarn's reference](https://yarnpkg.com/configuration/yarnrc#nodeLinker).
+
+```yml
+nodeLinker: node-modules
+```
+
+:::
+
 Then, install Electron into your app's **devDependencies**, which is the list of external
 development-only package dependencies not required in production.
 
