@@ -542,6 +542,67 @@ describe('BrowserWindow module', () => {
         .catch((e) => console.log(e));
       expect(await w.webContents.executeJavaScript('window.ping')).to.equal('pong');
     });
+
+    describe('webRequest', () => {
+      afterEach(() => {
+        session.defaultSession.webRequest.onBeforeRequest(null);
+      });
+
+      it('triggers webRequest handlers for https', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        await expect(w.loadURL('https://foo')).to.eventually.be.rejectedWith(/^ERR_BLOCKED_BY_CLIENT/);
+      });
+
+      it('triggers webRequest handlers for intercepted https', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        session.defaultSession.protocol.handle('https', () => new Response());
+        defer(() => {
+          session.defaultSession.protocol.unhandle('https');
+        });
+
+        await expect(w.loadURL('https://foo')).to.eventually.be.rejectedWith(/^ERR_BLOCKED_BY_CLIENT/);
+      });
+
+      it('triggers webRequest handlers for file urls', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        await expect(w.loadURL('file://foo')).to.eventually.be.rejectedWith(/^ERR_BLOCKED_BY_CLIENT/);
+      });
+
+      it('triggers webRequest handlers for intercepted file urls', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        session.defaultSession.protocol.handle('file', () => new Response());
+        defer(() => {
+          session.defaultSession.protocol.unhandle('file');
+        });
+
+        await expect(w.loadURL('file://foo')).to.eventually.be.rejectedWith(/^ERR_BLOCKED_BY_CLIENT/);
+      });
+
+      it('triggers webRequest handlers for registered protocols', async () => {
+        session.defaultSession.webRequest.onBeforeRequest((_, cb) => {
+          cb({ cancel: true });
+        });
+
+        session.defaultSession.protocol.handle('custom-protocol', () => new Response());
+        defer(() => {
+          session.defaultSession.protocol.unhandle('custom-protocol');
+        });
+
+        await expect(w.loadURL('custom-protocol://foo')).to.eventually.be.rejectedWith(/^ERR_BLOCKED_BY_CLIENT/);
+      });
+    });
   });
 
   for (const sandbox of [false, true]) {

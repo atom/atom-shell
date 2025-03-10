@@ -493,9 +493,6 @@ SimpleURLLoaderWrapper::GetURLLoaderFactoryForURL(const GURL& url) {
     return URLLoaderBundle::GetInstance()->GetSharedURLLoaderFactory();
 
   CHECK(browser_context_);
-  // Explicitly handle intercepted protocols here, even though
-  // ProxyingURLLoaderFactory would handle them later on, so that we can
-  // correctly intercept file:// scheme URLs.
   if (const bool bypass = request_options_ & kBypassCustomProtocolHandlers;
       !bypass) {
     const std::string_view scheme = url.scheme_piece();
@@ -503,26 +500,20 @@ SimpleURLLoaderWrapper::GetURLLoaderFactoryForURL(const GURL& url) {
         ProtocolRegistry::FromBrowserContext(browser_context_);
 
     if (const auto* const protocol_handler =
-            protocol_registry->FindIntercepted(scheme)) {
-      return network::SharedURLLoaderFactory::Create(
-          std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-              ElectronURLLoaderFactory::Create(protocol_handler->first,
-                                               protocol_handler->second)));
-    }
-
-    if (const auto* const protocol_handler =
             protocol_registry->FindRegistered(scheme)) {
-      return network::SharedURLLoaderFactory::Create(
-          std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-              ElectronURLLoaderFactory::Create(protocol_handler->first,
-                                               protocol_handler->second)));
+      return browser_context_->InterceptURLLoaderFactory(
+          network::SharedURLLoaderFactory::Create(
+              std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+                  ElectronURLLoaderFactory::Create(protocol_handler->first,
+                                                   protocol_handler->second))));
     }
   }
 
   if (url.SchemeIsFile()) {
-    return network::SharedURLLoaderFactory::Create(
-        std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
-            AsarURLLoaderFactory::Create()));
+    return browser_context_->InterceptURLLoaderFactory(
+        network::SharedURLLoaderFactory::Create(
+            std::make_unique<network::WrapperPendingSharedURLLoaderFactory>(
+                AsarURLLoaderFactory::Create())));
   }
 
   return browser_context_->GetURLLoaderFactory();
