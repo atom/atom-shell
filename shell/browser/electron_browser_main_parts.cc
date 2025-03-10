@@ -344,9 +344,6 @@ int ElectronBrowserMainParts::PreCreateThreads() {
   // Force MediaCaptureDevicesDispatcher to be created on UI thread.
   MediaCaptureDevicesDispatcher::GetInstance();
 
-  // Force MediaCaptureDevicesDispatcher to be created on UI thread.
-  MediaCaptureDevicesDispatcher::GetInstance();
-
 #if BUILDFLAG(IS_MAC)
   ui::InitIdleMonitor();
   Browser::Get()->ApplyForcedRTL();
