@@ -349,6 +349,11 @@ Returns:
 * `authenticationResponseDetails` Object
   * `url` URL
   * `pid` number
+  * `isMainFrame` boolean (optional) - Indicates whether the request is for the main frame.
+  * `isRequestForNavigation` boolean (optional) - Indicates whether the request is for a navigation.
+  * `firstAuthAttempt` boolean (optional) - Indicates whether this is the first authentication attempt.
+  * `responseHeaders` Object (optional) - The headers returned in the response.
+
 * `authInfo` Object
   * `isProxy` boolean
   * `scheme` string
