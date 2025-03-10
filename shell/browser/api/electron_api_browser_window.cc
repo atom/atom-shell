@@ -91,7 +91,7 @@ BrowserWindow::BrowserWindow(gin::Arguments* args,
   // Note that |GetContentsView|, confusingly, does not refer to the same thing
   // as |BaseWindow::GetContentView|.
   window()->GetContentsView()->AddChildViewAt(web_contents_view->view(), 0);
-  window()->GetContentsView()->DeprecatedLayoutImmediately();
+  window()->GetContentsView()->InvalidateLayout();
 
   // Init window after everything has been setup.
   window()->InitFromOptions(options);
